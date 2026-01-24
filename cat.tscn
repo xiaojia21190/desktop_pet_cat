@@ -1,0 +1,169 @@
+[gd_scene load_steps=31 format=3 uid="uid://cm0eyq8q1mypy"]
+
+[ext_resource type="Script" path="res://cat.gd" id="1_cat"]
+[ext_resource type="Script" path="res://components/state_machine.gd" id="2_sm"]
+[ext_resource type="Script" path="res://states/cat_idle_state.gd" id="3_idle"]
+[ext_resource type="Script" path="res://states/cat_walking_state.gd" id="4_walk"]
+[ext_resource type="Script" path="res://states/cat_watching_state.gd" id="5_watch"]
+[ext_resource type="Script" path="res://states/cat_pouncing_state.gd" id="6_pounce"]
+[ext_resource type="Script" path="res://states/cat_chasing_state.gd" id="7_chase"]
+[ext_resource type="Script" path="res://states/cat_blocking_state.gd" id="18_block"]
+[ext_resource type="Script" path="res://states/cat_rolling_state.gd" id="8_roll"]
+[ext_resource type="Script" path="res://states/cat_typing_attack_state.gd" id="9_typing"]
+[ext_resource type="Script" path="res://states/cat_tail_wagging_state.gd" id="10_tail"]
+[ext_resource type="Script" path="res://states/cat_ignoring_state.gd" id="11_ignore"]
+[ext_resource type="Script" path="res://states/cat_eating_state.gd" id="12_eat"]
+[ext_resource type="Script" path="res://states/cat_carrying_state.gd" id="13_carry"]
+[ext_resource type="Script" path="res://components/cat_input_component.gd" id="14_input"]
+[ext_resource type="Script" path="res://components/cat_animation_component.gd" id="15_anim"]
+[ext_resource type="Script" path="res://components/cat_item_detector.gd" id="16_item"]
+[ext_resource type="Texture2D" uid="uid://grdxay2r3laf" path="res://assets/Orange Tabby.png" id="17_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 50.0
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1"]
+atlas = ExtResource("17_tex")
+region = Rect2(0, 0, 170, 139)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2"]
+atlas = ExtResource("17_tex")
+region = Rect2(170, 0, 170, 139)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3"]
+atlas = ExtResource("17_tex")
+region = Rect2(340, 0, 170, 139)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4"]
+atlas = ExtResource("17_tex")
+region = Rect2(510, 0, 170, 139)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5"]
+atlas = ExtResource("17_tex")
+region = Rect2(680, 0, 170, 139)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6"]
+atlas = ExtResource("17_tex")
+region = Rect2(850, 0, 170, 139)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_default"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6")
+}],
+"loop": true,
+"name": &"idle_stand",
+"speed": 5.0
+}]
+
+[node name="Cat" type="CharacterBody2D"]
+script = ExtResource("1_cat")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_1")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_default")
+animation = &"idle_stand"
+
+[node name="StateMachine" type="Node" parent="."]
+script = ExtResource("2_sm")
+initial_state_name = &"Idle"
+
+[node name="Idle" type="Node" parent="StateMachine"]
+script = ExtResource("3_idle")
+watch_chance = 0.01
+
+[node name="Walking" type="Node" parent="StateMachine"]
+script = ExtResource("4_walk")
+walk_speed = 100.0
+
+[node name="Watching" type="Node" parent="StateMachine"]
+script = ExtResource("5_watch")
+watch_duration = 2.0
+
+[node name="Pouncing" type="Node" parent="StateMachine"]
+script = ExtResource("6_pounce")
+pounce_speed = 300.0
+pounce_duration = 1.0
+
+[node name="Chasing" type="Node" parent="StateMachine"]
+script = ExtResource("7_chase")
+chase_speed = 300.0
+catch_distance_sq = 2500.0
+
+[node name="Blocking" type="Node" parent="StateMachine"]
+script = ExtResource("18_block")
+
+[node name="Rolling" type="Node" parent="StateMachine"]
+script = ExtResource("8_roll")
+roll_speed = 5.0
+roll_duration = 2.0
+
+[node name="TypingAttack" type="Node" parent="StateMachine"]
+script = ExtResource("9_typing")
+attack_speed = 300.0
+attack_duration = 1.5
+
+[node name="TailWagging" type="Node" parent="StateMachine"]
+script = ExtResource("10_tail")
+wag_speed = 10.0
+wag_amplitude = 0.3
+wag_duration = 2.0
+
+[node name="Ignoring" type="Node" parent="StateMachine"]
+script = ExtResource("11_ignore")
+ignore_duration = 3.0
+
+[node name="Eating" type="Node" parent="StateMachine"]
+script = ExtResource("12_eat")
+walk_speed = 100.0
+eat_duration = 2.0
+interact_distance_sq = 1600.0
+
+[node name="Carrying" type="Node" parent="StateMachine"]
+script = ExtResource("13_carry")
+carry_speed = 140.0
+carry_duration = 3.0
+carry_offset = Vector2(20, -20)
+
+[node name="InputComponent" type="Node" parent="."]
+script = ExtResource("14_input")
+click_distance_sq = 10000.0
+click_threshold_time = 0.2
+click_threshold_dist_sq = 100.0
+head_offset = Vector2(0, -40)
+tail_offset = Vector2(-50, 20)
+body_radius_sq = 2500.0
+head_radius_sq = 900.0
+tail_radius_sq = 625.0
+
+[node name="AnimationComponent" type="Node" parent="."]
+script = ExtResource("15_anim")
+animated_sprite_path = NodePath("../AnimatedSprite2D")
+
+[node name="ItemDetector" type="Node" parent="."]
+script = ExtResource("16_item")
+detect_radius = 120.0
+check_interval = 0.3
+food_ignore_chance = 0.5
+food_eat_chance = 0.3
+food_carry_chance = 0.2
+wand_ignore_chance = 0.7
+wand_chase_chance = 0.3

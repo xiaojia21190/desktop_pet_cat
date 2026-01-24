@@ -28,32 +28,32 @@ orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green 
 
 #### 1. 站立 (idle_stand) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, standing idle animation, slight breathing motion, ears twitching, tail gentle sway
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, standing idle animation, slight breathing motion, ears twitching, tail gentle sway
 ```
 
 #### 2. 坐下 (idle_sit) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sitting pose animation, front paws together, tail wrapped around body, relaxed expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sitting pose animation, front paws together, tail wrapped around body, relaxed expression
 ```
 
 #### 3. 趴下 (idle_lie) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, lying down animation, sphinx pose, head up alert, paws forward
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, lying down animation, sphinx pose, head up alert, paws forward
 ```
 
 #### 4. 睡觉 (sleep) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sleeping animation, curled up ball, eyes closed, peaceful breathing
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sleeping animation, curled up ball, eyes closed, peaceful breathing
 ```
 
 #### 5. 伸懒腰 (stretch) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, stretching animation, front legs extended, back arched, yawning
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, stretching animation, front legs extended, back arched, yawning
 ```
 
 #### 6. 打哈欠 (yawn) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, yawning animation, mouth wide open, eyes squinting, sleepy expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, yawning animation, mouth wide open, eyes squinting, sleepy expression
 ```
 
 #### 7. 行走 (walk) - 8帧
@@ -63,72 +63,72 @@ orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green 
 
 #### 8. 小跑 (trot) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, trotting animation, faster pace, bouncy movement, happy expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, trotting animation, faster pace, bouncy movement, happy expression
 ```
 
 #### 9. 奔跑 (run) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, running animation cycle, fast sprint, legs extended, determined look
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, running animation cycle, fast sprint, legs extended, determined look
 ```
 
 #### 10. 跳跃 (jump) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, jumping animation, leap in air, legs tucked, excited expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, jumping animation, leap in air, legs tucked, excited expression
 ```
 
 #### 11. 落地 (land) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, landing animation, front paws first, slight crouch, absorbing impact
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, landing animation, front paws first, slight crouch, absorbing impact
 ```
 
 #### 12. 转身 (turn) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, turning around animation, body rotation, tail following, curious look
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, turning around animation, body rotation, tail following, curious look
 ```
 
 #### 13. 注视 (watch) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, watching intently, big curious eyes, ears forward, head tilting, focused
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, watching intently, big curious eyes, ears forward, head tilting, focused
 ```
 
 #### 14. 扑击准备 (pounce_ready) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, crouching ready to pounce, butt wiggle, tail twitching, hunting pose
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, crouching ready to pounce, butt wiggle, tail twitching, hunting pose
 ```
 
 #### 15. 扑击 (pounce) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, pouncing attack, leaping forward, claws out, playful aggression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, pouncing attack, leaping forward, claws out, playful aggression
 ```
 
 #### 16. 躲闪 (dodge) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, dodging sideways, quick evasive move, startled expression, fur puffed
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, dodging sideways, quick evasive move, startled expression, fur puffed
 ```
 
 #### 17. 被吓到 (startled) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, startled reaction, fur standing up, arched back, wide eyes, tail puffed
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, startled reaction, fur standing up, arched back, wide eyes, tail puffed
 ```
 
 #### 18. 无视转头 (ignore) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, looking away dismissively, nose up in air, eyes closed, tsundere pose
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, looking away dismissively, nose up in air, eyes closed, tsundere pose
 ```
 
 #### 19. 傲娇走开 (walk_away) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, walking away proudly, tail high, not looking back, smug expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, walking away proudly, tail high, not looking back, smug expression
 ```
 
 #### 20. 偷看 (peek) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, peeking sideways, pretending not to care, one eye open, curious but hiding it
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, peeking sideways, pretending not to care, one eye open, curious but hiding it
 ```
 
 #### 21. 甩尾 (tail_wag) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, tail wagging animation, annoyed swishing, ears back slightly
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, tail wagging animation, annoyed swishing, ears back slightly
 ```
 
 #### 22. 翻滚 (roll) - 8帧
@@ -138,92 +138,92 @@ orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green 
 
 #### 23. 偷吃 (sneak_eat) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sneaking to eat, looking around nervously, quick bites, guilty expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sneaking to eat, looking around nervously, quick bites, guilty expression
 ```
 
 #### 24. 舔毛 (lick) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, grooming animation, licking paw, cleaning face, eyes half closed
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, grooming animation, licking paw, cleaning face, eyes half closed
 ```
 
 #### 25. 喝水 (drink) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, drinking water animation, head bobbing down, tongue lapping
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, drinking water animation, head bobbing down, tongue lapping
 ```
 
 #### 26. 吃东西 (eat) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, eating animation, head down, chewing motion, happy satisfied look
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, eating animation, head down, chewing motion, happy satisfied look
 ```
 
 #### 27. 叼东西 (carry) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, carrying object in mouth, walking with item, proud expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, carrying object in mouth, walking with item, proud expression
 ```
 
 #### 28. 磨爪 (scratch) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, scratching animation, claws extended, scratching motion, focused
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, scratching animation, claws extended, scratching motion, focused
 ```
 
 #### 29. 攻击键盘 (typing_attack) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, paw pressing down animation, typing on keyboard, mischievous look
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, paw pressing down animation, typing on keyboard, mischievous look
 ```
 
 #### 30. 推东西 (push) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, pushing object with paw, concentrated expression, determined
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, pushing object with paw, concentrated expression, determined
 ```
 
 #### 31. 惊讶 (surprised) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, surprised expression, wide eyes, ears perked up, mouth slightly open
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, surprised expression, wide eyes, ears perked up, mouth slightly open
 ```
 
 #### 32. 开心 (happy) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, happy expression, eyes closed smile, whiskers up, content
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, happy expression, eyes closed smile, whiskers up, content
 ```
 
 #### 33. 生气 (angry) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, angry expression, ears flat, narrowed eyes, hissing pose
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, angry expression, ears flat, narrowed eyes, hissing pose
 ```
 
 #### 34. 委屈 (sad) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sad expression, droopy ears, teary eyes, pouting
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sad expression, droopy ears, teary eyes, pouting
 ```
 
 #### 35. 困惑 (confused) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, confused expression, head tilted, question mark above head, one ear up one down
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, confused expression, head tilted, question mark above head, one ear up one down
 ```
 
 #### 36. 发呆 (daze) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, daydreaming, blank stare, slightly open mouth, zoned out
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, daydreaming, blank stare, slightly open mouth, zoned out
 ```
 
 #### 37. 打喷嚏 (sneeze) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sneezing animation, building up, big sneeze, recovery, cute achoo
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, sneezing animation, building up, big sneeze, recovery, cute achoo
 ```
 
 #### 38. 摸头撒娇 (head_pat_happy) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, enjoying head pat, eyes closed blissfully, purring, leaning into touch
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, enjoying head pat, eyes closed blissfully, purring, leaning into touch
 ```
 
 #### 39. 摸头躲闪 (head_pat_dodge) - 4帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, dodging head pat, ducking away, annoyed expression, ears back
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 4 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, dodging head pat, ducking away, annoyed expression, ears back
 ```
 
 #### 40. 踩奶 (kneading) - 6帧
 ```
-2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 8 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, kneading animation, alternating paws pressing, happy relaxed expression
+2D pixel art sprite sheet, cute kawaii cat character, chibi style, transparent background, 170x139 pixels per frame, 6 frames per row, consistent art style, soft pastel colors, clean lines, game asset, side view, orange tabby cat, ginger cat, warm orange fur with darker stripes, yellow-green eyes, pink nose, fluffy tail, kneading animation, alternating paws pressing, happy relaxed expression
 ```
 
 ---

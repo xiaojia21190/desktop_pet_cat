@@ -1,64 +1,175 @@
 extends Node
 class_name SpriteFramesGenerator
 
-# 从精灵图动态生成 SpriteFrames 资源
-# 使用方法：
-#   var generator = SpriteFramesGenerator.new()
-#   var sprite_frames = generator.generate("orange_tabby")
-#   animated_sprite.sprite_frames = sprite_frames
+## 从 sprite_manifest.json 动态生成 SpriteFrames 资源（单动作单图模式）
+## 使用方法：
+##   var sprite_frames = SpriteFramesGenerator.generate("orange_tabby")
+##   animated_sprite.sprite_frames = sprite_frames
 
 # 缓存已生成的 SpriteFrames
 static var _cache: Dictionary = {}
+static var _manifest_cache: Dictionary = {}
+static var _manifest_mtime: int = -1
+
+const SPRITE_MANIFEST_PATH := "res://resources/sprite_manifest.json"
 
 # 生成指定猫咪类型的 SpriteFrames
 static func generate(cat_type: String) -> SpriteFrames:
+	_ensure_manifest_loaded()
+
 	# 检查缓存
 	if _cache.has(cat_type):
 		return _cache[cat_type]
 
-	# 获取猫咪配置
-	if not AnimationConfig.CAT_TYPES.has(cat_type):
-		push_error("未知的猫咪类型: " + cat_type)
+	var cat_actions := _build_cat_actions(cat_type)
+	if cat_actions.is_empty():
+		push_error("未找到猫咪动作配置: " + cat_type)
 		return null
-
-	var cat_config = AnimationConfig.CAT_TYPES[cat_type]
-	var texture = load(cat_config.sprite_path) as Texture2D
-
-	if not texture:
-		push_error("无法加载精灵图: " + cat_config.sprite_path)
-		return null
+	var missing_state_keys := AnimationConfig.validate_state_animation_keys(cat_actions)
+	if not missing_state_keys.is_empty():
+		push_warning("状态映射缺少动画 key: " + ", ".join(missing_state_keys))
 
 	# 创建 SpriteFrames
-	var sprite_frames = _create_sprite_frames(texture)
+	var sprite_frames := _create_sprite_frames(cat_actions)
+	if sprite_frames == null:
+		return null
 
 	# 缓存结果
 	_cache[cat_type] = sprite_frames
 
-	print("已生成 SpriteFrames: ", cat_type, " (", AnimationConfig.ANIMATIONS.size(), " 个动画)")
+	print("已生成 SpriteFrames: ", cat_type, " (", cat_actions.size(), " 个动画)")
 	return sprite_frames
 
-# 从纹理创建 SpriteFrames
-static func _create_sprite_frames(texture: Texture2D) -> SpriteFrames:
-	var sf = SpriteFrames.new()
+static func _ensure_manifest_loaded() -> void:
+	var mtime := int(FileAccess.get_modified_time(SPRITE_MANIFEST_PATH))
+	if _manifest_cache.is_empty():
+		_load_manifest(mtime)
+		return
+
+	if mtime != _manifest_mtime:
+		clear_cache()
+		_load_manifest(mtime)
+
+static func _load_manifest(mtime: int) -> void:
+	_manifest_cache.clear()
+	_manifest_mtime = mtime
+
+	if not FileAccess.file_exists(SPRITE_MANIFEST_PATH):
+		push_error("sprite manifest 不存在: " + SPRITE_MANIFEST_PATH)
+		return
+
+	var file := FileAccess.open(SPRITE_MANIFEST_PATH, FileAccess.READ)
+	if file == null:
+		push_error("无法读取 sprite manifest: " + SPRITE_MANIFEST_PATH)
+		return
+
+	var content := file.get_as_text()
+	file.close()
+	var parsed = JSON.parse_string(content)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		push_error("sprite manifest JSON 格式无效: " + SPRITE_MANIFEST_PATH)
+		return
+
+	_manifest_cache = parsed as Dictionary
+
+static func _build_cat_actions(cat_type: String) -> Dictionary:
+	if _manifest_cache.is_empty():
+		return {}
+
+	var cats_raw = _manifest_cache.get("cats", {})
+	if typeof(cats_raw) != TYPE_DICTIONARY:
+		return {}
+	var cats := cats_raw as Dictionary
+
+	if not cats.has(cat_type):
+		return {}
+	var cat_entry_raw = cats.get(cat_type, {})
+	if typeof(cat_entry_raw) != TYPE_DICTIONARY:
+		return {}
+	var cat_entry := cat_entry_raw as Dictionary
+
+	var global_actions_raw = _manifest_cache.get("actions", {})
+	if typeof(global_actions_raw) != TYPE_DICTIONARY:
+		return {}
+	var global_actions := global_actions_raw as Dictionary
+
+	var defaults_raw = _manifest_cache.get("defaults", {})
+	var defaults: Dictionary = {}
+	if typeof(defaults_raw) == TYPE_DICTIONARY:
+		defaults = defaults_raw as Dictionary
+
+	var sheet_path := String(cat_entry.get("sheet_path", ""))
+	var action_overrides_raw = cat_entry.get("actions", {})
+	var action_overrides: Dictionary = {}
+	if typeof(action_overrides_raw) == TYPE_DICTIONARY:
+		action_overrides = action_overrides_raw as Dictionary
+
+	var result: Dictionary = {}
+	for action_key in global_actions:
+		var action_name := String(action_key)
+		var spec_raw = global_actions[action_key]
+		if typeof(spec_raw) != TYPE_DICTIONARY:
+			continue
+		var spec := (spec_raw as Dictionary).duplicate(true)
+		if not spec.has("path") and not sheet_path.is_empty():
+			spec["path"] = sheet_path
+
+		if not spec.has("columns"):
+			spec["columns"] = int(defaults.get("columns", AnimationConfig.COLUMNS))
+		if not spec.has("frame_width"):
+			spec["frame_width"] = int(defaults.get("frame_width", int(AnimationConfig.FRAME_SIZE.x)))
+		if not spec.has("frame_height"):
+			spec["frame_height"] = int(defaults.get("frame_height", int(AnimationConfig.FRAME_SIZE.y)))
+
+		if action_overrides.has(action_name):
+			var override_raw = action_overrides[action_name]
+			if typeof(override_raw) == TYPE_DICTIONARY:
+				spec.merge(override_raw as Dictionary, true)
+
+		result[action_name] = spec
+
+	return result
+
+# 从动作配置创建 SpriteFrames
+static func _create_sprite_frames(cat_actions: Dictionary) -> SpriteFrames:
+	var sf := SpriteFrames.new()
 
 	# 移除默认动画
 	if sf.has_animation("default"):
 		sf.remove_animation("default")
 
-	# 遍历所有动画配置
-	for anim_name in AnimationConfig.ANIMATIONS:
-		var config = AnimationConfig.ANIMATIONS[anim_name]
-		_add_animation(sf, texture, anim_name, config)
+	for action_key in cat_actions:
+		var anim_name := String(action_key)
+		var config_raw = cat_actions[action_key]
+		if typeof(config_raw) != TYPE_DICTIONARY:
+			continue
+		_add_animation(sf, anim_name, config_raw as Dictionary)
+
+	# 最少保证有一个可播放动作，避免后续播放报错。
+	if sf.get_animation_names().is_empty():
+		return null
 
 	return sf
 
 # 添加单个动画
-static func _add_animation(sf: SpriteFrames, texture: Texture2D, anim_name: String, config: Dictionary):
-	var row = config.get("row", 0)
-	var frames = config.get("frames", 1)
-	var speed = config.get("speed", 5.0)
-	var loop = config.get("loop", true)
-	var col_start = config.get("col_start", 0)
+static func _add_animation(sf: SpriteFrames, anim_name: String, config: Dictionary) -> void:
+	var texture_path := String(config.get("path", ""))
+	if texture_path.is_empty():
+		return
+
+	var texture := load(texture_path) as Texture2D
+	if texture == null:
+		push_warning("动画纹理加载失败: %s (%s)" % [anim_name, texture_path])
+		return
+
+	var row: int = int(config.get("row", 0))
+	var frames: int = int(config.get("frames", 1))
+	var speed: float = float(config.get("speed", 5.0))
+	var loop: bool = bool(config.get("loop", true))
+	var col_start: int = int(config.get("col_start", 0))
+	var columns: int = max(1, int(config.get("columns", AnimationConfig.COLUMNS)))
+	var frame_width: int = max(1, int(config.get("frame_width", int(AnimationConfig.FRAME_SIZE.x))))
+	var frame_height: int = max(1, int(config.get("frame_height", int(AnimationConfig.FRAME_SIZE.y))))
 
 	# 添加动画
 	sf.add_animation(anim_name)
@@ -67,33 +178,38 @@ static func _add_animation(sf: SpriteFrames, texture: Texture2D, anim_name: Stri
 
 	# 添加帧
 	for i in range(frames):
-		var col = col_start + i
+		var col: int = col_start + i
 
 		# 如果超出当前行，换到下一行
-		var actual_row = row + (col / AnimationConfig.COLUMNS)
-		var actual_col = col % AnimationConfig.COLUMNS
+		var actual_row: int = row + int(col / columns)
+		var actual_col: int = col % columns
 
-		var atlas = AtlasTexture.new()
+		var atlas := AtlasTexture.new()
 		atlas.atlas = texture
 		atlas.region = Rect2(
-			actual_col * AnimationConfig.FRAME_SIZE.x,
-			actual_row * AnimationConfig.FRAME_SIZE.y,
-			AnimationConfig.FRAME_SIZE.x,
-			AnimationConfig.FRAME_SIZE.y
+			float(actual_col * frame_width),
+			float(actual_row * frame_height),
+			float(frame_width),
+			float(frame_height)
 		)
 
 		sf.add_frame(anim_name, atlas)
 
 # 清除缓存
-static func clear_cache():
+static func clear_cache() -> void:
 	_cache.clear()
 
 # 获取所有可用的猫咪类型
 static func get_available_cat_types() -> Array:
+	_ensure_manifest_loaded()
+	if not _manifest_cache.is_empty():
+		var cats_raw = _manifest_cache.get("cats", {})
+		if typeof(cats_raw) == TYPE_DICTIONARY:
+			return (cats_raw as Dictionary).keys()
 	return AnimationConfig.CAT_TYPES.keys()
 
 # 预加载所有猫咪的 SpriteFrames
-static func preload_all():
-	for cat_type in AnimationConfig.CAT_TYPES:
-		generate(cat_type)
+static func preload_all() -> void:
+	for cat_type in get_available_cat_types():
+		generate(String(cat_type))
 	print("已预加载所有猫咪动画")

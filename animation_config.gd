@@ -84,6 +84,23 @@ static func get_animation_config(anim_name: String) -> Dictionary:
 		return anim.to_dict()
 	return {}
 
+# 校验状态映射里引用的动画 key 是否在可用动作集合中
+static func validate_state_animation_keys(available_actions: Dictionary) -> Array[String]:
+	var missing: Array[String] = []
+	var state_map = STATE_ANIMATION_MAP
+	for state_key in state_map:
+		var anims_raw = state_map[state_key]
+		if typeof(anims_raw) != TYPE_ARRAY:
+			continue
+		var anims: Array = anims_raw as Array
+		for anim_name_raw in anims:
+			var anim_name := String(anim_name_raw)
+			if anim_name.is_empty():
+				continue
+			if not available_actions.has(anim_name) and not missing.has(anim_name):
+				missing.append(anim_name)
+	return missing
+
 # 重新加载配置
 static func reload_config():
 	_config_resource = null

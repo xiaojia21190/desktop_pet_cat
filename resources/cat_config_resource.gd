@@ -118,38 +118,107 @@ static func create_default() -> CatConfigResource:
 	tuxedo.description = "绅士的燕尾服猫"
 	res.cat_types.append(tuxedo)
 
-	# 添加默认动画
-	var idle_stand = CatAnimationData.new()
-	idle_stand.animation_name = "idle_stand"
-	idle_stand.row = 0
-	idle_stand.frames = 6
-	idle_stand.speed = 5.0
-	idle_stand.loop = true
-	res.animations.append(idle_stand)
+	# 添加默认动画（与 sprite_manifest 的 key 对齐，便于编辑器识别）
+	var default_animations: Array[Dictionary] = [
+		{"name": "idle_stand", "row": 0, "frames": 6, "speed": 5.0, "loop": true},
+		{"name": "idle_active", "row": 1, "frames": 6, "speed": 7.0, "loop": true},
+		{"name": "idle_sit", "row": 1, "frames": 6, "speed": 5.0, "loop": true},
+		{"name": "idle_lie", "row": 2, "frames": 6, "speed": 4.0, "loop": true},
+		{"name": "sleep_curl", "row": 3, "frames": 4, "speed": 3.0, "loop": true},
+		{"name": "stretch", "row": 4, "frames": 6, "speed": 6.0, "loop": false},
+		{"name": "yawn", "row": 5, "frames": 6, "speed": 6.0, "loop": false},
+		{"name": "walk", "row": 0, "frames": 8, "speed": 8.0, "loop": true},
+		{"name": "trot", "row": 1, "frames": 6, "speed": 9.0, "loop": true},
+		{"name": "run", "row": 2, "frames": 6, "speed": 11.0, "loop": true},
+		{"name": "jump", "row": 3, "frames": 4, "speed": 8.0, "loop": false},
+		{"name": "land", "row": 4, "frames": 4, "speed": 8.0, "loop": false},
+		{"name": "retreat", "row": 5, "frames": 6, "speed": 8.0, "loop": false},
+		{"name": "watch_focus", "row": 0, "frames": 4, "speed": 6.0, "loop": true},
+		{"name": "pounce_ready", "row": 1, "frames": 4, "speed": 8.0, "loop": true},
+		{"name": "pounce_attack", "row": 2, "frames": 4, "speed": 10.0, "loop": false},
+		{"name": "dodge", "row": 3, "frames": 4, "speed": 10.0, "loop": false},
+		{"name": "startled", "row": 4, "frames": 4, "speed": 8.0, "loop": false},
+		{"name": "lick_groom", "row": 5, "frames": 6, "speed": 7.0, "loop": true},
+		{"name": "tail_wag", "row": 1, "frames": 6, "speed": 8.0, "loop": true},
+		{"name": "typing_attack", "row": 2, "frames": 6, "speed": 10.0, "loop": true},
+		{"name": "blocking", "row": 3, "frames": 6, "speed": 8.0, "loop": true},
+		{"name": "chasing", "row": 0, "frames": 6, "speed": 10.0, "loop": true},
+		{"name": "rolling", "row": 4, "frames": 6, "speed": 9.0, "loop": false},
+		{"name": "eat", "row": 2, "frames": 6, "speed": 7.0, "loop": true},
+		{"name": "carry", "row": 2, "frames": 6, "speed": 7.0, "loop": true},
+		{"name": "greet", "row": 1, "frames": 6, "speed": 8.0, "loop": false},
+		{"name": "celebrate", "row": 4, "frames": 6, "speed": 9.0, "loop": false},
+		{"name": "comfort", "row": 5, "frames": 6, "speed": 6.0, "loop": false},
+		{"name": "break_hint", "row": 5, "frames": 6, "speed": 6.0, "loop": false},
+		{"name": "head_pat_happy", "row": 1, "frames": 6, "speed": 8.0, "loop": false},
+		{"name": "head_pat_dodge", "row": 3, "frames": 4, "speed": 9.0, "loop": false},
+		{"name": "angry", "row": 4, "frames": 4, "speed": 8.0, "loop": false},
+		{"name": "daze", "row": 5, "frames": 4, "speed": 4.0, "loop": true},
+		{"name": "watch", "row": 0, "frames": 4, "speed": 6.0, "loop": true},
+		{"name": "pounce", "row": 2, "frames": 4, "speed": 10.0, "loop": false},
+		{"name": "sleep", "row": 3, "frames": 4, "speed": 3.0, "loop": true},
+		{"name": "sneak_eat", "row": 2, "frames": 6, "speed": 7.0, "loop": false},
+		{"name": "lick", "row": 5, "frames": 6, "speed": 7.0, "loop": false},
+		{"name": "happy", "row": 4, "frames": 6, "speed": 9.0, "loop": false},
+		{"name": "peek", "row": 0, "frames": 4, "speed": 6.0, "loop": true},
+		{"name": "walk_away", "row": 5, "frames": 6, "speed": 8.0, "loop": false},
+		{"name": "ignore", "row": 5, "frames": 4, "speed": 4.0, "loop": true},
+		{"name": "kneading", "row": 1, "frames": 6, "speed": 6.0, "loop": true}
+	]
 
-	var idle_active = CatAnimationData.new()
-	idle_active.animation_name = "idle_active"
-	idle_active.row = 1
-	idle_active.frames = 6
-	idle_active.speed = 7.0
-	idle_active.loop = true
-	res.animations.append(idle_active)
+	for anim_cfg in default_animations:
+		var anim := CatAnimationData.new()
+		anim.animation_name = String(anim_cfg.get("name", ""))
+		anim.row = int(anim_cfg.get("row", 0))
+		anim.frames = int(anim_cfg.get("frames", 1))
+		anim.speed = float(anim_cfg.get("speed", 5.0))
+		anim.loop = bool(anim_cfg.get("loop", true))
+		anim.col_start = int(anim_cfg.get("col_start", 0))
+		res.animations.append(anim)
 
-	# 状态映射
+	# 状态映射（新旧 key 并存）
 	res.state_animation_map = {
-		"IDLE": ["idle_stand"],
-		"WALKING": ["idle_active"],
-		"WATCHING": ["idle_stand"],
-		"POUNCING": ["idle_active"],
-		"CHASING_MOUSE": ["idle_active"],
-		"BLOCKING_MOUSE": ["idle_active"],
-		"ROLLING": ["idle_active"],
-		"TYPING_ATTACK": ["idle_active"],
-		"TAIL_WAGGING": ["idle_active"],
-		"DRINKING": ["idle_stand"],
-		"EATING": ["idle_active"],
-		"CARRYING": ["idle_active"],
-		"IGNORING": ["idle_stand"],
+		"IDLE": ["idle_stand", "idle_sit", "idle_lie"],
+		"WALKING": ["walk"],
+		"WATCHING": ["watch_focus"],
+		"POUNCING": ["pounce_attack"],
+		"CHASING": ["chasing"],
+		"BLOCKING": ["blocking"],
+		"ROLLING": ["rolling"],
+		"TYPING_ATTACK": ["typing_attack"],
+		"TAIL_WAGGING": ["tail_wag"],
+		"EATING": ["eat"],
+		"CARRYING": ["carry"],
+		"IGNORING": ["retreat", "idle_lie"],
+		"LICKING": ["lick_groom"],
+		"SLEEP_CURL": ["sleep_curl"],
+		"GREET": ["greet"],
+		"CELEBRATE": ["celebrate"],
+		"COMFORT": ["comfort"],
+		"BREAK_HINT": ["break_hint"],
+
+		"CHASING_MOUSE": ["chasing"],
+		"BLOCKING_MOUSE": ["blocking"],
+		"DRINKING": ["idle_lie"],
+
+		"watch": ["watch_focus"],
+		"pounce_ready": ["pounce_ready"],
+		"pounce": ["pounce_attack"],
+		"yawn": ["yawn"],
+		"idle_lie": ["idle_lie"],
+		"sleep": ["sleep_curl"],
+		"sneak_eat": ["sneak_eat"],
+		"eat": ["eat"],
+		"lick": ["lick_groom"],
+		"happy": ["celebrate"],
+		"startled": ["startled"],
+		"run": ["run"],
+		"peek": ["peek"],
+		"trot": ["trot"],
+		"tail_wag": ["tail_wag"],
+		"angry": ["angry"],
+		"walk_away": ["walk_away"],
+		"ignore": ["retreat"]
 	}
 
 	return res

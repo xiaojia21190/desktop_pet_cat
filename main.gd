@@ -2,6 +2,7 @@ extends Node2D
 @onready var cat = $Cat
 @onready var typing_effect_overlay = $TypingEffectOverlay
 const FOCUS_SESSION_MODE_SCRIPT := preload("res://focus_session_mode.gd")
+const SMART_PET_CONTROLLER_SCRIPT := preload("res://smart_pet_controller.gd")
 var is_shaking = false
 var shake_timer = 0.0
 var shake_duration = 0.5
@@ -28,6 +29,7 @@ var timed_hide_option := 0
 var timed_hide_end_time := 0
 var timed_hide_timer: Timer
 var focus_session_mode
+var smart_pet_controller
 
 # 悬浮面板相关
 var hover_panel: Panel
@@ -82,6 +84,8 @@ func _ready():
 		add_child(settings_panel)
 
 	_setup_focus_session_mode()
+	_setup_smart_pet_controller(settings)
+	_record_smart_event("session_resume")
 	_setup_tray()
 
 func _exit_tree():
@@ -192,6 +196,7 @@ func _on_timed_hide_timeout():
 		timed_hide_option = 0
 		_sync_timed_hide_panel()
 		SaveManager.save_data()
+	_record_smart_event("user_busy")
 	_set_pet_visible(false)
 
 func _sync_timed_hide_panel():
@@ -209,12 +214,30 @@ func _setup_focus_session_mode() -> void:
 	if cat and cat.state_machine and not cat.state_machine.state_changed.is_connected(_on_cat_state_changed):
 		cat.state_machine.state_changed.connect(_on_cat_state_changed)
 
+func _setup_smart_pet_controller(settings: Dictionary) -> void:
+	if smart_pet_controller:
+		return
+	smart_pet_controller = SMART_PET_CONTROLLER_SCRIPT.new()
+	smart_pet_controller.name = "SmartPetController"
+	add_child(smart_pet_controller)
+	smart_pet_controller.bind_nodes(self, cat)
+	smart_pet_controller.configure(settings)
+	smart_pet_controller.smart_action_requested.connect(_on_smart_action_requested)
+	smart_pet_controller.smart_line_generated.connect(_on_smart_line_generated)
+
+	var keyboard_listener := get_node_or_null("KeyboardListener")
+	if keyboard_listener and not keyboard_listener.typing_detected.is_connected(_on_keyboard_typing_for_smart):
+		keyboard_listener.typing_detected.connect(_on_keyboard_typing_for_smart)
+
 func _on_typing_attack_started():
 	AudioManager.play_typing_sound()
 	is_shaking = true
 	shake_timer = 0.0
 	original_position = position
 	_start_typing_effects()
+	_record_smart_event("typing_burst")
+	if smart_pet_controller:
+		smart_pet_controller.record_typing()
 	if focus_session_mode:
 		focus_session_mode.on_typing_attack()
 
@@ -274,6 +297,11 @@ func _update_popup_menu_label():
 	popup_menu.set_item_text(index, _get_visibility_label())
 
 func _input(event):
+	if event is InputEventMouseButton and event.pressed:
+		if smart_pet_controller:
+			smart_pet_controller.record_mouse_click()
+		_record_smart_event("mouse_click", {"button": event.button_index})
+
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 		last_menu_position = get_global_mouse_position()
 		popup_menu.position = get_viewport().get_mouse_position()
@@ -402,15 +430,62 @@ func spawn_item(item_type: String, pos: Vector2):
 	item.global_position = pos
 	add_child(item)
 	AudioManager.play_item_sound()
+	if smart_pet_controller:
+		smart_pet_controller.record_item_use(item_type)
+	_record_smart_event("item_used", {"item_type": item_type})
 	if focus_session_mode:
 		focus_session_mode.on_item_used(item_type)
 
 func _on_cat_state_changed(_from_state: StringName, to_state: StringName) -> void:
+	if smart_pet_controller:
+		smart_pet_controller.record_state_change(to_state)
+	_record_smart_event("state_changed", {"to_state": String(to_state)})
 	if focus_session_mode:
 		focus_session_mode.on_cat_state_changed(to_state)
 
 func _on_focus_session_finished(result: String, summary: Dictionary) -> void:
 	print("Focus session finished: ", result, " | ", summary)
+	if result == "victory":
+		_record_smart_event("focus_milestone", {"summary": summary})
+	else:
+		_record_smart_event("focus_failed", {"summary": summary})
+
+func _on_keyboard_typing_for_smart(_event: InputEvent) -> void:
+	if smart_pet_controller:
+		smart_pet_controller.record_typing()
+
+func _on_smart_action_requested(action_id: String, _decision: Dictionary) -> void:
+	if not cat:
+		return
+	var anim_name := _map_smart_action_to_animation(action_id)
+	if cat.has_method("play_animation"):
+		cat.play_animation(anim_name)
+
+func _on_smart_line_generated(line: String, source: String) -> void:
+	if line.is_empty():
+		return
+	print("[SMART/%s] %s" % [source, line])
+
+func _record_smart_event(event_type: String, payload: Dictionary = {}) -> void:
+	if smart_pet_controller and smart_pet_controller.has_method("record_event"):
+		smart_pet_controller.record_event(event_type, payload)
+
+func _map_smart_action_to_animation(action_id: String) -> String:
+	match action_id:
+		"sleep_curl":
+			return "sleep_curl"
+		"greet":
+			return "greet"
+		"celebrate":
+			return "celebrate"
+		"comfort":
+			return "comfort"
+		"break_hint":
+			return "break_hint"
+		"retreat":
+			return "retreat"
+		_:
+			return "idle_stand"
 
 func _setup_tray():
 	if OS.get_name() != "Windows" and OS.get_name() != "macOS":

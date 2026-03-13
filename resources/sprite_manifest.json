@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "mode": "single_action_sheet",
+  "defaults": {
+    "columns": 8,
+    "frame_width": 170,
+    "frame_height": 139
+  },
+  "actions": {
+    "idle_stand": { "row": 0, "col_start": 0, "frames": 6, "speed": 5.0, "loop": true },
+    "idle_active": { "row": 1, "col_start": 0, "frames": 6, "speed": 7.0, "loop": true },
+    "idle_sit": { "row": 1, "col_start": 0, "frames": 6, "speed": 5.0, "loop": true },
+    "idle_lie": { "row": 2, "col_start": 0, "frames": 6, "speed": 4.0, "loop": true },
+    "sleep_curl": { "row": 3, "col_start": 0, "frames": 4, "speed": 3.0, "loop": true },
+    "stretch": { "row": 4, "col_start": 0, "frames": 6, "speed": 6.0, "loop": false },
+    "yawn": { "row": 5, "col_start": 0, "frames": 6, "speed": 6.0, "loop": false },
+
+    "walk": { "row": 0, "col_start": 0, "frames": 8, "speed": 8.0, "loop": true },
+    "trot": { "row": 1, "col_start": 0, "frames": 6, "speed": 9.0, "loop": true },
+    "run": { "row": 2, "col_start": 0, "frames": 6, "speed": 11.0, "loop": true },
+    "jump": { "row": 3, "col_start": 0, "frames": 4, "speed": 8.0, "loop": false },
+    "land": { "row": 4, "col_start": 0, "frames": 4, "speed": 8.0, "loop": false },
+    "retreat": { "row": 5, "col_start": 0, "frames": 6, "speed": 8.0, "loop": false },
+
+    "watch_focus": { "row": 0, "col_start": 0, "frames": 4, "speed": 6.0, "loop": true },
+    "pounce_ready": { "row": 1, "col_start": 0, "frames": 4, "speed": 8.0, "loop": true },
+    "pounce_attack": { "row": 2, "col_start": 0, "frames": 4, "speed": 10.0, "loop": false },
+    "dodge": { "row": 3, "col_start": 0, "frames": 4, "speed": 10.0, "loop": false },
+    "startled": { "row": 4, "col_start": 0, "frames": 4, "speed": 8.0, "loop": false },
+    "lick_groom": { "row": 5, "col_start": 0, "frames": 6, "speed": 7.0, "loop": true },
+
+    "tail_wag": { "row": 1, "col_start": 0, "frames": 6, "speed": 8.0, "loop": true },
+    "typing_attack": { "row": 2, "col_start": 0, "frames": 6, "speed": 10.0, "loop": true },
+    "blocking": { "row": 3, "col_start": 0, "frames": 6, "speed": 8.0, "loop": true },
+    "chasing": { "row": 0, "col_start": 0, "frames": 6, "speed": 10.0, "loop": true },
+    "rolling": { "row": 4, "col_start": 0, "frames": 6, "speed": 9.0, "loop": false },
+    "eat": { "row": 2, "col_start": 0, "frames": 6, "speed": 7.0, "loop": true },
+    "carry": { "row": 2, "col_start": 0, "frames": 6, "speed": 7.0, "loop": true },
+
+    "greet": { "row": 1, "col_start": 0, "frames": 6, "speed": 8.0, "loop": false },
+    "celebrate": { "row": 4, "col_start": 0, "frames": 6, "speed": 9.0, "loop": false },
+    "comfort": { "row": 5, "col_start": 0, "frames": 6, "speed": 6.0, "loop": false },
+    "break_hint": { "row": 5, "col_start": 0, "frames": 6, "speed": 6.0, "loop": false },
+
+    "head_pat_happy": { "row": 1, "col_start": 0, "frames": 6, "speed": 8.0, "loop": false },
+    "head_pat_dodge": { "row": 3, "col_start": 0, "frames": 4, "speed": 9.0, "loop": false },
+    "angry": { "row": 4, "col_start": 0, "frames": 4, "speed": 8.0, "loop": false },
+    "daze": { "row": 5, "col_start": 0, "frames": 4, "speed": 4.0, "loop": true },
+
+    "watch": { "row": 0, "col_start": 0, "frames": 4, "speed": 6.0, "loop": true },
+    "pounce": { "row": 2, "col_start": 0, "frames": 4, "speed": 10.0, "loop": false },
+    "sleep": { "row": 3, "col_start": 0, "frames": 4, "speed": 3.0, "loop": true },
+    "sneak_eat": { "row": 2, "col_start": 0, "frames": 6, "speed": 7.0, "loop": false },
+    "lick": { "row": 5, "col_start": 0, "frames": 6, "speed": 7.0, "loop": false },
+    "happy": { "row": 4, "col_start": 0, "frames": 6, "speed": 9.0, "loop": false },
+    "peek": { "row": 0, "col_start": 0, "frames": 4, "speed": 6.0, "loop": true },
+    "walk_away": { "row": 5, "col_start": 0, "frames": 6, "speed": 8.0, "loop": false },
+    "ignore": { "row": 5, "col_start": 0, "frames": 4, "speed": 4.0, "loop": true },
+    "kneading": { "row": 1, "col_start": 0, "frames": 6, "speed": 6.0, "loop": true }
+  },
+  "cats": {
+    "orange_tabby": {
+      "display_name": "橘猫",
+      "sheet_path": "res://assets/Orange Tabby.png"
+    },
+    "calico": {
+      "display_name": "三花猫",
+      "sheet_path": "res://assets/Calico.png"
+    },
+    "british_blue": {
+      "display_name": "英短蓝猫",
+      "sheet_path": "res://assets/British Shorthair Blue.png"
+    },
+    "tuxedo": {
+      "display_name": "燕尾服猫",
+      "sheet_path": "res://assets/Tuxedo Cat.png"
+    }
+  }
+}

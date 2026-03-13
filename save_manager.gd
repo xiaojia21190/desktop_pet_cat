@@ -24,7 +24,14 @@ func _get_default_data() -> Dictionary:
 			"bgm_enabled": true,
 			"volume": 1.0,
 			"timed_hide_option": 0,
-			"timed_hide_end_time": 0
+			"timed_hide_end_time": 0,
+			"smart_mode": true,
+			"llm_enabled": false,
+			"data_collection_level": "minimal",
+			"quiet_hours_start": 23,
+			"quiet_hours_end": 8,
+			"personality": "tsundere",
+			"reminder_intensity": "medium"
 		},
 		"behavior": {}
 	}
@@ -55,6 +62,13 @@ func _write_config(data: Dictionary) -> int:
 	config.set_value("settings", "volume", settings.get("volume", 1.0))
 	config.set_value("settings", "timed_hide_option", settings.get("timed_hide_option", 0))
 	config.set_value("settings", "timed_hide_end_time", settings.get("timed_hide_end_time", 0))
+	config.set_value("settings", "smart_mode", settings.get("smart_mode", true))
+	config.set_value("settings", "llm_enabled", settings.get("llm_enabled", false))
+	config.set_value("settings", "data_collection_level", settings.get("data_collection_level", "minimal"))
+	config.set_value("settings", "quiet_hours_start", settings.get("quiet_hours_start", 23))
+	config.set_value("settings", "quiet_hours_end", settings.get("quiet_hours_end", 8))
+	config.set_value("settings", "personality", settings.get("personality", "tsundere"))
+	config.set_value("settings", "reminder_intensity", settings.get("reminder_intensity", "medium"))
 
 	config.set_value("meta", "saved_at", meta.get("saved_at", 0))
 	config.set_value("meta", "version", meta.get("version", SAVE_VERSION))
@@ -91,6 +105,13 @@ func load_data() -> Dictionary:
 	settings["volume"] = config.get_value("settings", "volume", settings["volume"])
 	settings["timed_hide_option"] = config.get_value("settings", "timed_hide_option", settings["timed_hide_option"])
 	settings["timed_hide_end_time"] = config.get_value("settings", "timed_hide_end_time", settings["timed_hide_end_time"])
+	settings["smart_mode"] = config.get_value("settings", "smart_mode", settings["smart_mode"])
+	settings["llm_enabled"] = config.get_value("settings", "llm_enabled", settings["llm_enabled"])
+	settings["data_collection_level"] = config.get_value("settings", "data_collection_level", settings["data_collection_level"])
+	settings["quiet_hours_start"] = config.get_value("settings", "quiet_hours_start", settings["quiet_hours_start"])
+	settings["quiet_hours_end"] = config.get_value("settings", "quiet_hours_end", settings["quiet_hours_end"])
+	settings["personality"] = config.get_value("settings", "personality", settings["personality"])
+	settings["reminder_intensity"] = config.get_value("settings", "reminder_intensity", settings["reminder_intensity"])
 
 	if settings.get("timed_hide_end_time", 0) <= Time.get_unix_time_from_system():
 		settings["timed_hide_end_time"] = 0
@@ -143,6 +164,10 @@ func apply_settings(data: Dictionary = {}):
 
 	if main and main.has_method("apply_timed_hide_settings"):
 		main.apply_timed_hide_settings(settings)
+
+	var smart_controller = _get_smart_controller()
+	if smart_controller and smart_controller.has_method("configure"):
+		smart_controller.configure(settings)
 
 func _gather_current_data() -> Dictionary:
 	var data = _get_default_data()
@@ -206,6 +231,12 @@ func _gather_current_data() -> Dictionary:
 		if timed_hide_data.has("timed_hide_end_time"):
 			settings["timed_hide_end_time"] = timed_hide_data["timed_hide_end_time"]
 
+	var smart_controller = _get_smart_controller()
+	if smart_controller and smart_controller.has_method("get_settings_snapshot"):
+		var smart_settings = smart_controller.get_settings_snapshot()
+		if smart_settings is Dictionary:
+			settings.merge(smart_settings, true)
+
 	data["cat"] = cat_data
 	data["settings"] = settings
 	data["behavior"] = behavior_data
@@ -228,6 +259,12 @@ func _get_settings_panel():
 	if not main:
 		return null
 	return main.get_node_or_null("SettingsPanel")
+
+func _get_smart_controller():
+	var main = _get_main()
+	if not main:
+		return null
+	return main.get_node_or_null("SmartPetController")
 
 func _intensity_to_interval(intensity: int) -> float:
 	match intensity:

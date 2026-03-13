@@ -25,19 +25,41 @@ func _ready():
 	typing_sound_player.stream = load("res://assets/sounds/typing.wav")
 	add_child(typing_sound_player)
 
-	bgm_player = AudioStreamPlayer.new()
-	bgm_player.name = "BgmPlayer"
-	var bgm_stream = load("res://assets/sounds/bgm.mp3")
-	if bgm_stream:
-		bgm_stream.loop = true
-	bgm_player.stream = bgm_stream
-	add_child(bgm_player)
+	# Headless 模式不需要加载/播放 BGM，避免测试退出时资源残留。
+	if DisplayServer.get_name() != "headless":
+		bgm_player = AudioStreamPlayer.new()
+		bgm_player.name = "BgmPlayer"
+		var bgm_stream = load("res://assets/sounds/bgm.mp3")
+		if bgm_stream:
+			bgm_stream.loop = true
+		bgm_player.stream = bgm_stream
+		add_child(bgm_player)
 
 	set_volume(volume)
 
 	# 自动播放背景音乐
-	if bgm_enabled and bgm_player.stream:
+	if bgm_enabled and bgm_player and bgm_player.stream:
 		bgm_player.play()
+
+func _exit_tree() -> void:
+	_cleanup_player(cat_sound_player)
+	_cleanup_player(item_sound_player)
+	_cleanup_player(typing_sound_player)
+	_cleanup_player(bgm_player)
+
+	cat_sound_player = null
+	item_sound_player = null
+	typing_sound_player = null
+	bgm_player = null
+
+func _cleanup_player(player: AudioStreamPlayer) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	player.stop()
+	player.stream = null
+	if player.get_parent() == self:
+		remove_child(player)
+	player.queue_free()
 
 func play_cat_sound():
 	if not sound_enabled:

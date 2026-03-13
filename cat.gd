@@ -1,5 +1,7 @@
 extends CharacterBody2D
 
+const CatStates = preload("res://cat_states.gd")
+
 ## 桌面宠物猫主控制器
 ## 使用组件和状态机模式重构
 

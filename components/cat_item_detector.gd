@@ -1,6 +1,8 @@
 class_name CatItemDetector
 extends Node
 
+const ItemTypes = preload("res://item_types.gd")
+
 ## 猫咪道具检测组件
 ## 检测附近道具并触发反应
 

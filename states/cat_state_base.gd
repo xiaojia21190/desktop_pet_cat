@@ -1,6 +1,8 @@
 class_name CatStateBase
 extends State
 
+const CatStates = preload("res://cat_states.gd")
+
 ## 猫咪状态基类
 ## 提供猫咪状态共用的功能
 

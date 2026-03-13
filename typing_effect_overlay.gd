@@ -94,7 +94,7 @@ func _update_hint(delta: float) -> void:
 	if _hint_timer <= 0.0:
 		undo_hint.visible = false
 	elif _hint_timer < 0.6:
-		var color = undo_hint.modulate
+		var color: Color = undo_hint.modulate
 		color.a = clamp(_hint_timer / 0.6, 0.0, 1.0)
 		undo_hint.modulate = color
 
@@ -102,7 +102,7 @@ func _update_effects(delta: float) -> void:
 	for i in range(_active_effects.size() - 1, -1, -1):
 		var effect := _active_effects[i]
 		effect.time_left -= delta
-		var node := effect.node
+		var node: Node2D = effect.node as Node2D
 
 		if node:
 			node.position += effect.velocity * delta
@@ -110,16 +110,16 @@ func _update_effects(delta: float) -> void:
 
 			if effect.kind == TYPE_DELETE:
 				var line := node as Line2D
-				var progress := 1.0 - (effect.time_left / effect.total_time)
-				var length := effect.line_target * clamp(progress, 0.0, 1.0)
+				var progress: float = 1.0 - (effect.time_left / effect.total_time)
+				var length: float = effect.line_target * clampf(progress, 0.0, 1.0)
 				line.set_point_position(1, Vector2(length, 0.0))
 			elif effect.kind == TYPE_PAW:
-				var progress := 1.0 - (effect.time_left / effect.total_time)
-				var scale := effect.base_scale * (0.85 + 0.25 * sin(progress * PI))
-				node.scale = Vector2.ONE * scale
+				var progress: float = 1.0 - (effect.time_left / effect.total_time)
+				var scale_value: float = effect.base_scale * (0.85 + 0.25 * sin(progress * PI))
+				node.scale = Vector2.ONE * scale_value
 
 			if effect.time_left <= effect.fade_time:
-				var alpha := clamp(effect.time_left / effect.fade_time, 0.0, 1.0)
+				var alpha: float = clampf(effect.time_left / effect.fade_time, 0.0, 1.0)
 				var color := node.modulate
 				color.a = alpha
 				node.modulate = color
@@ -161,7 +161,7 @@ func _spawn_gibberish() -> void:
 	if _gibberish_pool.is_empty():
 		return
 
-	var label := _gibberish_pool.pop_back()
+	var label: Label = _gibberish_pool.pop_back()
 	label.visible = true
 	label.text = _random_gibberish()
 	label.position = _get_origin_position() + Vector2(randf_range(-12.0, 12.0), randf_range(-10.0, 6.0))
@@ -182,7 +182,7 @@ func _spawn_delete_line() -> void:
 	if _line_pool.is_empty():
 		return
 
-	var line := _line_pool.pop_back()
+	var line: Line2D = _line_pool.pop_back()
 	line.visible = true
 	line.position = _get_origin_position()
 	line.rotation = randf_range(-0.4, 0.4)
@@ -204,7 +204,7 @@ func _spawn_paw_print() -> void:
 	if _paw_pool.is_empty():
 		return
 
-	var paw := _paw_pool.pop_back()
+	var paw: PawPrint = _paw_pool.pop_back()
 	paw.visible = true
 	paw.position = _get_origin_position() + Vector2(randf_range(-50.0, 50.0), randf_range(-40.0, 30.0))
 	paw.rotation = randf_range(-0.4, 0.4)
@@ -234,7 +234,10 @@ func _random_gibberish() -> String:
 func _get_origin_position() -> Vector2:
 	if _origin_node and is_instance_valid(_origin_node):
 		return _origin_node.global_position
-	return get_viewport_rect().size / 2
+	var viewport := get_viewport()
+	if viewport:
+		return viewport.get_visible_rect().size / 2.0
+	return Vector2.ZERO
 
 func _build_pools() -> void:
 	for i in range(GIBBERISH_POOL_SIZE):

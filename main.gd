@@ -1,6 +1,7 @@
 extends Node2D
 @onready var cat = $Cat
-@onready var typing_effect_overlay: TypingEffectOverlay = $TypingEffectOverlay
+@onready var typing_effect_overlay = $TypingEffectOverlay
+const FOCUS_SESSION_MODE_SCRIPT := preload("res://focus_session_mode.gd")
 var is_shaking = false
 var shake_timer = 0.0
 var shake_duration = 0.5
@@ -26,6 +27,7 @@ const TIMED_HIDE_DURATIONS := [0, 15 * 60, 30 * 60, 60 * 60, 120 * 60]
 var timed_hide_option := 0
 var timed_hide_end_time := 0
 var timed_hide_timer: Timer
+var focus_session_mode
 
 # 悬浮面板相关
 var hover_panel: Panel
@@ -79,6 +81,7 @@ func _ready():
 		settings_panel.visible = false
 		add_child(settings_panel)
 
+	_setup_focus_session_mode()
 	_setup_tray()
 
 func _exit_tree():
@@ -195,12 +198,25 @@ func _sync_timed_hide_panel():
 	if settings_panel and settings_panel.has_method("set_timed_hide_option"):
 		settings_panel.set_timed_hide_option(timed_hide_option)
 
+func _setup_focus_session_mode() -> void:
+	if focus_session_mode:
+		return
+
+	focus_session_mode = FOCUS_SESSION_MODE_SCRIPT.new()
+	add_child(focus_session_mode)
+	focus_session_mode.session_finished.connect(_on_focus_session_finished)
+
+	if cat and cat.state_machine and not cat.state_machine.state_changed.is_connected(_on_cat_state_changed):
+		cat.state_machine.state_changed.connect(_on_cat_state_changed)
+
 func _on_typing_attack_started():
 	AudioManager.play_typing_sound()
 	is_shaking = true
 	shake_timer = 0.0
 	original_position = position
 	_start_typing_effects()
+	if focus_session_mode:
+		focus_session_mode.on_typing_attack()
 
 func _start_typing_effects() -> void:
 	if not typing_effect_overlay or not cat:
@@ -386,6 +402,15 @@ func spawn_item(item_type: String, pos: Vector2):
 	item.global_position = pos
 	add_child(item)
 	AudioManager.play_item_sound()
+	if focus_session_mode:
+		focus_session_mode.on_item_used(item_type)
+
+func _on_cat_state_changed(_from_state: StringName, to_state: StringName) -> void:
+	if focus_session_mode:
+		focus_session_mode.on_cat_state_changed(to_state)
+
+func _on_focus_session_finished(result: String, summary: Dictionary) -> void:
+	print("Focus session finished: ", result, " | ", summary)
 
 func _setup_tray():
 	if OS.get_name() != "Windows" and OS.get_name() != "macOS":

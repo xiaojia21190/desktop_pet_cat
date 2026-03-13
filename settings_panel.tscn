@@ -73,6 +73,50 @@ max_value = 1.0
 step = 0.1
 value = 1.0
 
+[node name="SmartModeLabel" type="Label" parent="VBoxContainer"]
+text = "智能模式"
+
+[node name="SmartModeCheck" type="CheckBox" parent="VBoxContainer"]
+button_pressed = true
+
+[node name="LLMEnabledLabel" type="Label" parent="VBoxContainer"]
+text = "LLM增强"
+
+[node name="LLMEnabledCheck" type="CheckBox" parent="VBoxContainer"]
+button_pressed = false
+
+[node name="PersonalityLabel" type="Label" parent="VBoxContainer"]
+text = "性格"
+
+[node name="PersonalityOption" type="OptionButton" parent="VBoxContainer"]
+
+[node name="ReminderIntensityLabel" type="Label" parent="VBoxContainer"]
+text = "提醒强度"
+
+[node name="ReminderIntensityOption" type="OptionButton" parent="VBoxContainer"]
+
+[node name="QuietHoursLabel" type="Label" parent="VBoxContainer"]
+text = "安静时段（起-止）"
+
+[node name="QuietHoursRow" type="HBoxContainer" parent="VBoxContainer"]
+
+[node name="QuietStartSpin" type="SpinBox" parent="VBoxContainer/QuietHoursRow"]
+custom_minimum_size = Vector2(70, 0)
+min_value = 0.0
+max_value = 23.0
+step = 1.0
+value = 23.0
+
+[node name="QuietRangeSep" type="Label" parent="VBoxContainer/QuietHoursRow"]
+text = "-"
+
+[node name="QuietEndSpin" type="SpinBox" parent="VBoxContainer/QuietHoursRow"]
+custom_minimum_size = Vector2(70, 0)
+min_value = 0.0
+max_value = 23.0
+step = 1.0
+value = 8.0
+
 [node name="SaveManagerButton" type="Button" parent="VBoxContainer"]
 text = "存档管理"
 

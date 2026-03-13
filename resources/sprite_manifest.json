@@ -61,18 +61,22 @@
   "cats": {
     "orange_tabby": {
       "display_name": "橘猫",
+      "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
       "sheet_path": "res://assets/Orange Tabby.png"
     },
     "calico": {
       "display_name": "三花猫",
+      "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
       "sheet_path": "res://assets/Calico.png"
     },
     "british_blue": {
       "display_name": "英短蓝猫",
+      "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
       "sheet_path": "res://assets/British Shorthair Blue.png"
     },
     "tuxedo": {
       "display_name": "燕尾服猫",
+      "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
       "sheet_path": "res://assets/Tuxedo Cat.png"
     }
   }

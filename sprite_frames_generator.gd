@@ -99,6 +99,7 @@ static func _build_cat_actions(cat_type: String) -> Dictionary:
 		defaults = defaults_raw as Dictionary
 
 	var sheet_path := String(cat_entry.get("sheet_path", ""))
+	var action_path_template := String(cat_entry.get("action_path_template", ""))
 	var action_overrides_raw = cat_entry.get("actions", {})
 	var action_overrides: Dictionary = {}
 	if typeof(action_overrides_raw) == TYPE_DICTIONARY:
@@ -111,8 +112,12 @@ static func _build_cat_actions(cat_type: String) -> Dictionary:
 		if typeof(spec_raw) != TYPE_DICTIONARY:
 			continue
 		var spec := (spec_raw as Dictionary).duplicate(true)
-		if not spec.has("path") and not sheet_path.is_empty():
-			spec["path"] = sheet_path
+		if not spec.has("path"):
+			var resolved_path := _resolve_action_path(action_path_template, cat_type, action_name)
+			if not resolved_path.is_empty() and ResourceLoader.exists(resolved_path):
+				spec["path"] = resolved_path
+			elif not sheet_path.is_empty():
+				spec["path"] = sheet_path
 
 		if not spec.has("columns"):
 			spec["columns"] = int(defaults.get("columns", AnimationConfig.COLUMNS))
@@ -129,6 +134,11 @@ static func _build_cat_actions(cat_type: String) -> Dictionary:
 		result[action_name] = spec
 
 	return result
+
+static func _resolve_action_path(template: String, cat_type: String, action_name: String) -> String:
+	if template.is_empty():
+		return ""
+	return template.replace("{cat_id}", cat_type).replace("{action_key}", action_name)
 
 # 从动作配置创建 SpriteFrames
 static func _create_sprite_frames(cat_actions: Dictionary) -> SpriteFrames:

@@ -37,6 +37,8 @@ func evaluate(snapshot: Dictionary, tags: Array[String], recent_events: Array[Di
 
 	if _has_recent_event(recent_events, "build_fail_streak", 240):
 		return _decision_if_available(now, ACTION_COMFORT, "build_fail_streak", _line_for("build_fail_streak", personality))
+	if _has_recent_event(recent_events, "focus_failed", 180):
+		return _decision_if_available(now, ACTION_COMFORT, "focus_failed", _line_for("focus_failed", personality))
 
 	var active_threshold := 3600.0
 	if reminder_intensity == "low":
@@ -112,6 +114,8 @@ func _line_for(intent: String, personality: String) -> String:
 			return "做得很好，继续保持这个节奏。"
 		"build_fail_streak":
 			return "没关系，先深呼吸一下，我们再来一次。"
+		"focus_failed":
+			return "这轮不算失败，稍微休息一下继续。"
 		"long_focus":
 			return "已经专注很久了，起来活动一分钟吧。"
 		"user_busy":

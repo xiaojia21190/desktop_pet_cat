@@ -219,6 +219,44 @@ func _gather_current_data() -> Dictionary:
 		var volume_slider = panel.get_node_or_null("VBoxContainer/VolumeSlider")
 		if volume_slider:
 			settings["volume"] = volume_slider.value
+
+		var smart_mode_check = panel.get_node_or_null("VBoxContainer/SmartModeCheck")
+		if smart_mode_check:
+			settings["smart_mode"] = smart_mode_check.button_pressed
+
+		var llm_enabled_check = panel.get_node_or_null("VBoxContainer/LLMEnabledCheck")
+		if llm_enabled_check:
+			settings["llm_enabled"] = llm_enabled_check.button_pressed
+
+		var personality_option = panel.get_node_or_null("VBoxContainer/PersonalityOption")
+		if personality_option:
+			match personality_option.selected:
+				1:
+					settings["personality"] = "gentle"
+				2:
+					settings["personality"] = "playful"
+				_:
+					settings["personality"] = "tsundere"
+
+		var reminder_option = panel.get_node_or_null("VBoxContainer/ReminderIntensityOption")
+		if reminder_option:
+			match reminder_option.selected:
+				0:
+					settings["reminder_intensity"] = "low"
+				2:
+					settings["reminder_intensity"] = "high"
+				_:
+					settings["reminder_intensity"] = "medium"
+
+		var quiet_start_spin = panel.get_node_or_null("VBoxContainer/QuietHoursRow/QuietStartSpin")
+		if quiet_start_spin:
+			settings["quiet_hours_start"] = int(round(quiet_start_spin.value))
+
+		var quiet_end_spin = panel.get_node_or_null("VBoxContainer/QuietHoursRow/QuietEndSpin")
+		if quiet_end_spin:
+			settings["quiet_hours_end"] = int(round(quiet_end_spin.value))
+
+		settings["data_collection_level"] = "minimal"
 	elif AudioManager:
 		settings["sound_enabled"] = AudioManager.sound_enabled
 		settings["bgm_enabled"] = AudioManager.bgm_enabled

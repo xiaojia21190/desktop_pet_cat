@@ -157,7 +157,7 @@ func _smart_state_change() -> void:
 		"watch":
 			state_machine.transition_to(CatStates.WATCHING)
 		"lick":
-			state_machine.transition_to(CatStates.IDLE)  # TODO: 添加舔毛状态
+			state_machine.transition_to(CatStates.LICKING)
 		"roll":
 			state_machine.transition_to(CatStates.ROLLING)
 		"tail_wag":

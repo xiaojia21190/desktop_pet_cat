@@ -1,10 +1,11 @@
-[gd_scene load_steps=31 format=3 uid="uid://cm0eyq8q1mypy"]
+[gd_scene load_steps=32 format=3 uid="uid://cm0eyq8q1mypy"]
 
 [ext_resource type="Script" path="res://cat.gd" id="1_cat"]
 [ext_resource type="Script" path="res://components/state_machine.gd" id="2_sm"]
 [ext_resource type="Script" path="res://states/cat_idle_state.gd" id="3_idle"]
 [ext_resource type="Script" path="res://states/cat_walking_state.gd" id="4_walk"]
 [ext_resource type="Script" path="res://states/cat_watching_state.gd" id="5_watch"]
+[ext_resource type="Script" path="res://states/cat_licking_state.gd" id="19_lick"]
 [ext_resource type="Script" path="res://states/cat_pouncing_state.gd" id="6_pounce"]
 [ext_resource type="Script" path="res://states/cat_chasing_state.gd" id="7_chase"]
 [ext_resource type="Script" path="res://states/cat_blocking_state.gd" id="18_block"]
@@ -97,6 +98,12 @@ walk_speed = 100.0
 [node name="Watching" type="Node" parent="StateMachine"]
 script = ExtResource("5_watch")
 watch_duration = 2.0
+
+[node name="Licking" type="Node" parent="StateMachine"]
+script = ExtResource("19_lick")
+lick_duration = 1.6
+lick_wobble_speed = 6.0
+lick_wobble_amplitude = 0.08
 
 [node name="Pouncing" type="Node" parent="StateMachine"]
 script = ExtResource("6_pounce")

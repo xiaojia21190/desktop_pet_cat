@@ -2,6 +2,7 @@ extends Node
 
 const FOCUS_SESSION_MODE_SCRIPT := preload("res://focus_session_mode.gd")
 const SESSION_RECORDER_SCRIPT := preload("res://tests/debug_tools/session_recorder.gd")
+const BEHAVIOR_SYSTEM_SCRIPT := preload("res://cat_behavior_system.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -31,6 +32,19 @@ func _run() -> void:
 
 	mode.start_session()
 	_assert_true(mode._running, "start_session_runs")
+
+	# 心理统一：affection/chaos 代理到行为系统，focus 保留会话内
+	var behavior = BEHAVIOR_SYSTEM_SCRIPT.new()
+	add_child(behavior)
+	mode.bind_behavior(behavior)
+	behavior.affection = 60.0
+	behavior.chaos = 25.0
+	mode.start_session()
+	_assert_true(is_equal_approx(float(mode.affection_value), 60.0), "affection_synced_from_behavior")
+	_assert_true(is_equal_approx(float(mode.chaos_value), 25.0), "chaos_synced_from_behavior")
+	mode.on_item_used("food")  # affection +8
+	_assert_true(float(mode.affection_value) > 60.0, "affection_delta_writes_through")
+	_assert_true(is_equal_approx(float(behavior.affection), float(mode.affection_value)), "behavior_sees_session_affection")
 
 	_assert_true(mode.get_snapshot().has("focus"), "snapshot_has_focus")
 	_assert_true(mode.get_snapshot().has("remaining_seconds"), "snapshot_has_remaining_seconds")

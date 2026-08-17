@@ -24,9 +24,29 @@ const RESULT_FAILURE := "failure"
 @export var recording_ops_tail_preview_size: int = 5
 @export var recording_ops_panel_preview_size: int = 20
 
-var focus_value: float = 0.0
-var affection_value: float = 0.0
-var chaos_value: float = 0.0
+var focus_value: float = 0.0  # 会话表现分：不写回行为系统（一局的成绩，不是猫的长期心理）
+
+var _behavior  # CatBehaviorSystem 引用，由 bind_behavior() 注入；为空时数值本地兜底
+var _local_affection: float = 45.0
+var _local_chaos: float = 20.0
+
+var affection_value: float:
+	get:
+		return _behavior.affection if _behavior else _local_affection
+	set(value):
+		if _behavior:
+			_behavior.affection = clampf(value, 0.0, 100.0)
+		else:
+			_local_affection = clampf(value, 0.0, 100.0)
+
+var chaos_value: float:
+	get:
+		return _behavior.chaos if _behavior else _local_chaos
+	set(value):
+		if _behavior:
+			_behavior.chaos = clampf(value, 0.0, 100.0)
+		else:
+			_local_chaos = clampf(value, 0.0, 100.0)
 
 var _remaining_seconds: int = 0
 var _elapsed_seconds: int = 0
@@ -136,6 +156,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 
+func bind_behavior(behavior) -> void:
+	# 心理统一：注入 CatBehaviorSystem，会话的 affection/chaos 直接读写行为系统
+	_behavior = behavior
+
 func bind_debug_recorder(recorder) -> void:
 	# 挂载调试设施（录制/回放/垃圾桶/ops 面板）。正常运行不挂载。
 	_debug_recorder = recorder
@@ -147,8 +171,10 @@ func _notify_debug_refresh() -> void:
 
 func start_session() -> void:
 	focus_value = focus_start
-	affection_value = affection_start
-	chaos_value = chaos_start
+	# affection/chaos 不再重置：行为统一后延续猫的当前心理状态（行为变更例外，已记录在 P1 文档）
+	if not _behavior:
+		affection_value = affection_start
+		chaos_value = chaos_start
 
 	_remaining_seconds = session_duration_seconds
 	_elapsed_seconds = 0

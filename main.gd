@@ -3,6 +3,7 @@ extends Node2D
 @onready var typing_effect_overlay = $TypingEffectOverlay
 const FOCUS_SESSION_MODE_SCRIPT := preload("res://focus_session_mode.gd")
 const SMART_PET_CONTROLLER_SCRIPT := preload("res://smart_pet_controller.gd")
+const QUICK_ACTION_MENU_SCRIPT := preload("res://quick_action_menu.gd")
 var is_shaking = false
 var shake_timer = 0.0
 var shake_duration = 0.5
@@ -30,6 +31,13 @@ var timed_hide_end_time := 0
 var timed_hide_timer: Timer
 var focus_session_mode
 var smart_pet_controller
+var quick_action_menu
+var _build_failure_streak := 0
+var smart_line_layer: CanvasLayer
+var smart_line_panel: PanelContainer
+var smart_line_label: Label
+var smart_line_hide_timer: Timer
+var _passthrough_cache_hash: int = 0
 
 # 悬浮面板相关
 var hover_panel: Panel
@@ -38,16 +46,22 @@ const EDGE_TRIGGER_DISTANCE = 20  # 边缘触发距离
 const PANEL_SLIDE_SPEED = 800.0   # 面板滑动速度
 var panel_target_x = 0.0
 var _cached_screen_size: Vector2 = Vector2(1920, 1080)
+const BUILD_FAILURE_STREAK_THRESHOLD := 2
+const SMART_LINE_BUBBLE_WIDTH := 320.0
+const SMART_LINE_BUBBLE_HEIGHT := 88.0
+const CAT_HIT_RADIUS_MIN := 56.0
+const CAT_HIT_RADIUS_MAX := 240.0
+const FORCE_START_AT_BOTTOM_RIGHT := false
 
 const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
 const ITEM_FOOD_SCENE = preload("res://item_food.tscn")
+const CatStates = preload("res://cat_states.gd")
 
+func _enter_tree():
+	_apply_window_style()
 
 func _ready():
-	# 设置窗口透明
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_TRANSPARENT, true)
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+	_apply_window_style()
 
 	print("桌面宠物猫启动成功")
 	original_position = position
@@ -58,14 +72,15 @@ func _ready():
 
 	if cat:
 		cat.typing_attack_started.connect(_on_typing_attack_started)
+		cat.cat_left_clicked.connect(_on_cat_left_clicked)
 
 	_setup_timed_hide_timer()
 
 	var data = SaveManager.load_data()
 	SaveManager.apply_settings(data)
 	var cat_data = data.get("cat", {})
-	if cat and cat_data.has("position"):
-		cat.position = cat_data["position"]
+	var meta = data.get("meta", {})
+	_apply_initial_cat_position(meta, cat_data)
 	var settings = data.get("settings", {})
 	if settings.has("opacity"):
 		var color = modulate
@@ -85,11 +100,56 @@ func _ready():
 
 	_setup_focus_session_mode()
 	_setup_smart_pet_controller(settings)
+	_setup_smart_line_bubble()
+	_setup_quick_action_menu()
 	_record_smart_event("session_resume")
 	_setup_tray()
+	_update_mouse_passthrough_region()
+	_log_window_state()
+
+func _apply_initial_cat_position(meta: Dictionary, cat_data: Dictionary) -> void:
+	if not cat:
+		return
+	if FORCE_START_AT_BOTTOM_RIGHT:
+		cat.position = _get_default_cat_position()
+		return
+	var has_saved_position := cat_data.has("position")
+	var saved_position: Vector2 = Vector2.ZERO
+	if has_saved_position:
+		var raw_pos = cat_data["position"]
+		if raw_pos is Vector2:
+			saved_position = raw_pos
+		elif raw_pos is Vector2i:
+			saved_position = Vector2(raw_pos.x, raw_pos.y)
+
+	var saved_at: int = int(meta.get("saved_at", 0))
+	var need_default := (not has_saved_position) or saved_position == Vector2.ZERO or saved_at <= 0
+	if need_default:
+		cat.position = _get_default_cat_position()
+	else:
+		cat.position = _clamp_cat_position(saved_position)
 
 func _exit_tree():
 	_cleanup_tray()
+
+func _apply_window_style() -> void:
+	# 让透明区域真正透出桌面，避免出现黑色矩形背景。
+	var viewport := get_viewport()
+	if viewport:
+		viewport.transparent_bg = true
+	RenderingServer.set_default_clear_color(Color(0.0, 0.0, 0.0, 0.0))
+
+	var window := get_window()
+	if window:
+		window.mode = Window.MODE_WINDOWED
+		window.borderless = true
+		window.transparent = true
+		window.always_on_top = true
+		window.unresizable = true
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_TRANSPARENT, true)
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, true)
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, true)
+	_fit_window_to_screen()
 
 func _on_screen_size_changed():
 	_cached_screen_size = get_viewport_rect().size
@@ -101,6 +161,9 @@ func _on_screen_size_changed():
 		if not hover_panel_visible:
 			hover_panel.position.x = _cached_screen_size.x
 			panel_target_x = _cached_screen_size.x
+	if smart_line_panel and smart_line_panel.visible:
+		smart_line_panel.position = _get_smart_line_position()
+	_update_mouse_passthrough_region()
 
 func _process(delta):
 	# 处理悬浮面板边缘检测
@@ -108,6 +171,9 @@ func _process(delta):
 
 	# 处理抖动效果
 	_update_shake(delta)
+	if smart_line_panel and smart_line_panel.visible:
+		smart_line_panel.position = _get_smart_line_position()
+	_update_mouse_passthrough_region()
 
 func _update_shake(delta):
 	if not is_shaking:
@@ -210,6 +276,9 @@ func _setup_focus_session_mode() -> void:
 	focus_session_mode = FOCUS_SESSION_MODE_SCRIPT.new()
 	add_child(focus_session_mode)
 	focus_session_mode.session_finished.connect(_on_focus_session_finished)
+	# 心理统一：会话的 affection/chaos 读写猫的行为系统
+	if cat and cat.behavior_system:
+		focus_session_mode.bind_behavior(cat.behavior_system)
 
 	if cat and cat.state_machine and not cat.state_machine.state_changed.is_connected(_on_cat_state_changed):
 		cat.state_machine.state_changed.connect(_on_cat_state_changed)
@@ -325,44 +394,61 @@ func _on_popup_menu_selected(id):
 func _create_hover_panel():
 	var screen_size = _cached_screen_size
 	var panel_width = 80
-	var panel_height = 200
+	var panel_height = 160
 
 	hover_panel = Panel.new()
 	hover_panel.size = Vector2(panel_width, panel_height)
 	hover_panel.position = Vector2(screen_size.x, (screen_size.y - panel_height) / 2)
-	panel_target_x = screen_size.x  # 初始隐藏在右侧
+	panel_target_x = screen_size.x
 
-	# 创建按钮容器
+	var aurora_tex := load("res://assets/aurora/panel_dark.png") as Texture2D
+	if aurora_tex:
+		var sb := StyleBoxTexture.new()
+		sb.texture = aurora_tex
+		sb.texture_margin_left = 20
+		sb.texture_margin_top = 20
+		sb.texture_margin_right = 20
+		sb.texture_margin_bottom = 20
+		sb.content_margin_left = 8.0
+		sb.content_margin_top = 8.0
+		sb.content_margin_right = 8.0
+		sb.content_margin_bottom = 8.0
+		hover_panel.add_theme_stylebox_override("panel", sb)
+
 	var vbox = VBoxContainer.new()
-	vbox.position = Vector2(10, 10)
-	vbox.size = Vector2(panel_width - 20, panel_height - 20)
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	var margin_l := 8
+	var margin_t := 12
+	vbox.offset_left = margin_l
+	vbox.offset_top = margin_t
+	vbox.offset_right = -margin_l
+	vbox.offset_bottom = -margin_t
 	hover_panel.add_child(vbox)
 
-	# 道具栏按钮
+	var btn_normal_style := _make_aurora_btn_style("res://assets/aurora/btn_normal.png")
+	var btn_hover_style := _make_aurora_btn_style("res://assets/aurora/btn_hover.png")
+
 	var items_btn = Button.new()
 	items_btn.text = "道具"
+	items_btn.add_theme_stylebox_override("normal", btn_normal_style)
+	items_btn.add_theme_stylebox_override("hover", btn_hover_style)
+	items_btn.add_theme_stylebox_override("pressed", btn_hover_style)
+	items_btn.add_theme_color_override("font_color", Color.WHITE)
+	items_btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	items_btn.pressed.connect(_on_items_btn_pressed)
 	vbox.add_child(items_btn)
 
-	# 设置按钮
 	var settings_btn = Button.new()
 	settings_btn.text = "设置"
+	settings_btn.add_theme_stylebox_override("normal", btn_normal_style)
+	settings_btn.add_theme_stylebox_override("hover", btn_hover_style)
+	settings_btn.add_theme_stylebox_override("pressed", btn_hover_style)
+	settings_btn.add_theme_color_override("font_color", Color.WHITE)
+	settings_btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	settings_btn.pressed.connect(_on_settings_pressed)
 	vbox.add_child(settings_btn)
-
-	# 创意工坊按钮（占位）
-	var workshop_btn = Button.new()
-	workshop_btn.text = "工坊"
-	workshop_btn.disabled = true
-	workshop_btn.tooltip_text = "即将推出"
-	vbox.add_child(workshop_btn)
-
-	# DLC中心按钮（占位）
-	var dlc_btn = Button.new()
-	dlc_btn.text = "DLC"
-	dlc_btn.disabled = true
-	dlc_btn.tooltip_text = "即将推出"
-	vbox.add_child(dlc_btn)
 
 	add_child(hover_panel)
 
@@ -414,6 +500,7 @@ func _on_items_btn_pressed():
 func _on_settings_pressed():
 	if settings_panel:
 		settings_panel.visible = not settings_panel.visible
+		_update_mouse_passthrough_region()
 
 func spawn_item(item_type: String, pos: Vector2):
 	var scene: PackedScene = null
@@ -446,9 +533,11 @@ func _on_cat_state_changed(_from_state: StringName, to_state: StringName) -> voi
 func _on_focus_session_finished(result: String, summary: Dictionary) -> void:
 	print("Focus session finished: ", result, " | ", summary)
 	if result == "victory":
+		_build_failure_streak = 0
 		_record_smart_event("focus_milestone", {"summary": summary})
 	else:
 		_record_smart_event("focus_failed", {"summary": summary})
+		_record_build_failure_streak({"source": "focus_session", "summary": summary})
 
 func _on_keyboard_typing_for_smart(_event: InputEvent) -> void:
 	if smart_pet_controller:
@@ -457,18 +546,111 @@ func _on_keyboard_typing_for_smart(_event: InputEvent) -> void:
 func _on_smart_action_requested(action_id: String, _decision: Dictionary) -> void:
 	if not cat:
 		return
-	var anim_name := _map_smart_action_to_animation(action_id)
-	if cat.has_method("play_animation"):
-		cat.play_animation(anim_name)
+	var state := _map_smart_action_to_state(action_id)
+	if state.is_empty():
+		var anim_name := _map_smart_action_to_animation(action_id)
+		if cat.has_method("play_animation"):
+			cat.play_animation(anim_name)
+	else:
+		if cat.state_machine:
+			cat.state_machine.transition_to(state)
 
 func _on_smart_line_generated(line: String, source: String) -> void:
 	if line.is_empty():
 		return
 	print("[SMART/%s] %s" % [source, line])
+	_show_smart_line(line)
 
 func _record_smart_event(event_type: String, payload: Dictionary = {}) -> void:
 	if smart_pet_controller and smart_pet_controller.has_method("record_event"):
 		smart_pet_controller.record_event(event_type, payload)
+
+func report_build_result(success: bool, payload: Dictionary = {}) -> void:
+	var event_payload: Dictionary = payload.duplicate(true)
+	if success:
+		_build_failure_streak = 0
+		_record_smart_event("build_success", event_payload)
+		return
+	_record_smart_event("build_failed", event_payload)
+	_record_build_failure_streak(event_payload)
+
+func _record_build_failure_streak(payload: Dictionary = {}) -> void:
+	_build_failure_streak += 1
+	var streak_payload: Dictionary = payload.duplicate(true)
+	streak_payload["streak"] = _build_failure_streak
+	if _build_failure_streak >= BUILD_FAILURE_STREAK_THRESHOLD:
+		_record_smart_event("build_fail_streak", streak_payload)
+
+func _setup_smart_line_bubble() -> void:
+	if smart_line_layer:
+		return
+	smart_line_layer = CanvasLayer.new()
+	smart_line_layer.layer = 20
+	add_child(smart_line_layer)
+
+	smart_line_panel = PanelContainer.new()
+	smart_line_panel.visible = false
+	smart_line_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	smart_line_panel.custom_minimum_size = Vector2(SMART_LINE_BUBBLE_WIDTH, 0)
+
+	var bubble_tex := load("res://assets/aurora/bubble.png") as Texture2D
+	if bubble_tex:
+		var sb := StyleBoxTexture.new()
+		sb.texture = bubble_tex
+		sb.texture_margin_left = 16
+		sb.texture_margin_top = 16
+		sb.texture_margin_right = 16
+		sb.texture_margin_bottom = 40
+		sb.content_margin_left = 16.0
+		sb.content_margin_top = 12.0
+		sb.content_margin_right = 16.0
+		sb.content_margin_bottom = 44.0
+		smart_line_panel.add_theme_stylebox_override("panel", sb)
+	smart_line_layer.add_child(smart_line_panel)
+
+	smart_line_label = Label.new()
+	smart_line_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	smart_line_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	smart_line_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.25, 1.0))
+	smart_line_label.custom_minimum_size = Vector2(SMART_LINE_BUBBLE_WIDTH - 32, 0)
+	smart_line_label.max_lines_visible = 4
+	smart_line_label.text = ""
+	smart_line_panel.add_child(smart_line_label)
+
+	smart_line_hide_timer = Timer.new()
+	smart_line_hide_timer.one_shot = true
+	smart_line_hide_timer.wait_time = 4.0
+	smart_line_hide_timer.timeout.connect(_hide_smart_line)
+	add_child(smart_line_hide_timer)
+
+func _show_smart_line(line: String) -> void:
+	if not smart_line_panel or not smart_line_label:
+		return
+	smart_line_label.text = line
+	smart_line_panel.position = _get_smart_line_position()
+	smart_line_panel.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	smart_line_panel.visible = true
+	if smart_line_hide_timer:
+		smart_line_hide_timer.start()
+
+func _hide_smart_line() -> void:
+	if smart_line_panel:
+		smart_line_panel.visible = false
+
+func _get_smart_line_position() -> Vector2:
+	var viewport_size := _cached_screen_size
+	if viewport_size == Vector2.ZERO:
+		viewport_size = get_viewport_rect().size
+
+	var anchor := viewport_size * 0.5
+	if cat:
+		anchor = cat.global_position
+
+	var bubble_size := smart_line_panel.custom_minimum_size
+	var desired := Vector2(anchor.x + 40.0, anchor.y - bubble_size.y - 30.0)
+	desired.x = clampf(desired.x, 8.0, maxf(8.0, viewport_size.x - bubble_size.x - 8.0))
+	desired.y = clampf(desired.y, 8.0, maxf(8.0, viewport_size.y - bubble_size.y - 8.0))
+	return desired
 
 func _map_smart_action_to_animation(action_id: String) -> String:
 	match action_id:
@@ -486,6 +668,28 @@ func _map_smart_action_to_animation(action_id: String) -> String:
 			return "retreat"
 		_:
 			return "idle_stand"
+
+func _map_smart_action_to_state(action_id: String) -> StringName:
+	match action_id:
+		"idle":
+			return CatStates.IDLE
+		"walk":
+			return CatStates.WALKING
+		"watch":
+			return CatStates.WATCHING
+		"pounce":
+			return CatStates.POUNCING
+		"chase":
+			return CatStates.CHASING
+		"roll":
+			return CatStates.ROLLING
+		"tail_wag":
+			return CatStates.TAIL_WAGGING
+		"lick":
+			return CatStates.LICKING
+		"blocking":
+			return CatStates.BLOCKING
+	return &""
 
 func _setup_tray():
 	if OS.get_name() != "Windows" and OS.get_name() != "macOS":
@@ -548,6 +752,7 @@ func _on_tray_open_settings():
 	_set_pet_visible(true)
 	if settings_panel:
 		settings_panel.visible = true
+	_update_mouse_passthrough_region()
 
 func _on_tray_exit():
 	_cleanup_tray()
@@ -560,6 +765,7 @@ func _set_pet_visible(visible: bool):
 	var window = get_window()
 	window.visible = visible
 	_update_visibility_menu_labels()
+	_update_mouse_passthrough_region()
 
 func _is_pet_visible() -> bool:
 	var window = get_window()
@@ -580,3 +786,180 @@ func _cleanup_tray():
 	if tray_menu.is_valid():
 		NativeMenu.free_menu(tray_menu)
 		tray_menu = RID()
+
+func _fit_window_to_screen() -> void:
+	var window := get_window()
+	if not window:
+		return
+	var screen_index := DisplayServer.window_get_current_screen()
+	var screen_pos: Vector2i = DisplayServer.screen_get_position(screen_index)
+	var screen_size: Vector2i = DisplayServer.screen_get_size(screen_index)
+	if screen_size.x <= 0 or screen_size.y <= 0:
+		return
+	window.position = screen_pos
+	window.size = screen_size
+	_cached_screen_size = Vector2(screen_size)
+
+func _get_default_cat_position() -> Vector2:
+	var size := _cached_screen_size
+	if size == Vector2.ZERO:
+		size = get_viewport_rect().size
+	var margin := Vector2(120.0, 120.0)
+	var desired := Vector2(size.x - margin.x, size.y - margin.y)
+	return _clamp_cat_position(desired)
+
+func _clamp_cat_position(pos: Vector2) -> Vector2:
+	var size := _cached_screen_size
+	if size == Vector2.ZERO:
+		size = get_viewport_rect().size
+	var edge := 36.0
+	return Vector2(
+		clampf(pos.x, edge, maxf(edge, size.x - edge)),
+		clampf(pos.y, edge, maxf(edge, size.y - edge))
+	)
+
+func _log_window_state() -> void:
+	var window := get_window()
+	if not window:
+		return
+	print(
+		"Window state | size=", window.size,
+		", pos=", window.position,
+		", borderless=", window.borderless,
+		", transparent=", window.transparent,
+		", always_on_top=", window.always_on_top,
+		", in_editor=", OS.has_feature("editor")
+	)
+
+func _update_mouse_passthrough_region() -> void:
+	if not DisplayServer.has_method("window_set_mouse_passthrough"):
+		return
+	var polygon := _build_mouse_capture_polygon()
+	var hash_input := str(polygon)
+	var new_hash := hash(hash_input)
+	if new_hash == _passthrough_cache_hash:
+		return
+	_passthrough_cache_hash = new_hash
+	DisplayServer.window_set_mouse_passthrough(polygon)
+	var window := get_window()
+	if window:
+		window.set("mouse_passthrough_polygon", polygon)
+
+func _build_mouse_capture_polygon() -> PackedVector2Array:
+	if _should_capture_full_window():
+		return _build_full_window_polygon()
+	# 猫命中区 + 道具命中区（保证道具可点击/拖拽）
+	var polygon := _build_cat_hit_polygon()
+	for item in get_tree().get_nodes_in_group("items"):
+		if item is Node2D and is_instance_valid(item):
+			polygon.append_array(_build_circle_polygon(item.global_position, 48.0, 8))
+	return polygon
+
+func _should_capture_full_window() -> bool:
+	if settings_panel and settings_panel.visible:
+		return true
+	if popup_menu and popup_menu.visible:
+		return true
+	if hover_panel_visible:
+		return true
+	if quick_action_menu and quick_action_menu.visible:
+		return true
+	var input_component = cat.get_node_or_null("InputComponent")
+	if input_component and bool(input_component.is_dragging):
+		return true
+	return false
+
+func _build_full_window_polygon() -> PackedVector2Array:
+	var size := _cached_screen_size
+	if size == Vector2.ZERO:
+		size = get_viewport_rect().size
+	if size.x <= 0.0 or size.y <= 0.0:
+		return PackedVector2Array()
+	return PackedVector2Array([
+		Vector2(0.0, 0.0),
+		Vector2(size.x, 0.0),
+		Vector2(size.x, size.y),
+		Vector2(0.0, size.y)
+	])
+
+func _build_cat_hit_polygon() -> PackedVector2Array:
+	if not cat:
+		return _build_full_window_polygon()
+	var radius := 100.0
+	var input_component = cat.get_node_or_null("InputComponent")
+	if input_component and "click_distance_sq" in input_component:
+		radius = sqrt(maxf(float(input_component.click_distance_sq), 1.0))
+	if "scale_factor" in cat:
+		radius *= float(cat.scale_factor)
+	radius = clampf(radius, CAT_HIT_RADIUS_MIN, CAT_HIT_RADIUS_MAX)
+
+	var center: Vector2 = cat.global_position
+	return _build_circle_polygon(center, radius, 14)
+
+func _build_circle_polygon(center: Vector2, radius: float, segments: int = 12) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	var safe_segments := maxi(segments, 6)
+	for i in range(safe_segments):
+		var angle := (TAU * float(i)) / float(safe_segments)
+		result.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	return result
+
+func _setup_quick_action_menu() -> void:
+	if quick_action_menu:
+		return
+	quick_action_menu = QUICK_ACTION_MENU_SCRIPT.new()
+	add_child(quick_action_menu)
+	quick_action_menu.action_selected.connect(_on_quick_action_selected)
+	quick_action_menu.menu_closed.connect(_on_quick_action_menu_closed)
+
+func _on_cat_left_clicked(part: String, pos: Vector2) -> void:
+	if quick_action_menu and quick_action_menu.visible:
+		return
+	if quick_action_menu:
+		quick_action_menu.show_at(pos)
+		_update_mouse_passthrough_region()
+
+func _on_quick_action_selected(action: String) -> void:
+	match action:
+		"pet":
+			if cat and cat.has_method("_trigger_tsundere_reaction"):
+				cat._trigger_tsundere_reaction("head")
+		"wand":
+			var pos: Vector2 = cat.global_position if cat else get_global_mouse_position()
+			spawn_item("wand", pos + Vector2(60, 0))
+		"food":
+			var pos: Vector2 = cat.global_position if cat else get_global_mouse_position()
+			spawn_item("food", pos + Vector2(60, 0))
+		"leash":
+			_toggle_leash_walk()
+		"settings":
+			_on_tray_open_settings()
+	_update_mouse_passthrough_region()
+
+func _toggle_leash_walk() -> void:
+	if not cat or not cat.state_machine:
+		return
+	if cat.state_machine.is_in_state(CatStates.LEASH_WALKING):
+		cat.state_machine.transition_to(CatStates.IDLE)
+		return
+	cat.state_machine.transition_to(CatStates.LEASH_WALKING)
+	if smart_pet_controller:
+		smart_pet_controller.record_event("leash_walk_started")
+
+func _on_quick_action_menu_closed() -> void:
+	_update_mouse_passthrough_region()
+
+func _make_aurora_btn_style(path: String) -> StyleBoxTexture:
+	var tex := load(path) as Texture2D
+	var sb := StyleBoxTexture.new()
+	if tex:
+		sb.texture = tex
+	sb.texture_margin_left = 10
+	sb.texture_margin_top = 10
+	sb.texture_margin_right = 10
+	sb.texture_margin_bottom = 10
+	sb.content_margin_left = 8.0
+	sb.content_margin_top = 4.0
+	sb.content_margin_right = 8.0
+	sb.content_margin_bottom = 4.0
+	return sb

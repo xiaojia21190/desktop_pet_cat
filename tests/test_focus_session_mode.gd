@@ -46,6 +46,41 @@ func _run() -> void:
 	_assert_true(float(mode.affection_value) > 60.0, "affection_delta_writes_through")
 	_assert_true(is_equal_approx(float(behavior.affection), float(mode.affection_value)), "behavior_sees_session_affection")
 
+	# —— P3 数值反转：工作充能、闲置慢衰、猫干扰温和化 ——
+	var mode2 = FOCUS_SESSION_MODE_SCRIPT.new()
+	mode2.show_tutorial_on_start = false
+	add_child(mode2)
+	await get_tree().process_frame
+	mode2.start_session()
+	var focus_at_start: float = float(mode2.focus_value)
+
+	# 模拟 60 秒高强度打字：focus 应快速充能并顶到上限（85→100）
+	for i in range(60):
+		mode2.record_work_input({"typing": 8, "clicks": 1, "focus_activity": true})
+		mode2._tick_one_second()
+		if not mode2._running:
+			break
+	_assert_true(float(mode2.focus_value) > focus_at_start + 5.0, "working_charges_focus")
+	_assert_true(is_equal_approx(float(mode2.focus_value), 100.0), "working_hits_focus_cap")
+
+	# 模拟 300 秒纯闲置：focus 下降但未归零（慢衰）
+	var focus_before_idle: float = float(mode2.focus_value)
+	for i in range(300):
+		mode2.record_work_input({"typing": 0, "clicks": 0, "focus_activity": false})
+		mode2._tick_one_second()
+		if not mode2._running:
+			break
+	_assert_true(float(mode2.focus_value) < focus_before_idle, "idle_drains_focus")
+	_assert_true(float(mode2.focus_value) > 0.0, "idle_300s_not_dead_yet")
+
+	# 猫状态干扰温和化：Blocking 单次 ≤2.5 扣损
+	var focus_before_block: float = float(mode2.focus_value)
+	mode2.on_cat_state_changed(&"Blocking")
+	_assert_true(float(mode2.focus_value) > focus_before_block - 2.5, "blocking_mild_penalty")
+
+	mode2.queue_free()
+	behavior.queue_free()
+
 	_assert_true(mode.get_snapshot().has("focus"), "snapshot_has_focus")
 	_assert_true(mode.get_snapshot().has("remaining_seconds"), "snapshot_has_remaining_seconds")
 
@@ -54,9 +89,11 @@ func _run() -> void:
 		{"at": 1, "type": "item_food"}
 	])
 	var focus_before: float = float(mode.focus_value)
+	var chaos_before: float = float(mode.chaos_value)
 	var triggered: bool = bool(mode.trigger_next_demo_event())
 	_assert_true(triggered, "trigger_next_demo_event_success")
-	_assert_true(mode.focus_value < focus_before, "typing_event_reduces_focus")
+	# P3：打字攻击不再扣 focus，改为小幅度 chaos 上升
+	_assert_true(float(mode.chaos_value) > chaos_before, "typing_event_bumps_chaos")
 
 	recorder.start_recording_script(10, false)
 	mode.on_typing_attack()

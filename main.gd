@@ -27,6 +27,9 @@ var focus_session_mode
 var smart_pet_controller
 var foreground_app_monitor
 var _last_fg_log_unix := 0
+var _session_typing_count := 0
+var _session_click_count := 0
+var _session_signal_timer := 0.0
 var tray_controller
 var passthrough_manager
 var smart_line_bubble
@@ -166,6 +169,22 @@ func _process(delta):
 	_update_shake(delta)
 	if smart_line_bubble and smart_line_bubble.is_visible_to_user() and cat:
 		smart_line_bubble.reposition(cat.global_position, _cached_screen_size)
+	# P3：每秒聚合工作信号喂给专注会话
+	if focus_session_mode and focus_session_mode._running:
+		_session_signal_timer += delta
+		if _session_signal_timer >= 1.0:
+			_session_signal_timer = 0.0
+			var focus_activity := false
+			if smart_pet_controller and smart_pet_controller._context_collector:
+				var snap: Dictionary = smart_pet_controller._context_collector.get_snapshot()
+				focus_activity = String(snap.get("activity", "")) == "coding"
+			focus_session_mode.record_work_input({
+				"typing": _session_typing_count,
+				"clicks": _session_click_count,
+				"focus_activity": focus_activity
+			})
+			_session_typing_count = 0
+			_session_click_count = 0
 	_update_mouse_passthrough_region()
 
 func _update_shake(delta):
@@ -464,6 +483,9 @@ func _on_focus_session_finished(result: String, summary: Dictionary) -> void:
 func _on_keyboard_typing_for_smart(_event: InputEvent) -> void:
 	if smart_pet_controller:
 		smart_pet_controller.record_typing()
+	# P3：会话工作信号计数（每秒聚合后由 _process 喂入）
+	if focus_session_mode and focus_session_mode._running:
+		_session_typing_count += 1
 
 func _on_smart_action_requested(action_id: String, _decision: Dictionary) -> void:
 	if not cat:

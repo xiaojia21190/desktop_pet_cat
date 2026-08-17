@@ -87,6 +87,8 @@ var _last_deleted_trash_path: String = ""
 var _ops_panel_visible: bool = false
 
 var _tutorial: FocusTutorialController
+var _charge_engine := FocusChargeEngine.new()
+var _work_signal_buffer := {"typing": 0, "clicks": 0, "focus_activity": false}
 
 
 func _ready() -> void:
@@ -119,22 +121,7 @@ func _process(delta: float) -> void:
 
 	while _time_accumulator >= 1.0:
 		_time_accumulator -= 1.0
-		_elapsed_seconds += 1
-		_remaining_seconds = max(_remaining_seconds - 1, 0)
-		_current_objective_tier = _current_difficulty_tier()
-
-		# 核心循环：被动衰减 -> Demo脚本注入 -> 目标/胜负判定
-		_apply_passive_changes()
-		_consume_demo_events()
-		if _objective_system.check_timeout(_objective_timer, focus_value, affection_value, chaos_value):
-			_apply_delta(-4.0, -3.0, 6.0, "Objective failed. Penalty applied.")
-			_record_event("objective_failed", {
-				"id": _objective_system.get_objective_key(),
-				"target": _objective_system.get_objective_target()
-			})
-			_roll_objective()
-		_check_end_condition()
-		_check_recording_target()
+		_tick_one_second()
 		if not _running:
 			break
 
@@ -201,6 +188,34 @@ func start_session() -> void:
 	_roll_objective()
 	_update_ui()
 
+func record_work_input(work_signal: Dictionary) -> void:
+	## main 从键盘/鼠标/感知接线喂入；会话未运行时忽略
+	if not _running:
+		return
+	_work_signal_buffer["typing"] = int(work_signal.get("typing", 0))
+	_work_signal_buffer["clicks"] = int(work_signal.get("clicks", 0))
+	_work_signal_buffer["focus_activity"] = bool(work_signal.get("focus_activity", false))
+
+func _tick_one_second() -> void:
+	## 每秒核心滴答：抽自 _process 便于测试单步驱动
+	_elapsed_seconds += 1
+	_remaining_seconds = max(_remaining_seconds - 1, 0)
+	_current_objective_tier = _current_difficulty_tier()
+	_apply_passive_changes()
+	_consume_demo_events()
+	if _objective_system.check_timeout(_objective_timer, focus_value, affection_value, chaos_value):
+		_apply_delta(-4.0, -3.0, 6.0, "Objective failed. Penalty applied.")
+		_record_event("objective_failed", {
+			"id": _objective_system.get_objective_key(),
+			"target": _objective_system.get_objective_target()
+		})
+		_roll_objective()
+	_check_end_condition()
+	_check_recording_target()
+	# 用完清零，等待下一秒新信号
+	_work_signal_buffer["typing"] = 0
+	_work_signal_buffer["clicks"] = 0
+
 func set_objective_cards(cards: Array[Dictionary]) -> void:
 	_objective_system.set_cards(cards)
 	_roll_objective()
@@ -259,7 +274,8 @@ func trigger_next_demo_event() -> bool:
 func on_typing_attack() -> void:
 	if not _running:
 		return
-	_apply_delta(-8.0, -2.0, 16.0, "Typing attack! Focus dropped.")
+	# P3：打字本身是工作，不该惩罚——改为小幅度 chaos 波动
+	_apply_delta(0.0, -0.5, 3.0, "Cat pounced on your keyboard!")
 	_record_event("typing_attack")
 	_check_end_condition()
 
@@ -298,15 +314,15 @@ func on_cat_state_changed(to_state: StringName) -> void:
 
 	match to_state:
 		&"Blocking":
-			_apply_delta(-5.0, -1.0, 10.0, "Blocking state triggered.")
+			_apply_delta(-1.2, -0.3, 2.5, "Blocking state triggered.")
 		&"Chasing":
-			_apply_delta(-4.0, 0.0, 8.0, "Chasing state triggered.")
+			_apply_delta(-1.0, 0.0, 2.0, "Chasing state triggered.")
 		&"Pouncing":
-			_apply_delta(-3.0, 0.0, 7.0, "Pouncing state triggered.")
+			_apply_delta(-0.8, 0.0, 1.8, "Pouncing state triggered.")
 		&"TailWagging":
-			_apply_delta(1.0, 4.0, -3.0, "Tail wagging improved mood.")
+			_apply_delta(0.5, 1.0, -1.0, "Tail wagging improved mood.")
 		&"Watching":
-			_apply_delta(-1.0, 1.0, 2.0, "Cat is watching your cursor.")
+			_apply_delta(-0.3, 0.3, 0.5, "Cat is watching your cursor.")
 		_:
 			return
 
@@ -331,13 +347,14 @@ func get_snapshot() -> Dictionary:
 	}
 
 func _apply_passive_changes() -> void:
-	var passive_focus_drain := 1.0 + chaos_value * 0.03
-	focus_value = clampf(focus_value - passive_focus_drain, MIN_VALUE, MAX_VALUE)
-	chaos_value = clampf(chaos_value - 0.8, MIN_VALUE, MAX_VALUE)
-
-	var affection_shift := 0.15
-	if focus_value < 35.0:
-		affection_shift = -0.45
+	# P3 玩法反转：真实工作信号充能，闲置慢衰
+	var focus_delta := _charge_engine.compute_focus_delta(_work_signal_buffer)
+	focus_value = clampf(focus_value + focus_delta, MIN_VALUE, MAX_VALUE)
+	# chaos 慢慢自然回落；affection 随工作缓慢增长（猫喜欢陪你干活）
+	chaos_value = clampf(chaos_value - 0.5, MIN_VALUE, MAX_VALUE)
+	var affection_shift := 0.1
+	if focus_delta > 0.0:
+		affection_shift = 0.2
 	affection_value = clampf(affection_value + affection_shift, MIN_VALUE, MAX_VALUE)
 
 	if _objective_system.check_progress(focus_value, affection_value, chaos_value):

@@ -1,21 +1,32 @@
 extends Panel
 
-@onready var opacity_slider: HSlider = $VBoxContainer/OpacitySlider
-@onready var always_on_top_check: CheckBox = $VBoxContainer/AlwaysOnTopCheck
-@onready var timed_hide_option: OptionButton = $VBoxContainer/TimedHideOption
-@onready var timed_hide_remaining_label: Label = $VBoxContainer/TimedHideRemainingLabel
+@onready var opacity_slider: HSlider = $ScrollContainer/VBoxContainer/OpacitySlider
+@onready var always_on_top_check: CheckBox = $ScrollContainer/VBoxContainer/AlwaysOnTopCheck
+@onready var timed_hide_option: OptionButton = $ScrollContainer/VBoxContainer/TimedHideOption
+@onready var timed_hide_remaining_label: Label = $ScrollContainer/VBoxContainer/TimedHideRemainingLabel
 @onready var timed_hide_update_timer: Timer = $TimedHideUpdateTimer
-@onready var intensity_option: OptionButton = $VBoxContainer/IntensityOption
-@onready var sound_check: CheckBox = $VBoxContainer/SoundCheck
-@onready var bgm_check: CheckBox = $VBoxContainer/BGMCheck
-@onready var volume_slider: HSlider = $VBoxContainer/VolumeSlider
-@onready var smart_mode_check: CheckBox = $VBoxContainer/SmartModeCheck
-@onready var llm_enabled_check: CheckBox = $VBoxContainer/LLMEnabledCheck
-@onready var personality_option: OptionButton = $VBoxContainer/PersonalityOption
-@onready var reminder_intensity_option: OptionButton = $VBoxContainer/ReminderIntensityOption
-@onready var quiet_start_spin: SpinBox = $VBoxContainer/QuietHoursRow/QuietStartSpin
-@onready var quiet_end_spin: SpinBox = $VBoxContainer/QuietHoursRow/QuietEndSpin
-@onready var save_manager_button: Button = $VBoxContainer/SaveManagerButton
+@onready var intensity_option: OptionButton = $ScrollContainer/VBoxContainer/IntensityOption
+@onready var sound_check: CheckBox = $ScrollContainer/VBoxContainer/SoundCheck
+@onready var bgm_check: CheckBox = $ScrollContainer/VBoxContainer/BGMCheck
+@onready var volume_slider: HSlider = $ScrollContainer/VBoxContainer/VolumeSlider
+@onready var smart_mode_check: CheckBox = $ScrollContainer/VBoxContainer/SmartModeCheck
+@onready var perception_check: CheckBox = $ScrollContainer/VBoxContainer/PerceptionCheck
+@onready var perception_default_rules_check: CheckBox = $ScrollContainer/VBoxContainer/PerceptionDefaultRulesCheck
+@onready var llm_enabled_check: CheckBox = $ScrollContainer/VBoxContainer/LLMEnabledCheck
+@onready var llm_endpoint_input: LineEdit = $ScrollContainer/VBoxContainer/LLMEndpointInput
+@onready var llm_model_input: LineEdit = $ScrollContainer/VBoxContainer/LLMModelInput
+@onready var llm_api_env_input: LineEdit = $ScrollContainer/VBoxContainer/LLMApiEnvInput
+@onready var llm_api_key_input: LineEdit = $ScrollContainer/VBoxContainer/LLMApiKeyInput
+@onready var personality_option: OptionButton = $ScrollContainer/VBoxContainer/PersonalityOption
+@onready var reminder_intensity_option: OptionButton = $ScrollContainer/VBoxContainer/ReminderIntensityOption
+@onready var quiet_start_spin: SpinBox = $ScrollContainer/VBoxContainer/QuietHoursRow/QuietStartSpin
+@onready var quiet_end_spin: SpinBox = $ScrollContainer/VBoxContainer/QuietHoursRow/QuietEndSpin
+@onready var save_manager_button: Button = $ScrollContainer/VBoxContainer/SaveManagerButton
+@onready var close_button: Button = $CloseButton
+
+const DEFAULT_LLM_ENDPOINT := "https://api.openai.com/v1/chat/completions"
+const DEFAULT_LLM_MODEL := "gpt-4o-mini"
+const DEFAULT_LLM_API_ENV := "OPENAI_API_KEY"
 
 var save_manager_panel: PopupPanel
 
@@ -61,7 +72,13 @@ func _ready():
 	bgm_check.button_pressed = settings.get("bgm_enabled", bgm_check.button_pressed)
 	volume_slider.value = settings.get("volume", volume_slider.value)
 	smart_mode_check.button_pressed = bool(settings.get("smart_mode", true))
+	perception_check.button_pressed = bool(settings.get("perception_enabled", false))
+	perception_default_rules_check.button_pressed = bool(settings.get("perception_default_rules", true))
 	llm_enabled_check.button_pressed = bool(settings.get("llm_enabled", false))
+	llm_endpoint_input.text = String(settings.get("llm_endpoint", DEFAULT_LLM_ENDPOINT))
+	llm_model_input.text = String(settings.get("llm_model", DEFAULT_LLM_MODEL))
+	llm_api_env_input.text = String(settings.get("llm_api_key_env", DEFAULT_LLM_API_ENV))
+	llm_api_key_input.text = String(settings.get("llm_api_key", ""))
 	_set_option_value(personality_option, _personality_to_index(String(settings.get("personality", "tsundere"))))
 	_set_option_value(reminder_intensity_option, _reminder_to_index(String(settings.get("reminder_intensity", "medium"))))
 	_set_spin_value(quiet_start_spin, float(settings.get("quiet_hours_start", 23)))
@@ -80,7 +97,13 @@ func _ready():
 	bgm_check.toggled.connect(_on_bgm_toggled)
 	volume_slider.value_changed.connect(_on_volume_changed)
 	smart_mode_check.toggled.connect(_on_smart_mode_toggled)
+	perception_check.toggled.connect(_on_perception_toggled)
+	perception_default_rules_check.toggled.connect(_on_perception_toggled)
 	llm_enabled_check.toggled.connect(_on_llm_enabled_toggled)
+	llm_endpoint_input.text_changed.connect(_on_llm_endpoint_changed)
+	llm_model_input.text_changed.connect(_on_llm_model_changed)
+	llm_api_env_input.text_changed.connect(_on_llm_api_env_changed)
+	llm_api_key_input.text_changed.connect(_on_llm_api_key_changed)
 	personality_option.item_selected.connect(_on_personality_selected)
 	reminder_intensity_option.item_selected.connect(_on_reminder_intensity_selected)
 	quiet_start_spin.value_changed.connect(_on_quiet_hours_changed)
@@ -91,6 +114,8 @@ func _ready():
 		timed_hide_update_timer.timeout.connect(_on_timed_hide_update_timer)
 	if not visibility_changed.is_connected(_on_visibility_changed):
 		visibility_changed.connect(_on_visibility_changed)
+	if close_button and not close_button.pressed.is_connected(_on_close_pressed):
+		close_button.pressed.connect(_on_close_pressed)
 
 	if not save_manager_panel:
 		var panel_scene = load("res://save_manager_panel.tscn")
@@ -184,7 +209,27 @@ func _on_smart_mode_toggled(_enabled: bool) -> void:
 	_apply_smart_settings()
 	SaveManager.save_data()
 
+func _on_perception_toggled(_enabled: bool) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
 func _on_llm_enabled_toggled(_enabled: bool) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_llm_endpoint_changed(_value: String) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_llm_model_changed(_value: String) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_llm_api_env_changed(_value: String) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_llm_api_key_changed(_value: String) -> void:
 	_apply_smart_settings()
 	SaveManager.save_data()
 
@@ -206,6 +251,9 @@ func _on_save_manager_pressed():
 	elif save_manager_panel and save_manager_panel.has_method("popup_centered"):
 		save_manager_panel.popup_centered()
 
+func _on_close_pressed() -> void:
+	visible = false
+
 func apply_settings(settings: Dictionary) -> void:
 	if settings.is_empty():
 		return
@@ -219,6 +267,10 @@ func apply_settings(settings: Dictionary) -> void:
 	_set_slider_value(volume_slider, settings.get("volume", volume_slider.value))
 	_set_check_value(smart_mode_check, bool(settings.get("smart_mode", smart_mode_check.button_pressed)))
 	_set_check_value(llm_enabled_check, bool(settings.get("llm_enabled", llm_enabled_check.button_pressed)))
+	_set_line_edit_value(llm_endpoint_input, String(settings.get("llm_endpoint", llm_endpoint_input.text)))
+	_set_line_edit_value(llm_model_input, String(settings.get("llm_model", llm_model_input.text)))
+	_set_line_edit_value(llm_api_env_input, String(settings.get("llm_api_key_env", llm_api_env_input.text)))
+	_set_line_edit_value(llm_api_key_input, String(settings.get("llm_api_key", llm_api_key_input.text)))
 	_set_option_value(personality_option, _personality_to_index(String(settings.get("personality", "tsundere"))))
 	_set_option_value(reminder_intensity_option, _reminder_to_index(String(settings.get("reminder_intensity", "medium"))))
 	_set_spin_value(quiet_start_spin, float(settings.get("quiet_hours_start", quiet_start_spin.value)))
@@ -254,6 +306,13 @@ func _set_spin_value(spin: SpinBox, value: float) -> void:
 	spin.set_block_signals(true)
 	spin.value = clampf(value, spin.min_value, spin.max_value)
 	spin.set_block_signals(false)
+
+func _set_line_edit_value(line_edit: LineEdit, value: String) -> void:
+	if not line_edit:
+		return
+	line_edit.set_block_signals(true)
+	line_edit.text = value
+	line_edit.set_block_signals(false)
 
 func _personality_to_index(value: String) -> int:
 	match value:
@@ -299,7 +358,14 @@ func _apply_smart_settings() -> void:
 	if smart and smart.has_method("configure"):
 		smart.configure({
 			"smart_mode": smart_mode_check.button_pressed,
+		"perception_enabled": perception_check.button_pressed,
+		"perception_default_rules": perception_default_rules_check.button_pressed,
 			"llm_enabled": llm_enabled_check.button_pressed,
+			"llm_endpoint": llm_endpoint_input.text.strip_edges(),
+			"llm_model": llm_model_input.text.strip_edges(),
+			"llm_api_key_env": llm_api_env_input.text.strip_edges(),
+			"llm_api_key": llm_api_key_input.text.strip_edges(),
+			"llm_timeout_seconds": 10.0,
 			"data_collection_level": "minimal",
 			"personality": _index_to_personality(personality_option.selected),
 			"reminder_intensity": _index_to_reminder(reminder_intensity_option.selected),

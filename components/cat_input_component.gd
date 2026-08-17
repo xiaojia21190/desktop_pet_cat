@@ -41,7 +41,8 @@ func _input(event: InputEvent) -> void:
 		_handle_mouse_motion(event)
 
 func _handle_mouse_button(event: InputEventMouseButton) -> void:
-	var mouse_pos := owner_node.get_global_mouse_position()
+	# 用事件坐标而非实时光标：注入事件/光标抖动时仍能正确命中
+	var mouse_pos: Vector2 = event.global_position if event.global_position != Vector2.ZERO else owner_node.get_global_mouse_position()
 	var distance_sq := owner_node.global_position.distance_squared_to(mouse_pos)
 
 	if event.button_index == MOUSE_BUTTON_LEFT:

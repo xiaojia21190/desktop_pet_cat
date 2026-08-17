@@ -18,10 +18,9 @@ func update(main_node: Node2D) -> void:
 	if new_hash == _cache_hash:
 		return
 	_cache_hash = new_hash
+	# 单一权威路径：仅 DisplayServer（window.set 属性路径在 Windows 透明
+	# 无边框下会被 Window 内部状态重置，导致捕获区丢失、点击穿透到桌面）
 	DisplayServer.window_set_mouse_passthrough(polygon)
-	var window := main_node.get_window()
-	if window:
-		window.set("mouse_passthrough_polygon", polygon)
 
 func _build_capture_polygon(main_node: Node2D) -> PackedVector2Array:
 	if _should_capture_full_window(main_node):

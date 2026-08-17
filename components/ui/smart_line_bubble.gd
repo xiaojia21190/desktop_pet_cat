@@ -4,6 +4,8 @@ extends CanvasLayer
 ## SMART 台词气泡：贴猫显示、定时自动隐藏。纯视图，位置由 anchor 喂入。
 
 const BUBBLE_WIDTH := 320.0
+const BUBBLE_MIN_HEIGHT := 72.0   # 文字未排版前的最小估算高度
+const CAT_ABOVE_OFFSET := 120.0   # 猫头顶到原点（脚底）的渲染高度估算（128 帧基础尺寸）
 const AUTO_HIDE_SECONDS := 4.0
 
 var _panel: PanelContainer
@@ -70,8 +72,10 @@ func is_visible_to_user() -> bool:
 	return _panel != null and _panel.visible
 
 func _clamped_position(anchor: Vector2, viewport_size: Vector2) -> Vector2:
-	var bubble_size := _panel.custom_minimum_size
-	var desired := Vector2(anchor.x + 40.0, anchor.y - bubble_size.y - 30.0)
+	# 用面板实际渲染尺寸（custom_minimum_size 高度为 0，取 get_rect 实高）
+	var bubble_size := Vector2(_panel.size.x, maxf(_panel.size.y, BUBBLE_MIN_HEIGHT))
+	# 锚点是猫脚底（global_position 为 CharacterBody2D 原点），气泡放头顶：往上偏一个猫高 + 边距
+	var desired := Vector2(anchor.x + 40.0, anchor.y - bubble_size.y - CAT_ABOVE_OFFSET)
 	desired.x = clampf(desired.x, 8.0, maxf(8.0, viewport_size.x - bubble_size.x - 8.0))
 	desired.y = clampf(desired.y, 8.0, maxf(8.0, viewport_size.y - bubble_size.y - 8.0))
 	return desired

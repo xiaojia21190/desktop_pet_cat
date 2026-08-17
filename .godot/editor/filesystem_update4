@@ -1,5 +1,0 @@
-res://save_manager.gd
-res://cat.gd
-res://main.gd
-res://states/cat_idle_state.gd
-res://states/cat_state_base.gd

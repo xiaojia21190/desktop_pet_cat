@@ -11,7 +11,7 @@ signal typing_attack_started
 var _timer: float = 0.0
 
 func enter(_msg: Dictionary = {}) -> void:
-	play_animation("idle_active")
+	play_animation("typing_attack")
 	_timer = 0.0
 	typing_attack_started.emit()
 

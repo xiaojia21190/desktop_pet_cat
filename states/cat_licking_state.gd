@@ -10,7 +10,7 @@ var _timer: float = 0.0
 var _base_rotation: float = 0.0
 
 func enter(_msg: Dictionary = {}) -> void:
-	play_animation("idle_active")
+	play_animation("lick_groom")
 	_timer = 0.0
 	_base_rotation = cat.rotation
 

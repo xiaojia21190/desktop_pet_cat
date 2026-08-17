@@ -2,7 +2,8 @@ class_name CatAnimationComponent
 extends Node
 
 ## 猫咪动画组件
-## 管理动画播放和猫咪类型切换
+## 优先加载预生成的 SpriteFrames .tres 资源（可在编辑器中编辑）
+## 找不到 .tres 时回退到运行时生成
 
 signal animation_finished(anim_name: String)
 signal cat_type_changed(cat_type: String)
@@ -12,6 +13,8 @@ signal cat_type_changed(cat_type: String)
 var animated_sprite: AnimatedSprite2D
 var current_cat_type: String = "orange_tabby"
 
+const SPRITE_FRAMES_DIR := "res://resources/animations/"
+
 func _ready() -> void:
 	animated_sprite = get_node_or_null(animated_sprite_path) as AnimatedSprite2D
 	if animated_sprite:
@@ -20,7 +23,6 @@ func _ready() -> void:
 func play(anim_name: String) -> void:
 	if not animated_sprite or not animated_sprite.sprite_frames:
 		return
-
 	if animated_sprite.sprite_frames.has_animation(anim_name):
 		animated_sprite.play(anim_name)
 	elif animated_sprite.sprite_frames.has_animation("idle_stand"):
@@ -34,7 +36,6 @@ func switch_cat_type(cat_type: String) -> void:
 	if not AnimationConfig.CAT_TYPES.has(cat_type):
 		push_warning("未知猫咪类型: " + cat_type)
 		return
-
 	current_cat_type = cat_type
 	_apply_sprite_frames()
 	cat_type_changed.emit(cat_type)
@@ -48,11 +49,22 @@ func _apply_sprite_frames() -> void:
 	if not animated_sprite:
 		return
 
-	var sprite_frames := SpriteFramesGenerator.generate(current_cat_type)
-	if sprite_frames:
-		animated_sprite.sprite_frames = sprite_frames
+	# 优先加载预生成的 .tres
+	var tres_path := SPRITE_FRAMES_DIR + current_cat_type + ".tres"
+	if ResourceLoader.exists(tres_path):
+		var sf := load(tres_path) as SpriteFrames
+		if sf:
+			animated_sprite.sprite_frames = sf
+			animated_sprite.play("idle_stand")
+			print("已加载猫咪(.tres): ", current_cat_type)
+			return
+
+	# 回退到运行时生成
+	var generated := SpriteFramesGenerator.generate(current_cat_type)
+	if generated:
+		animated_sprite.sprite_frames = generated
 		animated_sprite.play("idle_stand")
-		print("已加载猫咪: ", AnimationConfig.CAT_TYPES[current_cat_type].name)
+		print("已加载猫咪(运行时): ", current_cat_type)
 
 func _on_animation_finished() -> void:
 	animation_finished.emit(animated_sprite.animation)

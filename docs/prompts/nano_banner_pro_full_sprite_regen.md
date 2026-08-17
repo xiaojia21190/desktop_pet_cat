@@ -31,24 +31,25 @@ If frames < 8, leave remaining cells fully transparent.
 - `idle_lie`: loaf pose, tail tap, relaxed, `6 frames`
 - `sleep_curl`: curled sleeping with subtle breathing, `4 frames`
 - `stretch`: front stretch, back arch, recover, `6 frames`
-- `yawn`: mouth open-close, sleepy reset, `6 frames`
 
+- `yawn`: mouth open-close, sleepy reset, `6 frames`
 - `walk`: smooth walk cycle, `8 frames`
 - `trot`: bouncy trot cycle, `6 frames`
 - `run`: fast run cycle, compact arcs, `6 frames`
 - `jump`: crouch-launch-airborne-fall, `4 frames`
+
 - `land`: contact-squash-recover-stand, `4 frames`
 - `retreat`: cautious backward/side retreat, `6 frames`
-
 - `watch_focus`: focused stare with tiny head motion, `4 frames`
 - `pounce_ready`: crouch with butt wiggle prep, `4 frames`
 - `pounce_attack`: launch-hit-recover, `4 frames`
+
 - `dodge`: quick side dodge and reset, `4 frames`
 - `startled`: startled recoil then recover, `4 frames`
-
 - `lick_groom`: lick paw/leg and face wash, `6 frames`
 - `tail_wag`: tail wag with slight body sway, `6 frames`
 - `typing_attack`: rapid paw hit rhythm toward keyboard direction, `6 frames`
+
 - `blocking`: block posture, assertive front stance, `6 frames`
 - `chasing`: pursuit run with intent, `6 frames`
 - `rolling`: playful roll over and reset, `6 frames`

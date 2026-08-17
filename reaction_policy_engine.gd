@@ -25,8 +25,9 @@ const DEFAULT_COOLDOWN := {
 
 var _last_trigger_time: Dictionary = {}
 
+@warning_ignore("unused_parameter")
 func evaluate(snapshot: Dictionary, tags: Array[String], recent_events: Array[Dictionary], persona: Dictionary) -> Dictionary:
-	var now := Time.get_unix_time_from_system()
+	var now := int(Time.get_unix_time_from_system())
 	var personality := String(persona.get("personality", "tsundere"))
 	var reminder_intensity := String(persona.get("reminder_intensity", "medium"))
 	var psyche: Dictionary = snapshot.get("psyche", {})
@@ -112,11 +113,11 @@ func _decision_if_available(now: int, action_id: String, intent: String, line: S
 	}
 
 func _has_recent_event(recent_events: Array[Dictionary], event_type: String, within_seconds: int) -> bool:
-	var now := Time.get_unix_time_from_system()
+	var now := int(Time.get_unix_time_from_system())
 	for event_data in recent_events:
-		var name := String(event_data.get("type", ""))
+		var event_name := String(event_data.get("type", ""))
 		var ts: int = int(event_data.get("t", 0))
-		if name == event_type and now - ts <= within_seconds:
+		if event_name == event_type and now - ts <= within_seconds:
 			return true
 	return false
 

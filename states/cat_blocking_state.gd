@@ -41,7 +41,8 @@ func enter(msg: Dictionary = {}) -> void:
 		_target = msg["target"]
 	else:
 		_target = get_mouse_position()
-	play_animation("idle_active")
+	play_animation("blocking")
+	face_toward(_target)
 	_hide_overlay()
 
 func physics_update(delta: float) -> void:
@@ -74,7 +75,7 @@ func _start_blocking() -> void:
 	_phase = Phase.BLOCK
 	_block_timer = 0.0
 	_target = cat.global_position
-	play_animation("idle_sit")
+	play_animation("blocking")
 	_show_overlay()
 
 func _start_leave() -> void:
@@ -82,7 +83,8 @@ func _start_leave() -> void:
 	_leave_timer = 0.0
 	_hide_overlay()
 	_leave_target = _get_leave_target()
-	play_animation("idle_active")
+	play_animation("retreat")
+	face_toward(_leave_target)
 
 func _update_follow(delta: float) -> void:
 	var mouse_pos := get_mouse_position()

@@ -12,7 +12,7 @@ var _carried_item: Node2D = null
 var _carry_target: Vector2 = Vector2.ZERO
 
 func enter(msg: Dictionary = {}) -> void:
-	play_animation("idle_active")
+	play_animation("carry")
 	_timer = 0.0
 
 	if msg.has("item"):

@@ -1,11 +1,13 @@
 extends CharacterBody2D
 
+@warning_ignore("shadowed_global_identifier")
 const CatStates = preload("res://cat_states.gd")
 
 ## 桌面宠物猫主控制器
 ## 使用组件和状态机模式重构
 
 signal typing_attack_started
+signal cat_left_clicked(part: String, pos: Vector2)
 
 # 组件引用
 @onready var state_machine: StateMachine = $StateMachine
@@ -30,6 +32,13 @@ var _state_timer: float = 0.0
 var _block_check_timer: float = 0.0
 var _block_cooldown_timer: float = 0.0
 var _last_block_mouse_pos: Vector2 = Vector2.ZERO
+
+# 鼠标proximity互动
+var _mouse_near_timer: float = 0.0
+var _mouse_near_cooldown: float = 0.0
+const MOUSE_NEAR_DISTANCE: float = 200.0
+const MOUSE_NEAR_THRESHOLD: float = 2.0
+const MOUSE_NEAR_COOLDOWN: float = 15.0
 
 # 随机状态切换概率阈值（累积概率）
 @export_group("State Probabilities")
@@ -79,6 +88,8 @@ func _connect_signals() -> void:
 	# 道具检测信号
 	if item_detector:
 		item_detector.item_reaction.connect(_on_item_reaction)
+		if not item_detector.wand_play_requested.is_connected(_on_wand_play_requested):
+			item_detector.wand_play_requested.connect(_on_wand_play_requested)
 
 	# 状态机信号
 	if state_machine:
@@ -126,8 +137,14 @@ func _process(delta: float) -> void:
 	if behavior_system and behavior_system.is_in_chain():
 		return
 
+	# 缓存本帧鼠标位置，供多处复用
+	var mouse_pos := get_global_mouse_position()
+
 	# 定时随机切换状态
-	if _try_trigger_blocking(delta):
+	if _try_trigger_blocking(delta, mouse_pos):
+		return
+
+	if _try_proximity_interaction(delta, mouse_pos):
 		return
 
 	_state_timer += delta
@@ -143,17 +160,23 @@ func _smart_state_change() -> void:
 	var time_mod := behavior_system.get_time_behavior_modifier()
 	var activity_mod: float = time_mod.activity_mod
 
-	var available_actions := ["idle_stand", "idle_sit", "walk", "watch", "lick", "daze", "roll", "tail_wag"]
+	# 有概率触发行为链
+	if _try_trigger_chain(activity_mod):
+		return
+
+	var available_actions := ["idle_stand", "idle_sit", "walk", "watch", "lick", "daze", "kneading", "roll", "tail_wag", "chase_mouse", "pounce_mouse"]
 
 	# 夜晚减少活跃行为
 	if activity_mod < 0.7:
-		available_actions = ["idle_stand", "idle_sit", "daze", "lick"]
+		available_actions = ["idle_stand", "idle_sit", "daze", "lick", "kneading"]
 
 	var selected := behavior_system.select_weighted_behavior(available_actions)
 
 	match selected:
-		"idle_stand", "idle_sit", "daze":
+		"idle_stand", "idle_sit":
 			state_machine.transition_to(CatStates.IDLE)
+		"daze", "kneading":
+			state_machine.transition_to(CatStates.IDLE, {"animation": selected})
 		"walk":
 			state_machine.transition_to(CatStates.WALKING)
 		"watch":
@@ -164,8 +187,88 @@ func _smart_state_change() -> void:
 			state_machine.transition_to(CatStates.ROLLING)
 		"tail_wag":
 			state_machine.transition_to(CatStates.TAIL_WAGGING)
+		"chase_mouse":
+			state_machine.transition_to(CatStates.CHASING)
+		"pounce_mouse":
+			state_machine.transition_to(CatStates.POUNCING)
 		_:
 			_random_state_change()
+
+func _try_trigger_chain(activity_mod: float) -> bool:
+	if not behavior_system or behavior_system.is_in_chain():
+		return false
+
+	var roll := randf()
+	var energy_state := behavior_system.get_energy_state()
+	var mood_state := behavior_system.get_mood_state()
+
+	if activity_mod >= 0.7:
+		if energy_state == CatBehaviorSystem.EnergyState.ENERGETIC:
+			if roll < 0.05:
+				behavior_system.start_chain("playful_burst")
+				return true
+			elif roll < 0.09:
+				behavior_system.start_chain("pounce_sequence")
+				return true
+		if roll < 0.04:
+			behavior_system.start_chain("curious_peek")
+			return true
+		elif roll < 0.07:
+			behavior_system.start_chain("greeting_sequence")
+			return true
+		elif roll < 0.09:
+			behavior_system.start_chain("startled_sequence")
+			return true
+		elif roll < 0.11:
+			behavior_system.start_chain("grooming_sequence")
+			return true
+	else:
+		if roll < 0.03:
+			behavior_system.start_chain("sleep_sequence")
+			return true
+		elif roll < 0.05:
+			behavior_system.start_chain("stretch_relax")
+			return true
+		elif roll < 0.07:
+			behavior_system.start_chain("grooming_sequence")
+			return true
+
+	if mood_state == CatBehaviorSystem.MoodState.GRUMPY and roll < 0.03:
+		behavior_system.start_chain("angry_sequence")
+		return true
+
+	return false
+
+func _try_proximity_interaction(delta: float, mouse_pos: Vector2 = Vector2.ZERO) -> bool:
+	_mouse_near_cooldown = maxf(_mouse_near_cooldown - delta, 0.0)
+	if _mouse_near_cooldown > 0.0:
+		return false
+	if not behavior_system or behavior_system.is_in_chain():
+		return false
+	if not state_machine or not state_machine.is_in_state(CatStates.IDLE):
+		return false
+
+	if mouse_pos == Vector2.ZERO:
+		mouse_pos = get_global_mouse_position()
+	var dist := global_position.distance_to(mouse_pos)
+
+	if dist < MOUSE_NEAR_DISTANCE:
+		_mouse_near_timer += delta
+		if _mouse_near_timer >= MOUSE_NEAR_THRESHOLD:
+			_mouse_near_timer = 0.0
+			_mouse_near_cooldown = MOUSE_NEAR_COOLDOWN
+			var roll := randf()
+			if roll < 0.4:
+				behavior_system.start_chain("curious_peek")
+			elif roll < 0.7:
+				behavior_system.start_chain("greeting_sequence")
+			else:
+				state_machine.transition_to(CatStates.WATCHING)
+			return true
+	else:
+		_mouse_near_timer = 0.0
+
+	return false
 
 func _random_state_change() -> void:
 	var rand := randf()
@@ -208,7 +311,7 @@ func _random_state_change() -> void:
 
 	state_machine.transition_to(CatStates.IGNORING)
 
-func _try_trigger_blocking(delta: float) -> bool:
+func _try_trigger_blocking(delta: float, mouse_pos: Vector2 = Vector2.ZERO) -> bool:
 	_block_check_timer += delta
 	_block_cooldown_timer = maxf(_block_cooldown_timer - delta, 0.0)
 
@@ -216,7 +319,8 @@ func _try_trigger_blocking(delta: float) -> bool:
 		return false
 
 	_block_check_timer = 0.0
-	var mouse_pos := get_global_mouse_position()
+	if mouse_pos == Vector2.ZERO:
+		mouse_pos = get_global_mouse_position()
 	var moved_sq := mouse_pos.distance_squared_to(_last_block_mouse_pos)
 	_last_block_mouse_pos = mouse_pos
 
@@ -262,15 +366,13 @@ func _on_drag_ended() -> void:
 	_random_state_change()
 
 func _on_clicked(part: String) -> void:
-	if part.is_empty():
-		_random_state_change()
-		return
-
-	_trigger_tsundere_reaction(part)
+	cat_left_clicked.emit(part, global_position)
 
 func _on_item_reaction(reaction: String, item: Node2D) -> void:
-	# 正在吃或叼东西时不响应
-	if state_machine.is_in_state(CatStates.EATING) or state_machine.is_in_state(CatStates.CARRYING):
+	# 正在玩耍/吃/叼时不响应
+	if state_machine.is_in_state(CatStates.WAND_PLAYING) \
+			or state_machine.is_in_state(CatStates.EATING) \
+			or state_machine.is_in_state(CatStates.CARRYING):
 		return
 
 	match reaction:
@@ -278,11 +380,36 @@ func _on_item_reaction(reaction: String, item: Node2D) -> void:
 			state_machine.transition_to(CatStates.IGNORING)
 		"eat":
 			state_machine.transition_to(CatStates.EATING, {"item": item})
+			_record_item_interaction("food_given")
 		"carry":
 			state_machine.transition_to(CatStates.CARRYING, {"item": item})
+			_record_item_interaction("wand_given" if _is_wand(item) else "food_given")
+
+func _on_wand_play_requested(wand: Node2D) -> void:
+	# 吃/叼/拖拽中不进入玩耍
+	if not state_machine:
+		return
+	if state_machine.is_in_state(CatStates.EATING) or state_machine.is_in_state(CatStates.CARRYING):
+		return
+	if input_component and input_component.is_dragging:
+		return
+	state_machine.transition_to(CatStates.WAND_PLAYING, {"item": wand})
+
+func _record_item_interaction(interaction_type: String) -> void:
+	if behavior_system:
+		behavior_system.record_interaction(interaction_type)
+
+func _is_wand(item: Node2D) -> bool:
+	return String(item.get("item_type")) == "wand"
 
 func _on_state_changed(from_state: StringName, to_state: StringName) -> void:
-	AudioManager.play_cat_sound()
+	# 只在特定状态切换时叫（不是每次都叫）
+	var vocal_states: Array[StringName] = [
+		CatStates.POUNCING, CatStates.CHASING, CatStates.BLOCKING,
+		CatStates.TYPING_ATTACK, CatStates.EATING,
+	]
+	if to_state in vocal_states or (from_state == CatStates.IDLE and randf() < 0.15):
+		AudioManager.play_cat_sound()
 
 	if to_state == CatStates.TYPING_ATTACK:
 		typing_attack_started.emit()
@@ -327,7 +454,7 @@ func _trigger_tsundere_reaction(part: String) -> void:
 			var happy_chance := 0.1 if affection_state == CatBehaviorSystem.AffectionState.TSUNDERE else 0.4
 
 			if rand < dodge_chance:
-				state_machine.transition_to(CatStates.WALKING)
+				state_machine.transition_to(CatStates.IDLE)
 				play_animation("head_pat_dodge")
 			elif rand < dodge_chance + (1 - dodge_chance - happy_chance):
 				state_machine.transition_to(CatStates.TAIL_WAGGING)
@@ -344,7 +471,10 @@ func _trigger_tsundere_reaction(part: String) -> void:
 				state_machine.transition_to(CatStates.WALKING)
 
 		"tail":
-			if rand < 0.7:
+			if rand < 0.25:
+				state_machine.transition_to(CatStates.IDLE)
+				play_animation("startled")
+			elif rand < 0.7:
 				state_machine.transition_to(CatStates.TAIL_WAGGING)
 				play_animation("angry")
 			elif rand < 0.9:

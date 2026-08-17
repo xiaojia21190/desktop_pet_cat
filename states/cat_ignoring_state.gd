@@ -8,16 +8,14 @@ extends CatStateBase
 var _timer: float = 0.0
 
 func enter(_msg: Dictionary = {}) -> void:
-	play_animation("idle_stand")
+	play_animation("retreat")
 	_timer = 0.0
+	# 背对鼠标
+	var mouse_pos := get_mouse_position()
+	if cat:
+		face_direction(-(mouse_pos.x - cat.global_position.x))
 
 func update(delta: float) -> void:
 	_timer += delta
-
-	# 朝向远离鼠标的方向
-	var mouse_pos := get_mouse_position()
-	var away_direction := (cat.global_position - mouse_pos).normalized()
-	cat.look_at(cat.global_position + away_direction * 100)
-
 	if _timer >= ignore_duration:
 		transition_to(CatStates.IDLE)

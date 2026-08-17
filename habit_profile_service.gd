@@ -107,7 +107,7 @@ func _count_recent(events: Array[Dictionary], event_type: String, within_seconds
 	var count := 0
 	for event_data in events:
 		var ts: int = int(event_data.get("t", 0))
-		var name := String(event_data.get("type", ""))
-		if name == event_type and now - ts <= within_seconds:
+		var event_name := String(event_data.get("type", ""))
+		if event_name == event_type and now - ts <= within_seconds:
 			count += 1
 	return count

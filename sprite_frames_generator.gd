@@ -97,41 +97,59 @@ static func _build_cat_actions(cat_type: String) -> Dictionary:
 	var defaults: Dictionary = {}
 	if typeof(defaults_raw) == TYPE_DICTIONARY:
 		defaults = defaults_raw as Dictionary
+	var cat_defaults_raw = cat_entry.get("defaults", {})
+	var cat_defaults: Dictionary = {}
+	if typeof(cat_defaults_raw) == TYPE_DICTIONARY:
+		cat_defaults = cat_defaults_raw as Dictionary
 
 	var sheet_path := String(cat_entry.get("sheet_path", ""))
 	var action_path_template := String(cat_entry.get("action_path_template", ""))
+	var require_action_files := bool(_manifest_cache.get("require_action_files", false))
+	if cat_entry.has("require_action_files"):
+		require_action_files = bool(cat_entry.get("require_action_files", require_action_files))
 	var action_overrides_raw = cat_entry.get("actions", {})
 	var action_overrides: Dictionary = {}
 	if typeof(action_overrides_raw) == TYPE_DICTIONARY:
 		action_overrides = action_overrides_raw as Dictionary
 
 	var result: Dictionary = {}
+	var missing_actions: Array[String] = []
 	for action_key in global_actions:
 		var action_name := String(action_key)
 		var spec_raw = global_actions[action_key]
 		if typeof(spec_raw) != TYPE_DICTIONARY:
 			continue
 		var spec := (spec_raw as Dictionary).duplicate(true)
-		if not spec.has("path"):
-			var resolved_path := _resolve_action_path(action_path_template, cat_type, action_name)
-			if not resolved_path.is_empty() and ResourceLoader.exists(resolved_path):
-				spec["path"] = resolved_path
-			elif not sheet_path.is_empty():
-				spec["path"] = sheet_path
 
 		if not spec.has("columns"):
-			spec["columns"] = int(defaults.get("columns", AnimationConfig.COLUMNS))
+			spec["columns"] = int(cat_defaults.get("columns", defaults.get("columns", AnimationConfig.COLUMNS)))
 		if not spec.has("frame_width"):
-			spec["frame_width"] = int(defaults.get("frame_width", int(AnimationConfig.FRAME_SIZE.x)))
+			spec["frame_width"] = int(cat_defaults.get("frame_width", defaults.get("frame_width", int(AnimationConfig.FRAME_SIZE.x))))
 		if not spec.has("frame_height"):
-			spec["frame_height"] = int(defaults.get("frame_height", int(AnimationConfig.FRAME_SIZE.y)))
+			spec["frame_height"] = int(cat_defaults.get("frame_height", defaults.get("frame_height", int(AnimationConfig.FRAME_SIZE.y))))
 
-		if action_overrides.has(action_name):
-			var override_raw = action_overrides[action_name]
-			if typeof(override_raw) == TYPE_DICTIONARY:
-				spec.merge(override_raw as Dictionary, true)
+		var override_raw = _find_dict_value_by_string_key(action_overrides, action_name)
+		if typeof(override_raw) == TYPE_DICTIONARY:
+			spec.merge(override_raw as Dictionary, true)
+
+		var resolved_path := String(spec.get("path", "")).strip_edges()
+		if resolved_path.is_empty():
+			resolved_path = _resolve_action_path(action_path_template, cat_type, action_name)
+
+		if not resolved_path.is_empty() and ResourceLoader.exists(resolved_path):
+			spec["path"] = resolved_path
+		elif not require_action_files and not sheet_path.is_empty() and ResourceLoader.exists(sheet_path):
+			spec["path"] = sheet_path
+		else:
+			missing_actions.append(action_name)
+			var mode_hint := "严格模式" if require_action_files else "缺少回退资源"
+			push_warning("%s: %s/%s 未找到动作图，模板=%s，sheet=%s" % [mode_hint, cat_type, action_name, action_path_template, sheet_path])
 
 		result[action_name] = spec
+
+	if require_action_files and not missing_actions.is_empty():
+		push_error("猫咪 %s 缺少动作图: %s" % [cat_type, ", ".join(missing_actions)])
+		return {}
 
 	return result
 
@@ -139,6 +157,14 @@ static func _resolve_action_path(template: String, cat_type: String, action_name
 	if template.is_empty():
 		return ""
 	return template.replace("{cat_id}", cat_type).replace("{action_key}", action_name)
+
+static func _find_dict_value_by_string_key(dict_data: Dictionary, target_key: String):
+	if dict_data.has(target_key):
+		return dict_data[target_key]
+	for dict_key in dict_data.keys():
+		if String(dict_key) == target_key:
+			return dict_data[dict_key]
+	return null
 
 # 从动作配置创建 SpriteFrames
 static func _create_sprite_frames(cat_actions: Dictionary) -> SpriteFrames:
@@ -177,6 +203,8 @@ static func _add_animation(sf: SpriteFrames, anim_name: String, config: Dictiona
 	var speed: float = float(config.get("speed", 5.0))
 	var loop: bool = bool(config.get("loop", true))
 	var col_start: int = int(config.get("col_start", 0))
+	var col_pixel_start: int = int(config.get("col_pixel_start", 0))
+	var row_pixel: int = int(config.get("row_pixel", -1))
 	var columns: int = max(1, int(config.get("columns", AnimationConfig.COLUMNS)))
 	var frame_width: int = max(1, int(config.get("frame_width", int(AnimationConfig.FRAME_SIZE.x))))
 	var frame_height: int = max(1, int(config.get("frame_height", int(AnimationConfig.FRAME_SIZE.y))))
@@ -191,14 +219,20 @@ static func _add_animation(sf: SpriteFrames, anim_name: String, config: Dictiona
 		var col: int = col_start + i
 
 		# 如果超出当前行，换到下一行
-		var actual_row: int = row + int(col / columns)
+		@warning_ignore("integer_division")
+		var actual_row: int = row + col / columns
 		var actual_col: int = col % columns
 
 		var atlas := AtlasTexture.new()
 		atlas.atlas = texture
+		var pixel_x: float = float(col_pixel_start + actual_col * frame_width)
+		var pixel_y: float = float(actual_row * frame_height)
+		if row_pixel >= 0:
+			@warning_ignore("integer_division")
+			pixel_y = float(row_pixel + (col / columns) * frame_height)
 		atlas.region = Rect2(
-			float(actual_col * frame_width),
-			float(actual_row * frame_height),
+			pixel_x,
+			pixel_y,
 			float(frame_width),
 			float(frame_height)
 		)

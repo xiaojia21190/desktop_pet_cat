@@ -11,7 +11,7 @@ var _timer: float = 0.0
 var _target_item: Node2D = null
 
 func enter(msg: Dictionary = {}) -> void:
-	play_animation("idle_active")
+	play_animation("walk")
 	_timer = 0.0
 
 	if msg.has("item"):
@@ -33,6 +33,8 @@ func physics_update(delta: float) -> void:
 		return
 
 	# 正在吃
+	if _timer == 0.0:
+		play_animation("eat")
 	_timer += delta
 	if _timer >= eat_duration:
 		_target_item.queue_free()

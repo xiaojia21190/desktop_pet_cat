@@ -2,6 +2,7 @@ class_name FocusSessionMode
 extends CanvasLayer
 
 signal session_finished(result: String, summary: Dictionary)
+@warning_ignore("unused_signal")
 signal recording_script_finished(output_path: String, summary: Dictionary)
 
 const MAX_VALUE := 100.0
@@ -66,24 +67,39 @@ var _current_objective_tier: int = 1
 
 var _recording_mode: bool = false
 var _recording_target_seconds: int = 0
+@warning_ignore("unused_private_class_variable")
 var _recording_output_path: String = ""
 var _recording_events: Array[Dictionary] = []
 var _replay_mode: bool = false
 var _replay_source_path: String = ""
+@warning_ignore("unused_private_class_variable")
 var _recording_files: Array[String] = []
+@warning_ignore("unused_private_class_variable")
 var _selected_recording_path: String = ""
+@warning_ignore("unused_private_class_variable")
 var _trash_files: Array[String] = []
+@warning_ignore("unused_private_class_variable")
 var _selected_trash_path: String = ""
 var _demo_playback_speed: float = 1.0
+@warning_ignore("unused_private_class_variable")
 var _demo_speed_options: Array[float] = [0.5, 1.0, 2.0]
+@warning_ignore("unused_private_class_variable")
 var _delete_confirm_path: String = ""
+@warning_ignore("unused_private_class_variable")
 var _delete_confirm_until: int = 0
+@warning_ignore("unused_private_class_variable")
 var _purge_confirm_path: String = ""
+@warning_ignore("unused_private_class_variable")
 var _purge_confirm_until: int = 0
+@warning_ignore("unused_private_class_variable")
 var _purge_old_confirm_days: int = 0
+@warning_ignore("unused_private_class_variable")
 var _purge_old_confirm_until: int = 0
+@warning_ignore("unused_private_class_variable")
 var _last_deleted_original_path: String = ""
+@warning_ignore("unused_private_class_variable")
 var _last_deleted_trash_path: String = ""
+@warning_ignore("unused_private_class_variable")
 var _ops_panel_visible: bool = false
 
 var _tutorial: FocusTutorialController
@@ -408,10 +424,10 @@ func _current_difficulty_tier() -> int:
 		return 2
 	return 3
 
-func _on_objective_completed(objective_id: String, _target: float) -> void:
+func _on_objective_completed(_objective_id: String, _target: float) -> void:
 	pass  # 奖励在调用点就地应用，信号仅作外部观测
 
-func _on_objective_failed(objective_id: String, _target: float) -> void:
+func _on_objective_failed(_objective_id: String, _target: float) -> void:
 	pass  # 惩罚在调用点就地应用，信号仅作外部观测
 
 func _check_end_condition() -> void:
@@ -543,6 +559,7 @@ func _objective_target_text() -> String:
 
 func _format_seconds(total_seconds: int) -> String:
 	var safe_seconds: int = maxi(total_seconds, 0)
+	@warning_ignore("integer_division")
 	var minutes: int = safe_seconds / 60
 	var seconds: int = safe_seconds % 60
 	return "%02d:%02d" % [minutes, seconds]

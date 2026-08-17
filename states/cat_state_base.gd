@@ -1,6 +1,7 @@
 class_name CatStateBase
 extends State
 
+@warning_ignore("shadowed_global_identifier")
 const CatStates = preload("res://cat_states.gd")
 
 ## 猫咪状态基类
@@ -38,3 +39,16 @@ func get_screen_size() -> Vector2:
 ## 切换到另一个状态
 func transition_to(state_name: StringName, msg: Dictionary = {}) -> void:
 	state_machine.transition_to(state_name, msg)
+
+## 根据移动方向翻转精灵
+func face_direction(direction_x: float) -> void:
+	if not cat:
+		return
+	var sprite := cat.get_node_or_null("AnimatedSprite2D") as AnimatedSprite2D
+	if sprite and direction_x != 0.0:
+		sprite.flip_h = direction_x < 0.0
+
+## 朝向目标位置翻转精灵
+func face_toward(target: Vector2) -> void:
+	if cat:
+		face_direction(target.x - cat.global_position.x)

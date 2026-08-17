@@ -43,6 +43,7 @@ const FORCE_START_AT_BOTTOM_RIGHT := false
 
 const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
 const ITEM_FOOD_SCENE = preload("res://item_food.tscn")
+@warning_ignore("shadowed_global_identifier")
 const CatStates = preload("res://cat_states.gd")
 
 func _enter_tree():
@@ -150,7 +151,7 @@ func _apply_window_style() -> void:
 func _on_screen_size_changed():
 	_cached_screen_size = get_viewport_rect().size
 	if hover_panel_component and hover_panel_component.panel:
-		var panel_width = hover_panel_component.panel.size.x
+		var _panel_width = hover_panel_component.panel.size.x
 		var panel_height = hover_panel_component.panel.size.y
 		hover_panel_component.panel.position.y = (_cached_screen_size.y - panel_height) / 2
 		if not hover_panel_component.is_out:
@@ -238,13 +239,13 @@ func set_timed_hide_option(option_index: int) -> void:
 		_stop_timed_hide_timer()
 		return
 	timed_hide_option = option_index
-	timed_hide_end_time = Time.get_unix_time_from_system() + duration
+	timed_hide_end_time = int(Time.get_unix_time_from_system()) + duration
 	_start_timed_hide_timer(float(duration))
 
 func get_timed_hide_remaining_seconds() -> int:
 	if timed_hide_end_time <= 0:
 		return 0
-	return maxi(timed_hide_end_time - Time.get_unix_time_from_system(), 0)
+	return maxi(int(timed_hide_end_time - Time.get_unix_time_from_system()), 0)
 
 func get_timed_hide_save_data() -> Dictionary:
 	return {
@@ -333,7 +334,7 @@ func _on_foreground_app_changed(app_name: String, activity: String) -> void:
 		smart_pet_controller._context_collector.update_foreground(app_name, activity)
 	# 首次采集打一行日志（真机验证感知链路；后续静默）
 	if _last_fg_log_unix == 0:
-		_last_fg_log_unix = Time.get_unix_time_from_system()
+		_last_fg_log_unix = int(Time.get_unix_time_from_system())
 		print("[Perception] foreground: ", app_name, " -> ", activity)
 
 func _on_typing_attack_started():
@@ -602,9 +603,9 @@ func _on_tray_toggle_focus_session() -> void:
 func _toggle_pet_visibility():
 	_set_pet_visible(not _is_pet_visible())
 
-func _set_pet_visible(visible: bool):
+func _set_pet_visible(pet_visible: bool):
 	var window = get_window()
-	window.visible = visible
+	window.visible = pet_visible
 	_update_visibility_menu_labels()
 	_update_mouse_passthrough_region()
 
@@ -669,7 +670,7 @@ func _setup_quick_action_menu() -> void:
 	quick_action_menu.action_selected.connect(_on_quick_action_selected)
 	quick_action_menu.menu_closed.connect(_on_quick_action_menu_closed)
 
-func _on_cat_left_clicked(part: String, pos: Vector2) -> void:
+func _on_cat_left_clicked(_part: String, pos: Vector2) -> void:
 	if quick_action_menu and quick_action_menu.visible:
 		return
 	if quick_action_menu:

@@ -7,15 +7,14 @@ extends CatStateBase
 @export var catch_distance_sq: float = 2500.0  # 50px
 
 func enter(_msg: Dictionary = {}) -> void:
-	play_animation("idle_active")
+	play_animation("chasing")
 
 func physics_update(delta: float) -> void:
 	var mouse_pos := get_mouse_position()
 	var direction := (mouse_pos - cat.global_position).normalized()
 
 	cat.global_position += direction * chase_speed * delta
-	cat.look_at(mouse_pos)
+	face_direction(direction.x)
 
-	# 追到鼠标
 	if cat.global_position.distance_squared_to(mouse_pos) < catch_distance_sq:
 		transition_to(CatStates.IDLE)

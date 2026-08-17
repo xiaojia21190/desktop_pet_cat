@@ -8,9 +8,6 @@ extends CatStateBase
 var target_position: Vector2 = Vector2.ZERO
 
 func enter(msg: Dictionary = {}) -> void:
-	play_animation("idle_active")
-
-	# 从消息获取目标位置，或随机生成
 	if msg.has("target"):
 		target_position = msg["target"]
 	else:
@@ -20,10 +17,20 @@ func enter(msg: Dictionary = {}) -> void:
 			randf_range(50, screen_size.y - 50)
 		)
 
+	var distance := cat.global_position.distance_to(target_position) if cat else 0.0
+	if distance > 520.0:
+		play_animation("run")
+	elif distance > 240.0:
+		play_animation("trot")
+	else:
+		play_animation("walk")
+
+	face_toward(target_position)
+
 func physics_update(delta: float) -> void:
 	var direction := (target_position - cat.global_position).normalized()
 	cat.global_position += direction * walk_speed * delta
+	face_direction(direction.x)
 
-	# 到达目标
 	if cat.global_position.distance_squared_to(target_position) < 100:
 		transition_to(CatStates.IDLE)

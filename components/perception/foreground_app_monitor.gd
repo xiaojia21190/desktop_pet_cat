@@ -82,7 +82,7 @@ func _poll_pipe() -> void:
 		_pipe_stdio = result.get("stdio")
 		_pipe_pid = int(result.get("pid", -1))
 		_pipe_buffer = ""
-		_pipe_started_unix = Time.get_unix_time_from_system()
+		_pipe_started_unix = int(Time.get_unix_time_from_system())
 		return
 
 	# 状态2：在途 → 每帧吸走 stdout；退出即完成
@@ -121,7 +121,7 @@ func get_snapshot() -> Dictionary:
 	}
 
 func _on_app_changed(app_name: String) -> void:
-	var now := Time.get_unix_time_from_system()
+	var now := int(Time.get_unix_time_from_system())
 	if not _current_app.is_empty():
 		_history.append({
 			"app": _current_app,

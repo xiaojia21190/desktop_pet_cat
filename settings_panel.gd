@@ -13,6 +13,7 @@ extends Panel
 @onready var perception_check: CheckBox = $ScrollContainer/VBoxContainer/PerceptionCheck
 @onready var perception_default_rules_check: CheckBox = $ScrollContainer/VBoxContainer/PerceptionDefaultRulesCheck
 @onready var focus_duration_option: OptionButton = $ScrollContainer/VBoxContainer/FocusDurationOption
+@onready var cat_breed_option: OptionButton = $ScrollContainer/VBoxContainer/CatBreedOption
 @onready var llm_enabled_check: CheckBox = $ScrollContainer/VBoxContainer/LLMEnabledCheck
 @onready var llm_endpoint_input: LineEdit = $ScrollContainer/VBoxContainer/LLMEndpointInput
 @onready var llm_model_input: LineEdit = $ScrollContainer/VBoxContainer/LLMModelInput
@@ -77,6 +78,8 @@ func _ready():
 	perception_default_rules_check.button_pressed = bool(settings.get("perception_default_rules", true))
 	var focus_duration_index := int(settings.get("focus_duration_index", 1))
 	focus_duration_option.select(clampi(focus_duration_index, 0, 2))
+	var breed_index: int = CAT_BREED_IDS.find(String(settings.get("cat_type", "orange_tabby")))
+	cat_breed_option.select(maxi(breed_index, 0))
 	llm_enabled_check.button_pressed = bool(settings.get("llm_enabled", false))
 	llm_endpoint_input.text = String(settings.get("llm_endpoint", DEFAULT_LLM_ENDPOINT))
 	llm_model_input.text = String(settings.get("llm_model", DEFAULT_LLM_MODEL))
@@ -103,6 +106,7 @@ func _ready():
 	perception_check.toggled.connect(_on_perception_toggled)
 	perception_default_rules_check.toggled.connect(_on_perception_toggled)
 	focus_duration_option.item_selected.connect(_on_focus_duration_selected)
+	cat_breed_option.item_selected.connect(_on_cat_breed_selected)
 	llm_enabled_check.toggled.connect(_on_llm_enabled_toggled)
 	llm_endpoint_input.text_changed.connect(_on_llm_endpoint_changed)
 	llm_model_input.text_changed.connect(_on_llm_model_changed)
@@ -218,10 +222,21 @@ func _on_perception_toggled(_enabled: bool) -> void:
 	SaveManager.save_data()
 
 const FOCUS_DURATION_SECONDS := [15 * 60, 30 * 60, 60 * 60]
+const CAT_BREED_IDS: Array[String] = ["orange_tabby", "calico", "british_blue", "tuxedo"]
 
 func _on_focus_duration_selected(_index: int) -> void:
 	SaveManager.save_data()
 	_apply_focus_duration()
+
+func _on_cat_breed_selected(_index: int) -> void:
+	SaveManager.save_data()
+	_apply_cat_breed()
+
+func _apply_cat_breed() -> void:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.cat and main.cat.animation_component:
+		var breed_id: String = CAT_BREED_IDS[clampi(cat_breed_option.selected, 0, CAT_BREED_IDS.size() - 1)]
+		main.cat.animation_component.switch_cat_type(breed_id)
 
 func _apply_focus_duration() -> void:
 	var main = get_tree().get_root().get_node_or_null("Main")

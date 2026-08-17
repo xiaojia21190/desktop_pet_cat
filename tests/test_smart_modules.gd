@@ -19,9 +19,47 @@ func _run() -> void:
 	_test_profile_tags()
 	_test_customization_llm_settings()
 	await _test_collector_perception_fields()
+	_test_activity_tags()
 
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
+
+func _test_activity_tags() -> void:
+	# —— 活动标签 ——
+	var profile = HabitProfileServiceScript.new()
+	add_child(profile)
+	var snap := {
+		"hour": 14, "typing_per_min": 5.0, "continuous_active_seconds": 60.0,
+		"idle_seconds": 5.0, "activity": "video", "activity_seconds": 900.0
+	}
+	var tags: Array[String] = profile.build_tags(snap, [])
+	_assert_true(tags.has("watching_video"), "tag_watching_video")
+
+	snap["activity"] = "coding"
+	snap["activity_seconds"] = 1200.0
+	tags = profile.build_tags(snap, [])
+	_assert_true(tags.has("coding_now"), "tag_coding_now")
+
+	snap["activity"] = "browsing"
+	snap["activity_seconds"] = 700.0
+	tags = profile.build_tags(snap, [])
+	_assert_true(tags.has("browsing_now"), "tag_browsing_now")
+
+	# 未达 10 分钟不贴标签
+	snap["activity"] = "video"
+	snap["activity_seconds"] = 300.0
+	tags = profile.build_tags(snap, [])
+	_assert_true(not tags.has("watching_video"), "tag_needs_ten_minutes")
+
+	# SMART 决策喂入含 activity 的快照不报错（管线兼容）
+	var policy = ReactionPolicyEngineScript.new()
+	add_child(policy)
+	var decision: Dictionary = policy.evaluate(
+		{"hour": 14, "fullscreen": false, "continuous_active_seconds": 100.0, "activity": "video"},
+		[], [], {"personality": "tsundere", "reminder_intensity": "medium"})
+	_assert_true(decision.has("react"), "policy_tolerates_activity_field")
+	profile.queue_free()
+	policy.queue_free()
 
 func _test_collector_perception_fields() -> void:
 	# —— ContextCollector 感知字段扩展 ——

@@ -39,6 +39,18 @@ func build_tags(snapshot: Dictionary, recent_events: Array[Dictionary]) -> Array
 	if _count_recent(recent_events, "focus_milestone", 3600) >= 1:
 		tags.append("achievement_driven")
 
+	# 前台应用活动标签（感知数据；持续 10 分钟才贴，避免频繁切换抖动）
+	var activity := String(snapshot.get("activity", ""))
+	var activity_seconds := float(snapshot.get("activity_seconds", 0.0))
+	if activity_seconds >= 600.0:
+		match activity:
+			"video":
+				tags.append("watching_video")
+			"coding":
+				tags.append("coding_now")
+			"browsing":
+				tags.append("browsing_now")
+
 	if tags.is_empty():
 		tags.append("neutral")
 	return tags

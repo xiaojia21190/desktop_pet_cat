@@ -36,7 +36,9 @@ func _get_default_data() -> Dictionary:
 			"quiet_hours_start": 23,
 			"quiet_hours_end": 8,
 			"personality": "tsundere",
-			"reminder_intensity": "medium"
+			"reminder_intensity": "medium",
+			"perception_enabled": false,
+			"perception_default_rules": true
 		},
 		"behavior": {}
 	}
@@ -129,6 +131,8 @@ func load_data() -> Dictionary:
 	settings["quiet_hours_end"] = config.get_value("settings", "quiet_hours_end", settings["quiet_hours_end"])
 	settings["personality"] = config.get_value("settings", "personality", settings["personality"])
 	settings["reminder_intensity"] = config.get_value("settings", "reminder_intensity", settings["reminder_intensity"])
+	settings["perception_enabled"] = config.get_value("settings", "perception_enabled", settings.get("perception_enabled", false))
+	settings["perception_default_rules"] = config.get_value("settings", "perception_default_rules", settings.get("perception_default_rules", true))
 
 	if settings.get("timed_hide_end_time", 0) <= Time.get_unix_time_from_system():
 		settings["timed_hide_end_time"] = 0

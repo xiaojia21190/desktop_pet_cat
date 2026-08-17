@@ -25,6 +25,8 @@ var timed_hide_end_time := 0
 var timed_hide_timer: Timer
 var focus_session_mode
 var smart_pet_controller
+var foreground_app_monitor
+var _last_fg_log_unix := 0
 var tray_controller
 var passthrough_manager
 var smart_line_bubble
@@ -288,6 +290,30 @@ func _setup_smart_pet_controller(settings: Dictionary) -> void:
 	var keyboard_listener := get_node_or_null("KeyboardListener")
 	if keyboard_listener and not keyboard_listener.typing_detected.is_connected(_on_keyboard_typing_for_smart):
 		keyboard_listener.typing_detected.connect(_on_keyboard_typing_for_smart)
+
+	# 感知接线：monitor → collector（设置开启时才创建）
+	if bool(settings.get("perception_enabled", false)):
+		_setup_perception(settings)
+
+func _setup_perception(settings: Dictionary) -> void:
+	if foreground_app_monitor:
+		return
+	foreground_app_monitor = ForegroundAppMonitor.new()
+	foreground_app_monitor.name = "ForegroundAppMonitor"
+	add_child(foreground_app_monitor)
+	var no_custom_rules: Array[Dictionary] = []
+	foreground_app_monitor.set_rules(
+		no_custom_rules, bool(settings.get("perception_default_rules", true)))
+	foreground_app_monitor.enabled = true
+	foreground_app_monitor.foreground_app_changed.connect(_on_foreground_app_changed)
+
+func _on_foreground_app_changed(app_name: String, activity: String) -> void:
+	if smart_pet_controller and smart_pet_controller._context_collector:
+		smart_pet_controller._context_collector.update_foreground(app_name, activity)
+	# 首次采集打一行日志（真机验证感知链路；后续静默）
+	if _last_fg_log_unix == 0:
+		_last_fg_log_unix = Time.get_unix_time_from_system()
+		print("[Perception] foreground: ", app_name, " -> ", activity)
 
 func _on_typing_attack_started():
 	AudioManager.play_typing_sound()

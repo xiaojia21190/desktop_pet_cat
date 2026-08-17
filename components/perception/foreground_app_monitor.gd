@@ -3,7 +3,7 @@ extends Node
 
 ## 前台应用监测：轮询前台进程名 → 活动分类 → 快照。
 ## 隐私：默认关闭；只取进程名（不读窗口标题）；数据仅本地消费。
-## Windows 实现走 PowerShell 后台线程；测试注入假源（set_source）。
+## Windows 实现：PowerShell 经 execute_with_pipe 非阻塞管道（-EncodedCommand）；测试注入假源。
 
 signal foreground_app_changed(app_name: String, activity: String)
 
@@ -23,10 +23,10 @@ const POLL_TIMEOUT_FALLBACK := 15.0  # 后台线程超过此秒数未响应则�
 @export var use_system_source: bool = true
 
 var _source  # 采集源：query() -> String（进程名），失败返回空
-var _thread: Thread
-var _thread_result: String = ""
-var _thread_busy := false
-var _thread_started_unix: int = 0
+var _pipe_stdio = null  # 非阻塞管道的 FileAccess（慢源）
+var _pipe_pid := -1
+var _pipe_buffer := ""
+var _pipe_started_unix: int = 0
 var _timer: float = 0.0
 var _current_app := ""
 var _current_activity := ""
@@ -41,7 +41,10 @@ func _ready() -> void:
 		_source = PowerShellSource.new()
 
 func _exit_tree() -> void:
-	_join_thread()
+	if _pipe_pid > 0 and OS.is_process_running(_pipe_pid):
+		OS.kill(_pipe_pid)
+	_pipe_pid = -1
+	_pipe_stdio = null
 
 func set_source(source) -> void:
 	_source = source
@@ -56,52 +59,52 @@ func _process(delta: float) -> void:
 
 	_activity_seconds += delta
 	_timer += delta
-	_process_thread_result()
+	# 在途管道吸数据（慢源状态机）
+	if _pipe_pid > 0:
+		_poll_pipe()
 	if _timer < poll_interval:
 		return
 
 	_timer = 0.0
 	if bool(_source.get("is_slow")):
-		_collect_via_thread()
+		_poll_pipe()
 	else:
 		_apply_app_name(String(_source.query()))
 
-func _collect_via_thread() -> void:
-	# 慢源（PowerShell 约 1.1 秒）在后台线程执行，不阻塞主线程
-	if _thread_busy:
-		var elapsed := Time.get_unix_time_from_system() - _thread_started_unix
-		if elapsed > POLL_TIMEOUT_FALLBACK:
+func _poll_pipe() -> void:
+	# 慢源（PowerShell 约 1 秒）：管道轮询状态机
+	# 状态1：无在途进程 → 发起新采集
+	if _pipe_pid <= 0:
+		var result: Dictionary = _source.launch()
+		if result.is_empty():
 			_apply_app_name(UNKNOWN)
-			_thread_busy = false
-			_join_thread()
+			return
+		_pipe_stdio = result.get("stdio")
+		_pipe_pid = int(result.get("pid", -1))
+		_pipe_buffer = ""
+		_pipe_started_unix = Time.get_unix_time_from_system()
 		return
 
-	_join_thread()
-	_thread_result = ""
-	_thread_busy = true
-	_thread_started_unix = Time.get_unix_time_from_system()
-	_thread = Thread.new()
-	var source = _source
-	_thread.start(func() -> void:
-		_thread_result = source.query()
-	, Thread.PRIORITY_LOW)
-
-func _process_thread_result() -> void:
-	# 每帧检查线程是否完成（结果经 _thread_result 传递）
-	if not _thread_busy:
+	# 状态2：在途 → 每帧吸走 stdout；退出即完成
+	if _pipe_stdio and _pipe_stdio.is_open():
+		while true:
+			var chunk: PackedByteArray = _pipe_stdio.get_buffer(4096)
+			if chunk.size() == 0:
+				break
+			_pipe_buffer += chunk.get_string_from_utf8()
+	if OS.is_process_running(_pipe_pid) == false:
+		var app_name := _pipe_buffer.strip_edges()
+		_pipe_pid = -1
+		_pipe_stdio = null
+		_apply_app_name(app_name)
 		return
-	if _thread and _thread.is_started():
-		return  # 仍在跑，下帧再看
-	_finish_thread_cycle()
 
-func _finish_thread_cycle() -> void:
-	_thread_busy = false
-	_apply_app_name(_thread_result)
-
-func _join_thread() -> void:
-	if _thread and _thread.is_started():
-		_thread.wait_to_finish()
-	_thread = null
+	# 超时保护：进程卡死则杀掉并降级
+	if Time.get_unix_time_from_system() - _pipe_started_unix > POLL_TIMEOUT_FALLBACK:
+		OS.kill(_pipe_pid)
+		_pipe_pid = -1
+		_pipe_stdio = null
+		_apply_app_name(UNKNOWN)
 
 func _apply_app_name(app_name: String) -> void:
 	if app_name.is_empty():
@@ -140,11 +143,30 @@ class PowerShellSource:
 	extends RefCounted
 
 	const is_slow := true
-	const PS_SCRIPT := "$src = @'\nusing System;\nusing System.Runtime.InteropServices;\npublic static class U32 {\n    [DllImport(\"user32.dll\")] public static extern IntPtr GetForegroundWindow();\n}\n'@; Add-Type -TypeDefinition $src; $hwnd = [U32]::GetForegroundWindow(); if ($hwnd -ne [IntPtr]::Zero) { $p = Get-Process | Where-Object { $_.MainWindowHandle -eq $hwnd } | Select-Object -First 1; if ($p) { $p.ProcessName } }"
+
+	## Add-Type 单行 MemberDefinition：GetForegroundWindow → 主窗口进程名
+	const PS_SCRIPT := """Add-Type -MemberDefinition '[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();' -Name U32 -Namespace Win32
+$hwnd = [Win32.U32]::GetForegroundWindow()
+if ($hwnd -ne [IntPtr]::Zero) { $p = Get-Process | Where-Object { $_.MainWindowHandle -eq $hwnd } | Select-Object -First 1
+if ($p) { Write-Output $p.ProcessName } }"""
+
+	static func encode_command(script: String) -> String:
+		## PowerShell -EncodedCommand 要求 UTF-16LE 的 Base64（规避多层引号转义）
+		return Marshalls.raw_to_base64(script.to_utf16_buffer())
+
+	func launch() -> Dictionary:
+		## 非阻塞启动采集：返回 {stdio, pid}，调用方每帧轮询 stdio
+		var encoded: String = encode_command(PS_SCRIPT)
+		return OS.execute_with_pipe(
+			"powershell.exe",
+			["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded],
+			false)
 
 	func query() -> String:
+		## 阻塞式兼容接口（仅调试路径）；正常流程走 launch + 轮询
 		var output := []
-		var exit_code := OS.execute("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", PS_SCRIPT], output, true)
+		var encoded: String = encode_command(PS_SCRIPT)
+		var exit_code := OS.execute("powershell.exe", ["-NoProfile", "-NonInteractive", "-EncodedCommand", encoded], output, true)
 		if exit_code != 0 or output.is_empty():
 			return ""
 		return String(output[0]).strip_edges()

@@ -12,6 +12,7 @@ extends Panel
 @onready var smart_mode_check: CheckBox = $ScrollContainer/VBoxContainer/SmartModeCheck
 @onready var perception_check: CheckBox = $ScrollContainer/VBoxContainer/PerceptionCheck
 @onready var perception_default_rules_check: CheckBox = $ScrollContainer/VBoxContainer/PerceptionDefaultRulesCheck
+@onready var focus_duration_option: OptionButton = $ScrollContainer/VBoxContainer/FocusDurationOption
 @onready var llm_enabled_check: CheckBox = $ScrollContainer/VBoxContainer/LLMEnabledCheck
 @onready var llm_endpoint_input: LineEdit = $ScrollContainer/VBoxContainer/LLMEndpointInput
 @onready var llm_model_input: LineEdit = $ScrollContainer/VBoxContainer/LLMModelInput
@@ -74,6 +75,8 @@ func _ready():
 	smart_mode_check.button_pressed = bool(settings.get("smart_mode", true))
 	perception_check.button_pressed = bool(settings.get("perception_enabled", false))
 	perception_default_rules_check.button_pressed = bool(settings.get("perception_default_rules", true))
+	var focus_duration_index := int(settings.get("focus_duration_index", 1))
+	focus_duration_option.select(clampi(focus_duration_index, 0, 2))
 	llm_enabled_check.button_pressed = bool(settings.get("llm_enabled", false))
 	llm_endpoint_input.text = String(settings.get("llm_endpoint", DEFAULT_LLM_ENDPOINT))
 	llm_model_input.text = String(settings.get("llm_model", DEFAULT_LLM_MODEL))
@@ -99,6 +102,7 @@ func _ready():
 	smart_mode_check.toggled.connect(_on_smart_mode_toggled)
 	perception_check.toggled.connect(_on_perception_toggled)
 	perception_default_rules_check.toggled.connect(_on_perception_toggled)
+	focus_duration_option.item_selected.connect(_on_focus_duration_selected)
 	llm_enabled_check.toggled.connect(_on_llm_enabled_toggled)
 	llm_endpoint_input.text_changed.connect(_on_llm_endpoint_changed)
 	llm_model_input.text_changed.connect(_on_llm_model_changed)
@@ -212,6 +216,17 @@ func _on_smart_mode_toggled(_enabled: bool) -> void:
 func _on_perception_toggled(_enabled: bool) -> void:
 	_apply_smart_settings()
 	SaveManager.save_data()
+
+const FOCUS_DURATION_SECONDS := [15 * 60, 30 * 60, 60 * 60]
+
+func _on_focus_duration_selected(_index: int) -> void:
+	SaveManager.save_data()
+	_apply_focus_duration()
+
+func _apply_focus_duration() -> void:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.focus_session_mode:
+		main.focus_session_mode.session_duration_seconds = FOCUS_DURATION_SECONDS[clampi(focus_duration_option.selected, 0, 2)]
 
 func _on_llm_enabled_toggled(_enabled: bool) -> void:
 	_apply_smart_settings()
@@ -372,3 +387,4 @@ func _apply_smart_settings() -> void:
 			"quiet_hours_start": int(round(quiet_start_spin.value)),
 			"quiet_hours_end": int(round(quiet_end_spin.value))
 		})
+	_apply_focus_duration()

@@ -38,7 +38,8 @@ func _get_default_data() -> Dictionary:
 			"personality": "tsundere",
 			"reminder_intensity": "medium",
 			"perception_enabled": false,
-			"perception_default_rules": true
+			"perception_default_rules": true,
+			"focus_duration_index": 1
 		},
 		"behavior": {}
 	}
@@ -81,6 +82,7 @@ func _write_config(data: Dictionary) -> int:
 	config.set_value("settings", "quiet_hours_end", settings.get("quiet_hours_end", 8))
 	config.set_value("settings", "perception_enabled", settings.get("perception_enabled", false))
 	config.set_value("settings", "perception_default_rules", settings.get("perception_default_rules", true))
+	config.set_value("settings", "focus_duration_index", int(settings.get("focus_duration_index", 1)))
 	config.set_value("settings", "personality", settings.get("personality", "tsundere"))
 	config.set_value("settings", "reminder_intensity", settings.get("reminder_intensity", "medium"))
 
@@ -133,6 +135,7 @@ func load_data() -> Dictionary:
 	settings["reminder_intensity"] = config.get_value("settings", "reminder_intensity", settings["reminder_intensity"])
 	settings["perception_enabled"] = config.get_value("settings", "perception_enabled", settings.get("perception_enabled", false))
 	settings["perception_default_rules"] = config.get_value("settings", "perception_default_rules", settings.get("perception_default_rules", true))
+	settings["focus_duration_index"] = int(config.get_value("settings", "focus_duration_index", settings.get("focus_duration_index", 1)))
 
 	if settings.get("timed_hide_end_time", 0) <= Time.get_unix_time_from_system():
 		settings["timed_hide_end_time"] = 0
@@ -300,6 +303,10 @@ func _gather_current_data() -> Dictionary:
 		var perception_rules_check = panel.get_node_or_null("VBoxContainer/PerceptionDefaultRulesCheck")
 		if perception_rules_check:
 			settings["perception_default_rules"] = perception_rules_check.button_pressed
+
+		var focus_duration_option = panel.get_node_or_null("VBoxContainer/FocusDurationOption")
+		if focus_duration_option:
+			settings["focus_duration_index"] = focus_duration_option.selected
 
 		settings["data_collection_level"] = "minimal"
 	elif AudioManager:

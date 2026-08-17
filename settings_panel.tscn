@@ -302,6 +302,19 @@ theme_override_constants/icon_max_width = 24
 button_pressed = true
 text = "使用默认分类规则"
 
+[node name="FocusDurationLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+text = "专注会话时长"
+
+[node name="FocusDurationOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+item_count = 3
+popup/item_0/text = "15 分钟"
+popup/item_1/text = "30 分钟"
+popup/item_2/text = "60 分钟"
+selected = 1
+
 [node name="Sep3" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8

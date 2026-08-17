@@ -20,7 +20,7 @@ func _run() -> void:
 
 	# 默认不自启会话：桌宠启动时不应自动进入专注模式
 	_assert_true(not mode._running, "session_not_autostarted_by_default")
-	_assert_true(not mode._hud_panel.visible, "hud_hidden_by_default")
+	_assert_true(not mode._hud.hud_panel.visible, "hud_hidden_by_default")
 
 	mode.start_session()
 	_assert_true(mode._running, "start_session_runs")
@@ -67,7 +67,7 @@ func _run() -> void:
 	_assert_true(FileAccess.file_exists(restored_path), "restored_file_exists")
 
 	mode._on_ops_tail_pressed()
-	_assert_true(mode._hint_label.text.find("Ops tail") != -1, "ops_tail_hint_updated")
+	_assert_true(mode._hud.hint_label.text.find("Ops tail") != -1, "ops_tail_hint_updated")
 
 	var ops_export_path := "user://recordings/test_ops_export_%d.jsonl" % stamp
 	var exported_ops: String = String(mode.export_recording_ops_log(ops_export_path))

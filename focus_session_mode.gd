@@ -37,6 +37,8 @@ var _objective_timer: float = 0.0
 var _last_state_impact_ms: Dictionary = {}
 
 var _objective_system: FocusObjectiveSystem
+var _hud: FocusHud
+var _root: Control
 var _demo_events: Array[Dictionary] = []
 var _demo_cursor: int = 0
 var _demo_paused: bool = false
@@ -70,18 +72,6 @@ var _tutorial_index: int = 0
 var _tutorial_time_left: float = 0.0
 var _tutorial_steps: Array[Dictionary] = []
 
-var _root: Control
-var _hud_panel: PanelContainer
-var _time_label: Label
-var _objective_card_panel: PanelContainer
-var _objective_label: Label
-var _objective_progress_label: Label
-var _objective_progress_bar: ProgressBar
-var _focus_bar: ProgressBar
-var _affection_bar: ProgressBar
-var _chaos_bar: ProgressBar
-var _hint_label: Label
-var _help_label: Label
 var _demo_control_panel: PanelContainer
 var _demo_status_label: Label
 var _recording_select: OptionButton
@@ -90,12 +80,11 @@ var _trash_purge_days_spin: SpinBox
 var _speed_option: OptionButton
 var _ops_panel: PanelContainer
 var _ops_log_view: TextEdit
-var _result_panel: PanelContainer
-var _result_title: Label
-var _result_detail: Label
 
 func _ready() -> void:
-	layer = 100
+	_hud = FocusHud.new()
+	_hud.name = "FocusHud"
+	add_child(_hud)
 	_objective_system = FocusObjectiveSystem.new()
 	_objective_system.name = "ObjectiveSystem"
 	add_child(_objective_system)
@@ -106,7 +95,6 @@ func _ready() -> void:
 	_tutorial_steps = _build_default_tutorial_steps()
 	_trash_purge_old_days = maxi(trash_purge_old_default_days, 1)
 	_load_last_deleted_recording()
-	_build_ui()
 	# 默认不自动开启专注会话，避免桌宠启动约 1 分钟后必然弹出失败面板
 	if auto_start_session:
 		start_session()
@@ -166,7 +154,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		set_demo_script_enabled(not demo_script_mode, true)
 		if _demo_control_panel:
 			_demo_control_panel.visible = demo_script_mode
-		_hint_label.text = "Demo script mode: " + ("ON" if demo_script_mode else "OFF")
+		_hud.set_hint("Demo script mode: " + ("ON" if demo_script_mode else "OFF"))
 		return
 
 	if key_event.keycode == KEY_F10:
@@ -178,7 +166,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if key_event.keycode == KEY_F11:
 		if not _replay_selected_or_latest():
-			_hint_label.text = "Replay failed: no valid recording log found."
+			_hud.set_hint("Replay failed: no valid recording log found.")
 		return
 
 	if key_event.keycode == KEY_F8:
@@ -215,16 +203,14 @@ func start_session() -> void:
 	_finished = false
 	_time_accumulator = 0.0
 	_last_state_impact_ms.clear()
-	_result_panel.visible = false
-	_hud_panel.visible = true
-	var vp_size := get_viewport().get_visible_rect().size
-	_hud_panel.position = Vector2((vp_size.x - 430) * 0.5, (vp_size.y - 260) * 0.5)
+	_hud.hide_result()
+	_hud.show_hud()
 	_demo_cursor = 0
 	_objective_system.reset_demo_cursor()
 	_demo_paused = false
 	_current_objective_tier = 1
-	_hint_label.text = "Session started. Keep focus until time runs out."
-	_help_label.text = _build_help_text()
+	_hud.set_hint("Session started. Keep focus until time runs out.")
+	_hud.set_help(_build_help_text())
 	_refresh_demo_control_ui()
 	_record_event("session_start", {
 		"focus": focus_value,
@@ -276,7 +262,7 @@ func start_recording_script(duration_seconds: int = -1, force_demo_mode: bool = 
 		"target_seconds": _recording_target_seconds,
 		"demo_mode": demo_script_mode
 	})
-	_hint_label.text = "Recording script started."
+	_hud.set_hint("Recording script started.")
 	_refresh_demo_control_ui()
 
 func stop_recording_script(reason: String = "manual_stop") -> void:
@@ -337,7 +323,7 @@ func _replay_selected_or_latest() -> bool:
 	if latest_path.is_empty() or latest_path == preferred_path:
 		return false
 	if replay_recording_log(latest_path):
-		_hint_label.text = "Selected replay failed, fallback to latest: " + _short_recording_path(latest_path)
+		_hud.set_hint("Selected replay failed, fallback to latest: " + _short_recording_path(latest_path))
 		return true
 	return false
 
@@ -382,7 +368,7 @@ func replay_recording_payload(payload: Dictionary, source_tag: String = "") -> b
 	_replay_mode = true
 	_replay_source_path = source_tag
 	start_session()
-	_hint_label.text = "Replay loaded: " + _short_recording_path(_replay_source_path)
+	_hud.set_hint("Replay loaded: " + _short_recording_path(_replay_source_path))
 	_refresh_demo_control_ui()
 	return true
 
@@ -403,7 +389,7 @@ func _cycle_demo_speed() -> void:
 	_demo_playback_speed = _demo_speed_options[next_index]
 	if _speed_option and _speed_option.get_item_count() == _demo_speed_options.size():
 		_speed_option.select(next_index)
-	_hint_label.text = "Replay speed: " + str(_demo_playback_speed) + "x"
+	_hud.set_hint("Replay speed: " + str(_demo_playback_speed) + "x")
 	_refresh_demo_control_ui()
 
 func _refresh_recording_list(select_latest: bool = true) -> void:
@@ -921,7 +907,7 @@ func _apply_delta(focus_delta: float, affection_delta: float, chaos_delta: float
 	affection_value = clampf(affection_value + affection_delta, MIN_VALUE, MAX_VALUE)
 	chaos_value = clampf(chaos_value + chaos_delta, MIN_VALUE, MAX_VALUE)
 	if not hint.is_empty():
-		_hint_label.text = hint
+		_hud.set_hint(hint)
 
 func _roll_objective() -> void:
 	_objective_timer = float(objective_interval_seconds)
@@ -961,15 +947,11 @@ func _finish_session(result: String) -> void:
 
 	_running = false
 	_finished = true
-	_result_panel.visible = true
-	_hud_panel.visible = false
 
 	if result == RESULT_VICTORY:
-		_result_title.text = "Session Complete"
-		_result_detail.text = "You stayed productive for 30 minutes.\nF5 restart | F9 toggle demo mode."
+		_hud.show_result("Session Complete", "You stayed productive for 30 minutes.\nF5 restart | F9 toggle demo mode.")
 	else:
-		_result_title.text = "Session Failed"
-		_result_detail.text = "Focus collapsed.\nF5 restart | F9 toggle demo mode."
+		_hud.show_result("Session Failed", "Focus collapsed.\nF5 restart | F9 toggle demo mode.")
 
 	session_finished.emit(result, {
 		"focus": focus_value,
@@ -1015,7 +997,7 @@ func _apply_demo_event(event: Dictionary) -> void:
 			var state_name := StringName(event.get("value", "Watching"))
 			on_cat_state_changed(state_name)
 		"hint":
-			_hint_label.text = String(event.get("value", ""))
+			_hud.set_hint(String(event.get("value", "")))
 		_:
 			pass
 
@@ -1089,9 +1071,9 @@ func _finalize_recording(reason: String) -> void:
 	recording_script_finished.emit(_recording_output_path, summary)
 
 	if _recording_output_path.is_empty():
-		_hint_label.text = "Recording finished: " + reason
+		_hud.set_hint("Recording finished: " + reason)
 	else:
-		_hint_label.text = "Recording exported: " + _recording_output_path
+		_hud.set_hint("Recording exported: " + _recording_output_path)
 
 	_recording_mode = false
 	_refresh_demo_control_ui()
@@ -1112,7 +1094,7 @@ func _setup_tutorial() -> void:
 	_tutorial_active = true
 	_tutorial_index = 0
 	_tutorial_time_left = _current_tutorial_duration()
-	_hint_label.text = _current_tutorial_text()
+	_hud.set_hint(_current_tutorial_text())
 
 func _update_tutorial(delta: float) -> void:
 	if not _tutorial_active:
@@ -1125,15 +1107,15 @@ func _update_tutorial(delta: float) -> void:
 	_tutorial_index += 1
 	if _tutorial_index >= _tutorial_steps.size():
 		_tutorial_active = false
-		_hint_label.text = "Tutorial finished. Keep the bars stable."
+		_hud.set_hint("Tutorial finished. Keep the bars stable.")
 		return
 
 	_tutorial_time_left = _current_tutorial_duration()
-	_hint_label.text = _current_tutorial_text()
+	_hud.set_hint(_current_tutorial_text())
 
 func _skip_tutorial() -> void:
 	_tutorial_active = false
-	_hint_label.text = "Tutorial skipped."
+	_hud.set_hint("Tutorial skipped.")
 
 func _current_tutorial_text() -> String:
 	if _tutorial_steps.is_empty():
@@ -1152,66 +1134,6 @@ func _build_ui() -> void:
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_root)
-
-	_hud_panel = PanelContainer.new()
-	var vp_size := get_viewport().get_visible_rect().size
-	_hud_panel.custom_minimum_size = Vector2(430, 260)
-	_hud_panel.position = Vector2((vp_size.x - 430) * 0.5, (vp_size.y - 260) * 0.5)
-	_hud_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hud_panel.visible = false
-	var _aurora_tex := load("res://assets/aurora/panel_dark.png")
-	if _aurora_tex:
-		var sb := StyleBoxTexture.new()
-		sb.texture = _aurora_tex
-		sb.texture_margin_left = 20
-		sb.texture_margin_top = 20
-		sb.texture_margin_right = 20
-		sb.texture_margin_bottom = 20
-		_hud_panel.add_theme_stylebox_override("panel", sb)
-	_root.add_child(_hud_panel)
-
-	var hud_box := VBoxContainer.new()
-	hud_box.add_theme_constant_override("separation", 6)
-	_hud_panel.add_child(hud_box)
-
-	var title := Label.new()
-	title.text = "30m Focus Session"
-	hud_box.add_child(title)
-
-	_time_label = Label.new()
-	hud_box.add_child(_time_label)
-
-	_objective_card_panel = PanelContainer.new()
-	_objective_card_panel.custom_minimum_size = Vector2(390, 92)
-	hud_box.add_child(_objective_card_panel)
-
-	var objective_box := VBoxContainer.new()
-	objective_box.add_theme_constant_override("separation", 2)
-	_objective_card_panel.add_child(objective_box)
-
-	_objective_label = Label.new()
-	objective_box.add_child(_objective_label)
-
-	_objective_progress_label = Label.new()
-	objective_box.add_child(_objective_progress_label)
-
-	_objective_progress_bar = ProgressBar.new()
-	_objective_progress_bar.min_value = 0.0
-	_objective_progress_bar.max_value = 100.0
-	_objective_progress_bar.show_percentage = true
-	objective_box.add_child(_objective_progress_bar)
-
-	_focus_bar = _create_metric_bar(hud_box, "Focus")
-	_affection_bar = _create_metric_bar(hud_box, "Affection")
-	_chaos_bar = _create_metric_bar(hud_box, "Chaos")
-
-	_hint_label = Label.new()
-	_hint_label.text = "-"
-	hud_box.add_child(_hint_label)
-
-	_help_label = Label.new()
-	_help_label.text = _build_help_text()
-	hud_box.add_child(_help_label)
 
 	_demo_control_panel = PanelContainer.new()
 	_demo_control_panel.position = Vector2(462, 16)
@@ -1395,52 +1317,25 @@ func _build_ui() -> void:
 	demo_folder_btn.pressed.connect(_on_demo_open_folder_pressed)
 	record_row.add_child(demo_folder_btn)
 
-	_result_panel = PanelContainer.new()
-	var rp_vp := get_viewport().get_visible_rect().size
-	_result_panel.position = Vector2((rp_vp.x - 430) * 0.5, (rp_vp.y - 260) * 0.5 + 274)
-	_result_panel.custom_minimum_size = Vector2(430, 112)
-	_result_panel.visible = false
-	_root.add_child(_result_panel)
-
-	var result_box := VBoxContainer.new()
-	result_box.add_theme_constant_override("separation", 4)
-	_result_panel.add_child(result_box)
-
-	_result_title = Label.new()
-	_result_title.text = "Session Result"
-	result_box.add_child(_result_title)
-
-	_result_detail = Label.new()
-	_result_detail.text = "Press F5 to restart."
-	result_box.add_child(_result_detail)
-
 	_refresh_recording_list(true)
 	_refresh_trash_list(false)
 	_select_trash_path(_last_deleted_trash_path)
+
+
 	_refresh_ops_panel()
 	_refresh_demo_control_ui()
 
-func _create_metric_bar(parent: VBoxContainer, metric_name: String) -> ProgressBar:
-	var label := Label.new()
-	label.text = metric_name
-	parent.add_child(label)
-
-	var bar := ProgressBar.new()
-	bar.min_value = MIN_VALUE
-	bar.max_value = MAX_VALUE
-	bar.show_percentage = true
-	parent.add_child(bar)
-	return bar
-
 func _update_ui() -> void:
-	_time_label.text = "Remaining: " + _format_seconds(_remaining_seconds)
-	var objective_progress_percent := int(round(_objective_system.progress(focus_value, affection_value, chaos_value) * 100.0))
-	_objective_label.text = "Objective Card: " + _objective_title_text()
-	_objective_progress_label.text = "Tier " + str(_current_objective_tier) + " | Target " + _objective_target_text() + " | Left " + str(int(ceil(_objective_timer))) + "s"
-	_objective_progress_bar.value = float(objective_progress_percent)
-	_focus_bar.value = focus_value
-	_affection_bar.value = affection_value
-	_chaos_bar.value = chaos_value
+	_hud.update_metrics({
+		"remaining_text": _format_seconds(_remaining_seconds),
+		"objective_title": _objective_title_text(),
+		"objective_detail": "Tier " + str(_current_objective_tier) + " | Target " + _objective_target_text() + " | Left " + str(int(ceil(_objective_timer))) + "s",
+		"objective_progress": _objective_system.progress(focus_value, affection_value, chaos_value),
+		"focus": focus_value,
+		"affection": affection_value,
+		"chaos": chaos_value,
+		"help_text": _build_help_text()
+	})
 	_refresh_demo_control_ui()
 
 func _objective_title_text() -> String:
@@ -1543,7 +1438,7 @@ func _on_demo_pause_pressed() -> void:
 
 func _on_demo_next_pressed() -> void:
 	if not trigger_next_demo_event():
-		_hint_label.text = "No pending demo event."
+		_hud.set_hint("No pending demo event.")
 
 func _on_demo_record_pressed() -> void:
 	if _recording_mode:
@@ -1553,20 +1448,20 @@ func _on_demo_record_pressed() -> void:
 
 func _on_demo_replay_pressed() -> void:
 	if not _replay_selected_or_latest():
-		_hint_label.text = "Replay failed: no valid recording log found."
+		_hud.set_hint("Replay failed: no valid recording log found.")
 
 func _on_demo_export_pressed() -> void:
 	if _recording_events.is_empty():
-		_hint_label.text = "Export skipped: no recording events."
+		_hud.set_hint("Export skipped: no recording events.")
 		return
 	var path := export_recording_log()
 	if path.is_empty():
-		_hint_label.text = "Export failed."
+		_hud.set_hint("Export failed.")
 		return
 	_recording_output_path = path
 	_refresh_recording_list(true)
 	_select_recording_path(path)
-	_hint_label.text = "Exported: " + _short_recording_path(path)
+	_hud.set_hint("Exported: " + _short_recording_path(path))
 	_refresh_demo_control_ui()
 
 func _on_demo_refresh_pressed() -> void:
@@ -1576,38 +1471,38 @@ func _on_demo_refresh_pressed() -> void:
 	_refresh_recording_list(false)
 	_refresh_trash_list(false)
 	if _recording_files.is_empty():
-		_hint_label.text = "No recording files found."
+		_hud.set_hint("No recording files found.")
 	else:
-		_hint_label.text = "Recording list refreshed: " + str(_recording_files.size()) + " files."
+		_hud.set_hint("Recording list refreshed: " + str(_recording_files.size()) + " files.")
 
 func _on_recording_selected(index: int) -> void:
 	if index < 0 or index >= _recording_files.size():
 		return
 	_clear_delete_confirmation()
 	_selected_recording_path = _recording_files[index]
-	_hint_label.text = "Selected: " + _short_recording_path(_selected_recording_path)
+	_hud.set_hint("Selected: " + _short_recording_path(_selected_recording_path))
 	_refresh_demo_control_ui()
 
 func _on_speed_selected(index: int) -> void:
 	if index < 0 or index >= _demo_speed_options.size():
 		return
 	set_demo_playback_speed(_demo_speed_options[index])
-	_hint_label.text = "Replay speed: " + str(_demo_playback_speed) + "x"
+	_hud.set_hint("Replay speed: " + str(_demo_playback_speed) + "x")
 
 func _on_demo_delete_pressed() -> void:
 	if _selected_recording_path.is_empty():
-		_hint_label.text = "Delete skipped: no selected recording."
+		_hud.set_hint("Delete skipped: no selected recording.")
 		return
 	var now := int(Time.get_unix_time_from_system())
 	if _delete_confirm_path != _selected_recording_path or now > _delete_confirm_until:
 		_delete_confirm_path = _selected_recording_path
 		_delete_confirm_until = now + 4
-		_hint_label.text = "Press Delete again in 4s: " + _short_recording_path(_selected_recording_path)
+		_hud.set_hint("Press Delete again in 4s: " + _short_recording_path(_selected_recording_path))
 		_refresh_demo_control_ui()
 		return
 	var deleting_path := _selected_recording_path
 	if not _delete_recording_path(deleting_path):
-		_hint_label.text = "Delete failed: " + _short_recording_path(deleting_path)
+		_hud.set_hint("Delete failed: " + _short_recording_path(deleting_path))
 		_clear_delete_confirmation()
 		_refresh_demo_control_ui()
 		return
@@ -1619,13 +1514,13 @@ func _on_demo_delete_pressed() -> void:
 	_refresh_recording_list(false)
 	_refresh_trash_list(true)
 	_select_trash_path(_last_deleted_trash_path)
-	_hint_label.text = "Moved to trash: " + _short_recording_path(deleting_path)
+	_hud.set_hint("Moved to trash: " + _short_recording_path(deleting_path))
 	_refresh_demo_control_ui()
 
 func _on_demo_restore_pressed() -> void:
 	var restored_path := _restore_last_deleted_recording()
 	if restored_path.is_empty():
-		_hint_label.text = "Restore failed: no available trashed recording."
+		_hud.set_hint("Restore failed: no available trashed recording.")
 		_refresh_demo_control_ui()
 		return
 	_clear_delete_confirmation()
@@ -1634,7 +1529,7 @@ func _on_demo_restore_pressed() -> void:
 	_refresh_recording_list(false)
 	_refresh_trash_list(false)
 	_select_recording_path(restored_path)
-	_hint_label.text = "Restored: " + _short_recording_path(restored_path)
+	_hud.set_hint("Restored: " + _short_recording_path(restored_path))
 	_refresh_demo_control_ui()
 
 func _on_trash_refresh_pressed() -> void:
@@ -1642,9 +1537,9 @@ func _on_trash_refresh_pressed() -> void:
 	_clear_purge_old_confirmation()
 	_refresh_trash_list(false)
 	if _trash_files.is_empty():
-		_hint_label.text = "Trash is empty."
+		_hud.set_hint("Trash is empty.")
 	else:
-		_hint_label.text = "Trash refreshed: " + str(_trash_files.size()) + " files."
+		_hud.set_hint("Trash refreshed: " + str(_trash_files.size()) + " files.")
 
 func _on_trash_selected(index: int) -> void:
 	if index < 0 or index >= _trash_files.size():
@@ -1652,16 +1547,16 @@ func _on_trash_selected(index: int) -> void:
 	_clear_purge_confirmation()
 	_clear_purge_old_confirmation()
 	_selected_trash_path = _trash_files[index]
-	_hint_label.text = "Trash selected: " + _short_recording_path(_selected_trash_path)
+	_hud.set_hint("Trash selected: " + _short_recording_path(_selected_trash_path))
 	_refresh_demo_control_ui()
 
 func _on_trash_restore_pressed() -> void:
 	if _selected_trash_path.is_empty():
-		_hint_label.text = "Restore skipped: no selected trash file."
+		_hud.set_hint("Restore skipped: no selected trash file.")
 		return
 	var restored_path := _restore_trash_path(_selected_trash_path)
 	if restored_path.is_empty():
-		_hint_label.text = "Restore failed: " + _short_recording_path(_selected_trash_path)
+		_hud.set_hint("Restore failed: " + _short_recording_path(_selected_trash_path))
 		_refresh_demo_control_ui()
 		return
 	_clear_purge_confirmation()
@@ -1669,30 +1564,30 @@ func _on_trash_restore_pressed() -> void:
 	_refresh_recording_list(false)
 	_refresh_trash_list(false)
 	_select_recording_path(restored_path)
-	_hint_label.text = "Restored from trash: " + _short_recording_path(restored_path)
+	_hud.set_hint("Restored from trash: " + _short_recording_path(restored_path))
 	_refresh_demo_control_ui()
 
 func _on_trash_purge_pressed() -> void:
 	if _selected_trash_path.is_empty():
-		_hint_label.text = "Purge skipped: no selected trash file."
+		_hud.set_hint("Purge skipped: no selected trash file.")
 		return
 	var now := int(Time.get_unix_time_from_system())
 	if _purge_confirm_path != _selected_trash_path or now > _purge_confirm_until:
 		_purge_confirm_path = _selected_trash_path
 		_purge_confirm_until = now + 4
-		_hint_label.text = "Press Purge again in 4s: " + _short_recording_path(_selected_trash_path)
+		_hud.set_hint("Press Purge again in 4s: " + _short_recording_path(_selected_trash_path))
 		_refresh_demo_control_ui()
 		return
 	var purging_path := _selected_trash_path
 	if not _purge_trash_path(purging_path):
-		_hint_label.text = "Purge failed: " + _short_recording_path(purging_path)
+		_hud.set_hint("Purge failed: " + _short_recording_path(purging_path))
 		_clear_purge_confirmation()
 		_refresh_demo_control_ui()
 		return
 	_clear_purge_confirmation()
 	_clear_purge_old_confirmation()
 	_refresh_trash_list(false)
-	_hint_label.text = "Purged: " + _short_recording_path(purging_path)
+	_hud.set_hint("Purged: " + _short_recording_path(purging_path))
 	_refresh_demo_control_ui()
 
 func _on_trash_purge_days_changed(value: float) -> void:
@@ -1708,7 +1603,7 @@ func _on_trash_purge_old_pressed() -> void:
 	if _purge_old_confirm_days != target_days or now > _purge_old_confirm_until:
 		_purge_old_confirm_days = target_days
 		_purge_old_confirm_until = now + 4
-		_hint_label.text = "Press PurgeOld again in 4s: older than %dd" % target_days
+		_hud.set_hint("Press PurgeOld again in 4s: older than %dd" % target_days)
 		_refresh_demo_control_ui()
 		return
 	_clear_purge_old_confirmation()
@@ -1716,16 +1611,16 @@ func _on_trash_purge_old_pressed() -> void:
 	var purged_count := _purge_trash_older_than(target_days)
 	_refresh_trash_list(false)
 	if purged_count <= 0:
-		_hint_label.text = "PurgeOld finished: no files older than %dd." % target_days
+		_hud.set_hint("PurgeOld finished: no files older than %dd." % target_days)
 	else:
-		_hint_label.text = "PurgeOld removed %d files older than %dd." % [purged_count, target_days]
+		_hud.set_hint("PurgeOld removed %d files older than %dd." % [purged_count, target_days])
 	_refresh_demo_control_ui()
 
 func _on_ops_tail_pressed() -> void:
 	var tail_size := maxi(recording_ops_tail_preview_size, 1)
 	var ops_tail := _tail_recording_ops(tail_size)
 	if ops_tail.is_empty():
-		_hint_label.text = "Ops tail empty."
+		_hud.set_hint("Ops tail empty.")
 		return
 	var last := ops_tail[ops_tail.size() - 1]
 	var action := String(last.get("action", "-"))
@@ -1734,21 +1629,21 @@ func _on_ops_tail_pressed() -> void:
 	var target_path := String(last.get("target_path", ""))
 	var focus_path := source_path if not source_path.is_empty() else target_path
 	var short_path := _short_recording_path(focus_path)
-	_hint_label.text = "Ops tail " + str(ops_tail.size()) + ": " + action + " " + result + " " + short_path
+	_hud.set_hint("Ops tail " + str(ops_tail.size()) + ": " + action + " " + result + " " + short_path)
 	_refresh_ops_panel()
 
 func _on_ops_panel_pressed() -> void:
 	_ops_panel_visible = not _ops_panel_visible
 	_refresh_ops_panel()
-	_hint_label.text = "Ops panel: " + ("ON" if _ops_panel_visible else "OFF")
+	_hud.set_hint("Ops panel: " + ("ON" if _ops_panel_visible else "OFF"))
 	_refresh_demo_control_ui()
 
 func _on_ops_export_pressed() -> void:
 	var path := export_recording_ops_log()
 	if path.is_empty():
-		_hint_label.text = "Ops export failed: no ops log."
+		_hud.set_hint("Ops export failed: no ops log.")
 		return
-	_hint_label.text = "Ops exported: " + _short_recording_path(path)
+	_hud.set_hint("Ops exported: " + _short_recording_path(path))
 	_refresh_ops_panel()
 
 func _on_demo_open_folder_pressed() -> void:
@@ -1757,4 +1652,4 @@ func _on_demo_open_folder_pressed() -> void:
 		dir.make_dir_recursive("recordings")
 	var global_path := ProjectSettings.globalize_path("user://recordings")
 	OS.shell_open(global_path)
-	_hint_label.text = "Opened recordings folder."
+	_hud.set_hint("Opened recordings folder.")

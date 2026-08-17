@@ -188,6 +188,23 @@ func start_session() -> void:
 	_roll_objective()
 	_update_ui()
 
+func stop_session(reason: String = "manual_stop") -> void:
+	## 手动结束会话：按当前状态给出结算，不发 failure 事件
+	if not _running:
+		return
+	var summary := {
+		"focus": focus_value,
+		"affection": affection_value,
+		"chaos": chaos_value,
+		"remaining_seconds": _remaining_seconds,
+		"stopped_reason": reason
+	}
+	_running = false
+	_finished = true
+	_hud.hide_hud()
+	_hud.show_result("Session Paused", "Keep it up! F5 restart | tray to resume.")
+	_record_event("session_stopped", summary)
+
 func record_work_input(work_signal: Dictionary) -> void:
 	## main 从键盘/鼠标/感知接线喂入；会话未运行时忽略
 	if not _running:

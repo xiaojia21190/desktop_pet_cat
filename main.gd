@@ -473,6 +473,8 @@ func _on_cat_state_changed(_from_state: StringName, to_state: StringName) -> voi
 
 func _on_focus_session_finished(result: String, summary: Dictionary) -> void:
 	print("Focus session finished: ", result, " | ", summary)
+	if tray_controller:
+		tray_controller.set_focus_session_active(false)
 	if result == "victory":
 		_build_failure_streak = 0
 		_record_smart_event("focus_milestone", {"summary": summary})
@@ -572,6 +574,7 @@ func _setup_tray():
 	tray_controller.toggle_visibility_requested.connect(_toggle_pet_visibility)
 	tray_controller.open_settings_requested.connect(_on_tray_open_settings)
 	tray_controller.exit_requested.connect(_on_tray_exit)
+	tray_controller.toggle_focus_session_requested.connect(_on_tray_toggle_focus_session)
 
 func _on_tray_open_settings():
 	_set_pet_visible(true)
@@ -583,6 +586,16 @@ func _on_tray_exit():
 	if tray_controller:
 		tray_controller.cleanup()
 	get_tree().quit()
+
+func _on_tray_toggle_focus_session() -> void:
+	if not focus_session_mode:
+		return
+	if focus_session_mode._running:
+		focus_session_mode.stop_session("tray_toggle")
+	else:
+		focus_session_mode.start_session()
+	if tray_controller:
+		tray_controller.set_focus_session_active(focus_session_mode._running)
 
 func _toggle_pet_visibility():
 	_set_pet_visible(not _is_pet_visible())

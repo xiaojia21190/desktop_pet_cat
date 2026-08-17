@@ -13,12 +13,6 @@ var popup_menu: PopupMenu
 var popup_menu_items: PopupMenu
 var last_menu_position = Vector2.ZERO
 var settings_panel: Panel
-var tray_indicator: StatusIndicator
-var tray_menu: RID = RID()
-var tray_menu_show_index := -1
-var tray_last_click_time := 0
-const TRAY_DOUBLE_CLICK_MS := 400
-const TRAY_ICON_PATH := "res://icon.svg"
 const POPUP_MENU_ITEMS_NAME := "items_menu"
 const POPUP_MENU_ID_WAND := 0
 const POPUP_MENU_ID_FOOD := 1
@@ -31,13 +25,14 @@ var timed_hide_end_time := 0
 var timed_hide_timer: Timer
 var focus_session_mode
 var smart_pet_controller
+var tray_controller
+var passthrough_manager
 var quick_action_menu
 var _build_failure_streak := 0
 var smart_line_layer: CanvasLayer
 var smart_line_panel: PanelContainer
 var smart_line_label: Label
 var smart_line_hide_timer: Timer
-var _passthrough_cache_hash: int = 0
 
 # 悬浮面板相关
 var hover_panel: Panel
@@ -49,8 +44,6 @@ var _cached_screen_size: Vector2 = Vector2(1920, 1080)
 const BUILD_FAILURE_STREAK_THRESHOLD := 2
 const SMART_LINE_BUBBLE_WIDTH := 320.0
 const SMART_LINE_BUBBLE_HEIGHT := 88.0
-const CAT_HIT_RADIUS_MIN := 56.0
-const CAT_HIT_RADIUS_MAX := 240.0
 const FORCE_START_AT_BOTTOM_RIGHT := false
 
 const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
@@ -104,6 +97,8 @@ func _ready():
 	_setup_quick_action_menu()
 	_record_smart_event("session_resume")
 	_setup_tray()
+	passthrough_manager = PassthroughManager.new()
+	add_child(passthrough_manager)
 	_update_mouse_passthrough_region()
 	_log_window_state()
 
@@ -130,7 +125,8 @@ func _apply_initial_cat_position(meta: Dictionary, cat_data: Dictionary) -> void
 		cat.position = _clamp_cat_position(saved_position)
 
 func _exit_tree():
-	_cleanup_tray()
+	if tray_controller:
+		tray_controller.cleanup()
 
 func _apply_window_style() -> void:
 	# 让透明区域真正透出桌面，避免出现黑色矩形背景。
@@ -352,7 +348,8 @@ func _get_visibility_label() -> String:
 	return "隐藏猫咪" if _is_pet_visible() else "显示猫咪"
 
 func _update_visibility_menu_labels():
-	_update_tray_menu_label()
+	if tray_controller:
+		tray_controller.update_menu_label(_is_pet_visible())
 	_update_popup_menu_label()
 
 func _update_popup_menu_label():
@@ -692,61 +689,12 @@ func _map_smart_action_to_state(action_id: String) -> StringName:
 	return &""
 
 func _setup_tray():
-	if OS.get_name() != "Windows" and OS.get_name() != "macOS":
-		return
-
-	tray_indicator = StatusIndicator.new()
-	tray_indicator.icon = load(TRAY_ICON_PATH)
-	tray_indicator.tooltip = "Desktop Pet Cat"
-	tray_indicator.pressed.connect(_on_tray_pressed)
-	add_child(tray_indicator)
-
-	_build_tray_menu()
-
-func _build_tray_menu():
-	if not NativeMenu.has_feature(NativeMenu.FEATURE_POPUP_MENU):
-		return
-
-	tray_menu = NativeMenu.create_menu()
-	tray_menu_show_index = NativeMenu.add_item(
-		tray_menu,
-		_get_visibility_label(),
-		Callable(self, "_on_tray_toggle_visibility")
-	)
-	NativeMenu.add_item(
-		tray_menu,
-		"设置",
-		Callable(self, "_on_tray_open_settings")
-	)
-	NativeMenu.add_separator(tray_menu)
-	NativeMenu.add_item(
-		tray_menu,
-		"退出程序",
-		Callable(self, "_on_tray_exit")
-	)
-
-func _on_tray_pressed(mouse_button: int, mouse_position: Vector2i):
-	if mouse_button == MOUSE_BUTTON_RIGHT:
-		_show_tray_menu(mouse_position)
-		return
-
-	if mouse_button == MOUSE_BUTTON_LEFT:
-		var now = Time.get_ticks_msec()
-		if now - tray_last_click_time <= TRAY_DOUBLE_CLICK_MS:
-			tray_last_click_time = 0
-			_toggle_pet_visibility()
-		else:
-			tray_last_click_time = now
-
-func _show_tray_menu(mouse_position: Vector2i):
-	if not tray_menu.is_valid():
-		return
-
-	_update_visibility_menu_labels()
-	NativeMenu.popup(tray_menu, mouse_position)
-
-func _on_tray_toggle_visibility():
-	_toggle_pet_visibility()
+	tray_controller = TrayController.new()
+	add_child(tray_controller)
+	tray_controller.setup()
+	tray_controller.toggle_visibility_requested.connect(_toggle_pet_visibility)
+	tray_controller.open_settings_requested.connect(_on_tray_open_settings)
+	tray_controller.exit_requested.connect(_on_tray_exit)
 
 func _on_tray_open_settings():
 	_set_pet_visible(true)
@@ -755,7 +703,8 @@ func _on_tray_open_settings():
 	_update_mouse_passthrough_region()
 
 func _on_tray_exit():
-	_cleanup_tray()
+	if tray_controller:
+		tray_controller.cleanup()
 	get_tree().quit()
 
 func _toggle_pet_visibility():
@@ -770,22 +719,6 @@ func _set_pet_visible(visible: bool):
 func _is_pet_visible() -> bool:
 	var window = get_window()
 	return window.visible
-
-func _update_tray_menu_label():
-	if not tray_menu.is_valid() or tray_menu_show_index < 0:
-		return
-
-	NativeMenu.set_item_text(tray_menu, tray_menu_show_index, _get_visibility_label())
-
-func _cleanup_tray():
-	if tray_indicator:
-		tray_indicator.visible = false
-		tray_indicator.queue_free()
-		tray_indicator = null
-
-	if tray_menu.is_valid():
-		NativeMenu.free_menu(tray_menu)
-		tray_menu = RID()
 
 func _fit_window_to_screen() -> void:
 	var window := get_window()
@@ -832,77 +765,9 @@ func _log_window_state() -> void:
 	)
 
 func _update_mouse_passthrough_region() -> void:
-	if not DisplayServer.has_method("window_set_mouse_passthrough"):
-		return
-	var polygon := _build_mouse_capture_polygon()
-	var hash_input := str(polygon)
-	var new_hash := hash(hash_input)
-	if new_hash == _passthrough_cache_hash:
-		return
-	_passthrough_cache_hash = new_hash
-	DisplayServer.window_set_mouse_passthrough(polygon)
-	var window := get_window()
-	if window:
-		window.set("mouse_passthrough_polygon", polygon)
-
-func _build_mouse_capture_polygon() -> PackedVector2Array:
-	if _should_capture_full_window():
-		return _build_full_window_polygon()
-	# 猫命中区 + 道具命中区（保证道具可点击/拖拽）
-	var polygon := _build_cat_hit_polygon()
-	for item in get_tree().get_nodes_in_group("items"):
-		if item is Node2D and is_instance_valid(item):
-			polygon.append_array(_build_circle_polygon(item.global_position, 48.0, 8))
-	return polygon
-
-func _should_capture_full_window() -> bool:
-	if settings_panel and settings_panel.visible:
-		return true
-	if popup_menu and popup_menu.visible:
-		return true
-	if hover_panel_visible:
-		return true
-	if quick_action_menu and quick_action_menu.visible:
-		return true
-	var input_component = cat.get_node_or_null("InputComponent")
-	if input_component and bool(input_component.is_dragging):
-		return true
-	return false
-
-func _build_full_window_polygon() -> PackedVector2Array:
-	var size := _cached_screen_size
-	if size == Vector2.ZERO:
-		size = get_viewport_rect().size
-	if size.x <= 0.0 or size.y <= 0.0:
-		return PackedVector2Array()
-	return PackedVector2Array([
-		Vector2(0.0, 0.0),
-		Vector2(size.x, 0.0),
-		Vector2(size.x, size.y),
-		Vector2(0.0, size.y)
-	])
-
-func _build_cat_hit_polygon() -> PackedVector2Array:
-	if not cat:
-		return _build_full_window_polygon()
-	var radius := 100.0
-	var input_component = cat.get_node_or_null("InputComponent")
-	if input_component and "click_distance_sq" in input_component:
-		radius = sqrt(maxf(float(input_component.click_distance_sq), 1.0))
-	if "scale_factor" in cat:
-		radius *= float(cat.scale_factor)
-	radius = clampf(radius, CAT_HIT_RADIUS_MIN, CAT_HIT_RADIUS_MAX)
-
-	var center: Vector2 = cat.global_position
-	return _build_circle_polygon(center, radius, 14)
-
-func _build_circle_polygon(center: Vector2, radius: float, segments: int = 12) -> PackedVector2Array:
-	var result := PackedVector2Array()
-	var safe_segments := maxi(segments, 6)
-	for i in range(safe_segments):
-		var angle := (TAU * float(i)) / float(safe_segments)
-		result.append(center + Vector2(cos(angle), sin(angle)) * radius)
-	return result
+	# 穿透逻辑已拆至 PassthroughManager，此处保留转发
+	if passthrough_manager:
+		passthrough_manager.update(self)
 
 func _setup_quick_action_menu() -> void:
 	if quick_action_menu:

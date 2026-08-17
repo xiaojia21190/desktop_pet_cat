@@ -92,3 +92,22 @@
 **行为变更例外**（唯一一处）：`start_session()` 不再重置 affection/chaos 为固定初值——统一后延续猫的当前心理状态。旧测试 `affection_synced_from_behavior` 等已覆盖此语义。
 
 **验证**：五套 headless 测试全绿（23+15+13+34+8=93 断言）；MCP 90 秒端到端无错误、无 Focus session failure、SMART 正常、猫渲染确认（橙色像素聚类 561）。
+
+## P2 完成记录（2026-08-17）
+
+**交付**（提交 91a5b8f..5707eb7，6 任务）：
+
+| 组件 | 说明 |
+|---|---|
+| components/perception/activity_classifier.gd | 10 类别 58 条默认规则 + 用户规则覆盖（24 断言） |
+| components/perception/foreground_app_monitor.gd | 管道轮询状态机采集（10 断言） |
+| context_collector.gd 扩展 | 快照 4 新字段 + 活动用时累计 |
+| 设置链路 | perception_enabled（默认关）/ perception_default_rules 贯通存档与 UI |
+| habit_profile_service | watching_video / coding_now / browsing_now 活动标签（持续 10 分钟才贴） |
+
+**实施中的关键修正**（计划外发现）：
+1. PowerShell 采集脚本从 `-Command` 改为 **`-EncodedCommand`（UTF-16LE Base64）**——GDScript→cmd→PowerShell 三层引号转义不可行
+2. 采集执行从 Thread+OS.execute 改为 **`OS.execute_with_pipe` 非阻塞管道 + 每帧轮询状态机**——OS.execute 在 Godot 4.7 子线程中拿不到 stdout（引擎限制），阻塞式 1.1 秒会卡主线程
+3. `save_manager.load_data()` 是逐键白名单读取，新设置键必须同时补 `_get_default_data` + `load_data` + `_write_config` + `_gather_current_data` 四处
+
+**验证**：七套测试全绿（34+23+30+13+8+24+10=142 断言）；MCP 真机端到端输出 `[Perception] foreground: Godot_v4.7-stable_win64 -> coding`——存档开关→monitor→管道采集→分类→collector 全链路打通。

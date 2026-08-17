@@ -67,10 +67,7 @@ var _last_deleted_original_path: String = ""
 var _last_deleted_trash_path: String = ""
 var _ops_panel_visible: bool = false
 
-var _tutorial_active: bool = false
-var _tutorial_index: int = 0
-var _tutorial_time_left: float = 0.0
-var _tutorial_steps: Array[Dictionary] = []
+var _tutorial: FocusTutorialController
 
 var _demo_control_panel: PanelContainer
 var _demo_status_label: Label
@@ -92,7 +89,10 @@ func _ready() -> void:
 	_objective_system.objective_completed.connect(_on_objective_completed)
 	_objective_system.objective_failed.connect(_on_objective_failed)
 	_demo_events = _build_default_demo_events()
-	_tutorial_steps = _build_default_tutorial_steps()
+	_tutorial = FocusTutorialController.new()
+	_tutorial.name = "TutorialController"
+	add_child(_tutorial)
+	_tutorial.setup(FocusTutorialController.default_steps(), func(text: String): _hud.set_hint(text))
 	_trash_purge_old_days = maxi(trash_purge_old_default_days, 1)
 	_load_last_deleted_recording()
 	# 默认不自动开启专注会话，避免桌宠启动约 1 分钟后必然弹出失败面板
@@ -103,7 +103,7 @@ func _process(delta: float) -> void:
 	if not _running:
 		return
 
-	_update_tutorial(delta)
+	_tutorial.update(delta)
 
 	_time_accumulator += delta
 	_objective_timer -= delta
@@ -142,8 +142,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		start_session()
 		return
 
-	if key_event.keycode == KEY_F1 and _tutorial_active:
-		_skip_tutorial()
+	if key_event.keycode == KEY_F1 and _tutorial.active:
+		_tutorial.skip()
 		return
 
 	if key_event.keycode == KEY_F2:
@@ -218,7 +218,7 @@ func start_session() -> void:
 		"chaos": chaos_value
 	})
 
-	_setup_tutorial()
+	_tutorial.start(show_tutorial_on_start)
 	_roll_objective()
 	_update_ui()
 
@@ -1087,48 +1087,6 @@ func _build_recording_summary(reason: String) -> Dictionary:
 		"output_path": _recording_output_path
 	}
 
-func _setup_tutorial() -> void:
-	if not show_tutorial_on_start:
-		_tutorial_active = false
-		return
-	_tutorial_active = true
-	_tutorial_index = 0
-	_tutorial_time_left = _current_tutorial_duration()
-	_hud.set_hint(_current_tutorial_text())
-
-func _update_tutorial(delta: float) -> void:
-	if not _tutorial_active:
-		return
-
-	_tutorial_time_left -= delta
-	if _tutorial_time_left > 0.0:
-		return
-
-	_tutorial_index += 1
-	if _tutorial_index >= _tutorial_steps.size():
-		_tutorial_active = false
-		_hud.set_hint("Tutorial finished. Keep the bars stable.")
-		return
-
-	_tutorial_time_left = _current_tutorial_duration()
-	_hud.set_hint(_current_tutorial_text())
-
-func _skip_tutorial() -> void:
-	_tutorial_active = false
-	_hud.set_hint("Tutorial skipped.")
-
-func _current_tutorial_text() -> String:
-	if _tutorial_steps.is_empty():
-		return ""
-	var step := _tutorial_steps[_tutorial_index]
-	return "[Guide] " + String(step.get("text", ""))
-
-func _current_tutorial_duration() -> float:
-	if _tutorial_steps.is_empty():
-		return 0.0
-	var step := _tutorial_steps[_tutorial_index]
-	return float(step.get("duration", 4.0))
-
 func _build_ui() -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -1368,14 +1326,6 @@ func _format_seconds(total_seconds: int) -> String:
 
 func _build_help_text() -> String:
 	return "F5 restart | F1 skip tutorial | F2 ops-panel | F3 log | F4 purge-old | F6 purge | F7 restore | F8 delete | F9 demo | F10 record | F11 replay | F12 speed"
-
-func _build_default_tutorial_steps() -> Array[Dictionary]:
-	return [
-		{"text": "Goal: survive for 30 minutes without focus collapse.", "duration": 4.0},
-		{"text": "Typing attacks reduce Focus and increase Chaos.", "duration": 4.0},
-		{"text": "Use items from the menu to calm the cat.", "duration": 4.0},
-		{"text": "Complete objective cards for bonus recovery.", "duration": 4.0}
-	]
 
 func _build_default_demo_events() -> Array[Dictionary]:
 	return [

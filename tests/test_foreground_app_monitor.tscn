@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/test_foreground_app_monitor.gd" id="1"]
+
+[node name="ForegroundAppMonitorTest" type="Node"]
+script = ExtResource("1")

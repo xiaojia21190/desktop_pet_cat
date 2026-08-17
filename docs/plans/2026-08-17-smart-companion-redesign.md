@@ -111,3 +111,26 @@
 3. `save_manager.load_data()` 是逐键白名单读取，新设置键必须同时补 `_get_default_data` + `load_data` + `_write_config` + `_gather_current_data` 四处
 
 **验证**：七套测试全绿（34+23+30+13+8+24+10=142 断言）；MCP 真机端到端输出 `[Perception] foreground: Godot_v4.7-stable_win64 -> coding`——存档开关→monitor→管道采集→分类→collector 全链路打通。
+
+## P3 完成记录（2026-08-17）
+
+**交付**（提交 a6b630c..P3 收尾，5 任务）：
+
+| 改动 | 说明 |
+|---|---|
+| components/focus/focus_charge_engine.gd | 充能引擎：打字 0.6/键（封顶4）+ 点击 0.3（封顶2）+ 专注活动底薪 1.5，×1.2 倍率充能；闲置 -0.18/秒 |
+| 数值反转 | 被动衰减(≥1/秒必败) → 工作充能；打字攻击不再扣 focus（改 chaos 小波动）；猫干扰 -5/-4/-3 → -1.2/-1.0/-0.8 |
+| 托盘入口 | "开始/结束专注会话"菜单项 + stop_session 手动结算（Session Paused，不判失败） |
+| 时长档位 | 设置面板 15/30/60 分钟，focus_duration_index 四点存档 |
+| _tick_one_second | 每秒滴答从 _process 抽出，支持测试单步快进驱动 |
+
+**数值新旧对照**：
+
+| 项 | 旧（必败制） | 新（充能制） |
+|---|---|---|
+| 被动 focus | -(1+chaos*0.03)/秒 | 工作时 +(score×1.2)，闲置 -0.18/秒 |
+| 打字攻击 | focus -8 / chaos +16 | focus 0 / chaos +3 |
+| 猫挡屏幕(Blocking) | focus -5 | focus -1.2 |
+| 会话结局 | ~54 秒必弹 Session Failed | 工作必胜 / 闲置约 8.4 分钟失败 |
+
+**验证**：八套测试全绿（150 断言）；主场景级端到端（真实 main.tscn + 行为系统绑定 + 快进驱动）：持续普通工作（2键/秒+coding）→ 120 秒会话完整跑完 focus=100 **WINNABLE**；纯闲置 → sec=505 失败（约 8.4 分钟，命中 8-10 分钟设计区间）。

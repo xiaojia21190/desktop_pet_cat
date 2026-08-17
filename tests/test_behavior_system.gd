@@ -19,6 +19,8 @@ func _ready():
 
 	# 输出结果
 	_print_results()
+	# headless 模式必须显式退出：失败退出码 1，供 CI 判定
+	get_tree().quit(1 if tests_failed > 0 else 0)
 
 func _run_all_tests():
 	# 情绪系统测试
@@ -231,15 +233,12 @@ func test_chain_interruption():
 func test_chain_completion():
 	behavior_system.start_chain("pounce_sequence")
 
-	# 模拟时间流逝完成状态链
+	# update_chain 每次调用只推进一个步骤（引擎逐帧调用），需逐步喂足时长
 	var chain = CatBehaviorSystem.STATE_CHAINS["pounce_sequence"]
-	var total_duration = 0.0
-	for d in chain.durations:
-		if d > 0:
-			total_duration += d
-
-	# 更新足够长的时间
-	behavior_system.update_chain(total_duration + 1.0)
+	for i in range(chain.states.size()):
+		var duration: float = chain.durations[i]
+		if duration > 0:
+			behavior_system.update_chain(duration + 0.1)
 
 	_assert_equal(behavior_system.current_chain, "", "chain_completed")
 

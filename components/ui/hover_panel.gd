@@ -8,8 +8,8 @@ signal settings_requested
 
 const EDGE_TRIGGER_DISTANCE := 20.0
 const PANEL_SLIDE_SPEED := 800.0
-const PANEL_WIDTH := 80.0
-const PANEL_HEIGHT := 160.0
+const PANEL_WIDTH := 120.0
+const PANEL_HEIGHT := 240.0
 
 var panel: Panel
 var is_out: bool = false  # 对外暴露面板可见状态（供穿透管理器判定）
@@ -55,6 +55,8 @@ func setup(screen_size: Vector2) -> void:
 
 	var items_btn := Button.new()
 	items_btn.text = "道具"
+	items_btn.custom_minimum_size = Vector2(0, 64)
+	items_btn.add_theme_font_size_override("font_size", 24)
 	items_btn.add_theme_stylebox_override("normal", btn_normal_style)
 	items_btn.add_theme_stylebox_override("hover", btn_hover_style)
 	items_btn.add_theme_stylebox_override("pressed", btn_hover_style)
@@ -65,6 +67,8 @@ func setup(screen_size: Vector2) -> void:
 
 	var settings_btn := Button.new()
 	settings_btn.text = "设置"
+	settings_btn.custom_minimum_size = Vector2(0, 64)
+	settings_btn.add_theme_font_size_override("font_size", 24)
 	settings_btn.add_theme_stylebox_override("normal", btn_normal_style)
 	settings_btn.add_theme_stylebox_override("hover", btn_hover_style)
 	settings_btn.add_theme_stylebox_override("pressed", btn_hover_style)
@@ -83,12 +87,7 @@ func update(delta: float, mouse_pos: Vector2, screen_size: Vector2) -> void:
 	var panel_width: float = panel.size.x
 	var current_x: float = panel.position.x
 
-	# 如果面板已到达目标位置且隐藏，跳过计算
-	var is_at_target: bool = abs(current_x - _target_x) <= 1
-	if is_at_target and not is_out:
-		return
-
-	# 检测鼠标是否在右边缘 / 面板上
+	# 检测鼠标是否在右边缘 / 面板上（必须在早退之前，否则收起态永远无法再触发）
 	var near_edge: bool = mouse_pos.x > screen_size.x - EDGE_TRIGGER_DISTANCE
 	var on_panel: bool = panel.get_rect().has_point(mouse_pos)
 
@@ -99,11 +98,15 @@ func update(delta: float, mouse_pos: Vector2, screen_size: Vector2) -> void:
 		_target_x = screen_size.x
 		is_out = false
 
-	# 平滑滑动（仅在需要移动时计算）
-	if not is_at_target:
-		var direction: float = sign(_target_x - current_x)
-		panel.position.x += direction * PANEL_SLIDE_SPEED * delta
-		panel.position.x = clampf(panel.position.x, screen_size.x - panel_width, screen_size.x)
+	# 已到目标位则无需滑动
+	var is_at_target: bool = abs(current_x - _target_x) <= 1
+	if is_at_target:
+		return
+
+	# 平滑滑动
+	var direction: float = sign(_target_x - current_x)
+	panel.position.x += direction * PANEL_SLIDE_SPEED * delta
+	panel.position.x = clampf(panel.position.x, screen_size.x - panel_width, screen_size.x)
 
 func _make_aurora_btn_style(path: String) -> StyleBoxTexture:
 	var tex := load(path) as Texture2D

@@ -38,7 +38,7 @@ func _should_capture_full_window(main_node: Node2D) -> bool:
 		return true
 	if main_node.popup_menu and main_node.popup_menu.visible:
 		return true
-	if main_node.hover_panel_visible:
+	if main_node.hover_panel_component and main_node.hover_panel_component.is_out:
 		return true
 	if main_node.quick_action_menu and main_node.quick_action_menu.visible:
 		return true

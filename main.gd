@@ -27,23 +27,13 @@ var focus_session_mode
 var smart_pet_controller
 var tray_controller
 var passthrough_manager
+var smart_line_bubble
+var hover_panel_component
 var quick_action_menu
 var _build_failure_streak := 0
-var smart_line_layer: CanvasLayer
-var smart_line_panel: PanelContainer
-var smart_line_label: Label
-var smart_line_hide_timer: Timer
 
-# 悬浮面板相关
-var hover_panel: Panel
-var hover_panel_visible = false
-const EDGE_TRIGGER_DISTANCE = 20  # 边缘触发距离
-const PANEL_SLIDE_SPEED = 800.0   # 面板滑动速度
-var panel_target_x = 0.0
 var _cached_screen_size: Vector2 = Vector2(1920, 1080)
 const BUILD_FAILURE_STREAK_THRESHOLD := 2
-const SMART_LINE_BUBBLE_WIDTH := 320.0
-const SMART_LINE_BUBBLE_HEIGHT := 88.0
 const FORCE_START_AT_BOTTOM_RIGHT := false
 
 const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
@@ -83,7 +73,11 @@ func _ready():
 	_build_popup_menu()
 
 	# 创建悬浮功能面板（替代固定设置按钮）
-	_create_hover_panel()
+	hover_panel_component = DesktopHoverPanel.new()
+	add_child(hover_panel_component)
+	hover_panel_component.setup(_cached_screen_size)
+	hover_panel_component.items_requested.connect(_on_items_btn_pressed)
+	hover_panel_component.settings_requested.connect(_on_settings_pressed)
 
 	var panel_scene = load("res://settings_panel.tscn")
 	if panel_scene:
@@ -93,7 +87,8 @@ func _ready():
 
 	_setup_focus_session_mode()
 	_setup_smart_pet_controller(settings)
-	_setup_smart_line_bubble()
+	smart_line_bubble = SmartLineBubble.new()
+	add_child(smart_line_bubble)
 	_setup_quick_action_menu()
 	_record_smart_event("session_resume")
 	_setup_tray()
@@ -149,26 +144,26 @@ func _apply_window_style() -> void:
 
 func _on_screen_size_changed():
 	_cached_screen_size = get_viewport_rect().size
-	# 更新悬浮面板位置
-	if hover_panel:
-		var panel_width = hover_panel.size.x
-		var panel_height = hover_panel.size.y
-		hover_panel.position.y = (_cached_screen_size.y - panel_height) / 2
-		if not hover_panel_visible:
-			hover_panel.position.x = _cached_screen_size.x
-			panel_target_x = _cached_screen_size.x
-	if smart_line_panel and smart_line_panel.visible:
-		smart_line_panel.position = _get_smart_line_position()
+	if hover_panel_component and hover_panel_component.panel:
+		var panel_width = hover_panel_component.panel.size.x
+		var panel_height = hover_panel_component.panel.size.y
+		hover_panel_component.panel.position.y = (_cached_screen_size.y - panel_height) / 2
+		if not hover_panel_component.is_out:
+			hover_panel_component.panel.position.x = _cached_screen_size.x
+			hover_panel_component._target_x = _cached_screen_size.x
+	if smart_line_bubble and cat:
+		smart_line_bubble.reposition(cat.global_position, _cached_screen_size)
 	_update_mouse_passthrough_region()
 
 func _process(delta):
 	# 处理悬浮面板边缘检测
-	_update_hover_panel(delta)
+	if hover_panel_component:
+		hover_panel_component.update(delta, get_global_mouse_position(), _cached_screen_size)
 
 	# 处理抖动效果
 	_update_shake(delta)
-	if smart_line_panel and smart_line_panel.visible:
-		smart_line_panel.position = _get_smart_line_position()
+	if smart_line_bubble and smart_line_bubble.is_visible_to_user() and cat:
+		smart_line_bubble.reposition(cat.global_position, _cached_screen_size)
 	_update_mouse_passthrough_region()
 
 func _update_shake(delta):
@@ -388,102 +383,6 @@ func _on_popup_menu_selected(id):
 	elif id == POPUP_MENU_ID_EXIT:
 		_on_tray_exit()
 
-func _create_hover_panel():
-	var screen_size = _cached_screen_size
-	var panel_width = 80
-	var panel_height = 160
-
-	hover_panel = Panel.new()
-	hover_panel.size = Vector2(panel_width, panel_height)
-	hover_panel.position = Vector2(screen_size.x, (screen_size.y - panel_height) / 2)
-	panel_target_x = screen_size.x
-
-	var aurora_tex := load("res://assets/aurora/panel_dark.png") as Texture2D
-	if aurora_tex:
-		var sb := StyleBoxTexture.new()
-		sb.texture = aurora_tex
-		sb.texture_margin_left = 20
-		sb.texture_margin_top = 20
-		sb.texture_margin_right = 20
-		sb.texture_margin_bottom = 20
-		sb.content_margin_left = 8.0
-		sb.content_margin_top = 8.0
-		sb.content_margin_right = 8.0
-		sb.content_margin_bottom = 8.0
-		hover_panel.add_theme_stylebox_override("panel", sb)
-
-	var vbox = VBoxContainer.new()
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vbox.add_theme_constant_override("separation", 8)
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	var margin_l := 8
-	var margin_t := 12
-	vbox.offset_left = margin_l
-	vbox.offset_top = margin_t
-	vbox.offset_right = -margin_l
-	vbox.offset_bottom = -margin_t
-	hover_panel.add_child(vbox)
-
-	var btn_normal_style := _make_aurora_btn_style("res://assets/aurora/btn_normal.png")
-	var btn_hover_style := _make_aurora_btn_style("res://assets/aurora/btn_hover.png")
-
-	var items_btn = Button.new()
-	items_btn.text = "道具"
-	items_btn.add_theme_stylebox_override("normal", btn_normal_style)
-	items_btn.add_theme_stylebox_override("hover", btn_hover_style)
-	items_btn.add_theme_stylebox_override("pressed", btn_hover_style)
-	items_btn.add_theme_color_override("font_color", Color.WHITE)
-	items_btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	items_btn.pressed.connect(_on_items_btn_pressed)
-	vbox.add_child(items_btn)
-
-	var settings_btn = Button.new()
-	settings_btn.text = "设置"
-	settings_btn.add_theme_stylebox_override("normal", btn_normal_style)
-	settings_btn.add_theme_stylebox_override("hover", btn_hover_style)
-	settings_btn.add_theme_stylebox_override("pressed", btn_hover_style)
-	settings_btn.add_theme_color_override("font_color", Color.WHITE)
-	settings_btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	settings_btn.pressed.connect(_on_settings_pressed)
-	vbox.add_child(settings_btn)
-
-	add_child(hover_panel)
-
-func _update_hover_panel(delta):
-	if not hover_panel:
-		return
-
-	var screen_size = _cached_screen_size
-	var panel_width = hover_panel.size.x
-	var current_x = hover_panel.position.x
-
-	# 如果面板已到达目标位置且隐藏，跳过计算
-	var is_at_target = abs(current_x - panel_target_x) <= 1
-	if is_at_target and not hover_panel_visible:
-		return
-
-	var mouse_pos = get_global_mouse_position()
-
-	# 检测鼠标是否在右边缘
-	var near_edge = mouse_pos.x > screen_size.x - EDGE_TRIGGER_DISTANCE
-	# 检测鼠标是否在面板上
-	var on_panel = hover_panel.get_rect().has_point(mouse_pos)
-
-	if near_edge or on_panel:
-		# 显示面板（滑入）
-		panel_target_x = screen_size.x - panel_width
-		hover_panel_visible = true
-	else:
-		# 隐藏面板（滑出）
-		panel_target_x = screen_size.x
-		hover_panel_visible = false
-
-	# 平滑滑动（仅在需要移动时计算）
-	if not is_at_target:
-		var direction = sign(panel_target_x - current_x)
-		hover_panel.position.x += direction * PANEL_SLIDE_SPEED * delta
-		hover_panel.position.x = clamp(hover_panel.position.x, screen_size.x - panel_width, screen_size.x)
-
 func _on_items_btn_pressed():
 	# 显示道具菜单
 	if not popup_menu_items:
@@ -556,7 +455,8 @@ func _on_smart_line_generated(line: String, source: String) -> void:
 	if line.is_empty():
 		return
 	print("[SMART/%s] %s" % [source, line])
-	_show_smart_line(line)
+	if smart_line_bubble and cat:
+		smart_line_bubble.show_line(line, cat.global_position, _cached_screen_size)
 
 func _record_smart_event(event_type: String, payload: Dictionary = {}) -> void:
 	if smart_pet_controller and smart_pet_controller.has_method("record_event"):
@@ -577,77 +477,6 @@ func _record_build_failure_streak(payload: Dictionary = {}) -> void:
 	streak_payload["streak"] = _build_failure_streak
 	if _build_failure_streak >= BUILD_FAILURE_STREAK_THRESHOLD:
 		_record_smart_event("build_fail_streak", streak_payload)
-
-func _setup_smart_line_bubble() -> void:
-	if smart_line_layer:
-		return
-	smart_line_layer = CanvasLayer.new()
-	smart_line_layer.layer = 20
-	add_child(smart_line_layer)
-
-	smart_line_panel = PanelContainer.new()
-	smart_line_panel.visible = false
-	smart_line_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	smart_line_panel.custom_minimum_size = Vector2(SMART_LINE_BUBBLE_WIDTH, 0)
-
-	var bubble_tex := load("res://assets/aurora/bubble.png") as Texture2D
-	if bubble_tex:
-		var sb := StyleBoxTexture.new()
-		sb.texture = bubble_tex
-		sb.texture_margin_left = 16
-		sb.texture_margin_top = 16
-		sb.texture_margin_right = 16
-		sb.texture_margin_bottom = 40
-		sb.content_margin_left = 16.0
-		sb.content_margin_top = 12.0
-		sb.content_margin_right = 16.0
-		sb.content_margin_bottom = 44.0
-		smart_line_panel.add_theme_stylebox_override("panel", sb)
-	smart_line_layer.add_child(smart_line_panel)
-
-	smart_line_label = Label.new()
-	smart_line_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	smart_line_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	smart_line_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.25, 1.0))
-	smart_line_label.custom_minimum_size = Vector2(SMART_LINE_BUBBLE_WIDTH - 32, 0)
-	smart_line_label.max_lines_visible = 4
-	smart_line_label.text = ""
-	smart_line_panel.add_child(smart_line_label)
-
-	smart_line_hide_timer = Timer.new()
-	smart_line_hide_timer.one_shot = true
-	smart_line_hide_timer.wait_time = 4.0
-	smart_line_hide_timer.timeout.connect(_hide_smart_line)
-	add_child(smart_line_hide_timer)
-
-func _show_smart_line(line: String) -> void:
-	if not smart_line_panel or not smart_line_label:
-		return
-	smart_line_label.text = line
-	smart_line_panel.position = _get_smart_line_position()
-	smart_line_panel.modulate = Color(1.0, 1.0, 1.0, 1.0)
-	smart_line_panel.visible = true
-	if smart_line_hide_timer:
-		smart_line_hide_timer.start()
-
-func _hide_smart_line() -> void:
-	if smart_line_panel:
-		smart_line_panel.visible = false
-
-func _get_smart_line_position() -> Vector2:
-	var viewport_size := _cached_screen_size
-	if viewport_size == Vector2.ZERO:
-		viewport_size = get_viewport_rect().size
-
-	var anchor := viewport_size * 0.5
-	if cat:
-		anchor = cat.global_position
-
-	var bubble_size := smart_line_panel.custom_minimum_size
-	var desired := Vector2(anchor.x + 40.0, anchor.y - bubble_size.y - 30.0)
-	desired.x = clampf(desired.x, 8.0, maxf(8.0, viewport_size.x - bubble_size.x - 8.0))
-	desired.y = clampf(desired.y, 8.0, maxf(8.0, viewport_size.y - bubble_size.y - 8.0))
-	return desired
 
 func _map_smart_action_to_animation(action_id: String) -> String:
 	match action_id:
@@ -814,17 +643,3 @@ func _toggle_leash_walk() -> void:
 func _on_quick_action_menu_closed() -> void:
 	_update_mouse_passthrough_region()
 
-func _make_aurora_btn_style(path: String) -> StyleBoxTexture:
-	var tex := load(path) as Texture2D
-	var sb := StyleBoxTexture.new()
-	if tex:
-		sb.texture = tex
-	sb.texture_margin_left = 10
-	sb.texture_margin_top = 10
-	sb.texture_margin_right = 10
-	sb.texture_margin_bottom = 10
-	sb.content_margin_left = 8.0
-	sb.content_margin_top = 4.0
-	sb.content_margin_right = 8.0
-	sb.content_margin_bottom = 4.0
-	return sb

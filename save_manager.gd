@@ -27,6 +27,11 @@ func _get_default_data() -> Dictionary:
 			"timed_hide_end_time": 0,
 			"smart_mode": true,
 			"llm_enabled": false,
+			"llm_endpoint": "https://api.openai.com/v1/chat/completions",
+			"llm_model": "gpt-4o-mini",
+			"llm_api_key": "",
+			"llm_api_key_env": "OPENAI_API_KEY",
+			"llm_timeout_seconds": 10.0,
 			"data_collection_level": "minimal",
 			"quiet_hours_start": 23,
 			"quiet_hours_end": 8,
@@ -64,9 +69,16 @@ func _write_config(data: Dictionary) -> int:
 	config.set_value("settings", "timed_hide_end_time", settings.get("timed_hide_end_time", 0))
 	config.set_value("settings", "smart_mode", settings.get("smart_mode", true))
 	config.set_value("settings", "llm_enabled", settings.get("llm_enabled", false))
+	config.set_value("settings", "llm_endpoint", settings.get("llm_endpoint", "https://api.openai.com/v1/chat/completions"))
+	config.set_value("settings", "llm_model", settings.get("llm_model", "gpt-4o-mini"))
+	config.set_value("settings", "llm_api_key", settings.get("llm_api_key", ""))
+	config.set_value("settings", "llm_api_key_env", settings.get("llm_api_key_env", "OPENAI_API_KEY"))
+	config.set_value("settings", "llm_timeout_seconds", settings.get("llm_timeout_seconds", 10.0))
 	config.set_value("settings", "data_collection_level", settings.get("data_collection_level", "minimal"))
 	config.set_value("settings", "quiet_hours_start", settings.get("quiet_hours_start", 23))
 	config.set_value("settings", "quiet_hours_end", settings.get("quiet_hours_end", 8))
+	config.set_value("settings", "perception_enabled", settings.get("perception_enabled", false))
+	config.set_value("settings", "perception_default_rules", settings.get("perception_default_rules", true))
 	config.set_value("settings", "personality", settings.get("personality", "tsundere"))
 	config.set_value("settings", "reminder_intensity", settings.get("reminder_intensity", "medium"))
 
@@ -107,6 +119,11 @@ func load_data() -> Dictionary:
 	settings["timed_hide_end_time"] = config.get_value("settings", "timed_hide_end_time", settings["timed_hide_end_time"])
 	settings["smart_mode"] = config.get_value("settings", "smart_mode", settings["smart_mode"])
 	settings["llm_enabled"] = config.get_value("settings", "llm_enabled", settings["llm_enabled"])
+	settings["llm_endpoint"] = config.get_value("settings", "llm_endpoint", settings["llm_endpoint"])
+	settings["llm_model"] = config.get_value("settings", "llm_model", settings["llm_model"])
+	settings["llm_api_key"] = config.get_value("settings", "llm_api_key", settings["llm_api_key"])
+	settings["llm_api_key_env"] = config.get_value("settings", "llm_api_key_env", settings["llm_api_key_env"])
+	settings["llm_timeout_seconds"] = config.get_value("settings", "llm_timeout_seconds", settings["llm_timeout_seconds"])
 	settings["data_collection_level"] = config.get_value("settings", "data_collection_level", settings["data_collection_level"])
 	settings["quiet_hours_start"] = config.get_value("settings", "quiet_hours_start", settings["quiet_hours_start"])
 	settings["quiet_hours_end"] = config.get_value("settings", "quiet_hours_end", settings["quiet_hours_end"])
@@ -228,6 +245,22 @@ func _gather_current_data() -> Dictionary:
 		if llm_enabled_check:
 			settings["llm_enabled"] = llm_enabled_check.button_pressed
 
+		var llm_endpoint_input = panel.get_node_or_null("VBoxContainer/LLMEndpointInput")
+		if llm_endpoint_input:
+			settings["llm_endpoint"] = String(llm_endpoint_input.text).strip_edges()
+
+		var llm_model_input = panel.get_node_or_null("VBoxContainer/LLMModelInput")
+		if llm_model_input:
+			settings["llm_model"] = String(llm_model_input.text).strip_edges()
+
+		var llm_api_key_input = panel.get_node_or_null("VBoxContainer/LLMApiKeyInput")
+		if llm_api_key_input:
+			settings["llm_api_key"] = String(llm_api_key_input.text).strip_edges()
+
+		var llm_api_env_input = panel.get_node_or_null("VBoxContainer/LLMApiEnvInput")
+		if llm_api_env_input:
+			settings["llm_api_key_env"] = String(llm_api_env_input.text).strip_edges()
+
 		var personality_option = panel.get_node_or_null("VBoxContainer/PersonalityOption")
 		if personality_option:
 			match personality_option.selected:
@@ -255,6 +288,14 @@ func _gather_current_data() -> Dictionary:
 		var quiet_end_spin = panel.get_node_or_null("VBoxContainer/QuietHoursRow/QuietEndSpin")
 		if quiet_end_spin:
 			settings["quiet_hours_end"] = int(round(quiet_end_spin.value))
+
+		var perception_check = panel.get_node_or_null("VBoxContainer/PerceptionCheck")
+		if perception_check:
+			settings["perception_enabled"] = perception_check.button_pressed
+
+		var perception_rules_check = panel.get_node_or_null("VBoxContainer/PerceptionDefaultRulesCheck")
+		if perception_rules_check:
+			settings["perception_default_rules"] = perception_rules_check.button_pressed
 
 		settings["data_collection_level"] = "minimal"
 	elif AudioManager:

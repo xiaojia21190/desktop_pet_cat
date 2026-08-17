@@ -137,6 +137,13 @@ func _test_customization_llm_settings() -> void:
 	_assert_equal(String(snapshot.get("llm_model", "")), "test-mini", "customization_llm_model")
 	_assert_equal(String(snapshot.get("llm_api_key_env", "")), "PET_LLM_KEY", "customization_llm_api_env")
 	_assert_equal(float(snapshot.get("llm_timeout_seconds", 0.0)), 22.0, "customization_llm_timeout")
+
+	# —— 感知设置链路 ——
+	customization.apply_settings({"perception_enabled": true, "perception_default_rules": false})
+	_assert_equal(bool(customization.perception_enabled), true, "custom_perception_enabled")
+	_assert_equal(bool(customization.perception_default_rules), false, "custom_perception_defaults_off")
+	var dict2: Dictionary = customization.to_settings_dict()
+	_assert_equal(bool(dict2.get("perception_enabled")), true, "dict_perception_enabled")
 	customization.queue_free()
 
 func _assert_true(condition: bool, test_name: String) -> void:

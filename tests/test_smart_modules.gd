@@ -21,6 +21,7 @@ func _run() -> void:
 	await _test_collector_perception_fields()
 	_test_activity_tags()
 	_test_psyche_injection()
+	_test_psyche_modulated_policy()
 
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
@@ -203,6 +204,38 @@ func _test_psyche_injection() -> void:
 	_assert_true(psyche.has("chaos"), "psyche_chaos_present")
 	controller.queue_free()
 	behavior.queue_free()
+
+func _test_psyche_modulated_policy() -> void:
+	# —— 新意图：看视频陪伴 ——
+	var policy = ReactionPolicyEngineScript.new()
+	add_child(policy)
+	var decision: Dictionary = policy.evaluate(
+		{"hour": 20, "fullscreen": false, "continuous_active_seconds": 100.0,
+		 "activity": "video", "activity_seconds": 900.0},
+		["watching_video"], [],
+		{"personality": "tsundere", "reminder_intensity": "medium"})
+	_assert_true(bool(decision.get("react", false)), "video_companion_reacts")
+	_assert_equal(String(decision.get("action_id", "")), "idle", "video_companion_action_idle")
+
+	# —— 新意图：写代码鼓励 ——
+	decision = policy.evaluate(
+		{"hour": 14, "fullscreen": false, "continuous_active_seconds": 1900.0,
+		 "activity": "coding", "activity_seconds": 1900.0},
+		["coding_now"], [],
+		{"personality": "tsundere", "reminder_intensity": "medium"})
+	_assert_equal(String(decision.get("action_id", "")), "tail_wag", "coding_cheer_action_tailwag")
+
+	# —— 心理调制：精力低时 celebrate 换 sleep_curl ——
+	var policy2 = ReactionPolicyEngineScript.new()
+	add_child(policy2)
+	decision = policy2.evaluate(
+		{"hour": 14, "fullscreen": false, "continuous_active_seconds": 100.0,
+		 "psyche": {"mood": 50.0, "energy": 20.0, "affection": 50.0, "chaos": 10.0}},
+		[], [{"type": "focus_milestone", "t": Time.get_unix_time_from_system()}],
+		{"personality": "gentle", "reminder_intensity": "medium"})
+	_assert_equal(String(decision.get("action_id", "")), "sleep_curl", "tired_cat_celebrates_quietly")
+	policy.queue_free()
+	policy2.queue_free()
 
 func _assert_true(condition: bool, test_name: String) -> void:
 	if condition:

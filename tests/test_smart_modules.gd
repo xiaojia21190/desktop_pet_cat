@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_activity_tags()
 	_test_psyche_injection()
 	_test_psyche_modulated_policy()
+	_test_memory_lines()
 
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
@@ -236,6 +237,24 @@ func _test_psyche_modulated_policy() -> void:
 	_assert_equal(String(decision.get("action_id", "")), "sleep_curl", "tired_cat_celebrates_quietly")
 	policy.queue_free()
 	policy2.queue_free()
+
+func _test_memory_lines() -> void:
+	var profile = HabitProfileServiceScript.new()
+	add_child(profile)
+	# 空数据无记忆
+	var lines: Array[String] = profile.build_memory_lines()
+	_assert_equal(lines.size(), 0, "no_memory_on_empty")
+
+	# 喂入深夜重度使用（70 次 × 60 秒 = 4200 秒，过 3600 阈值）
+	for i in range(70):
+		profile.ingest_snapshot({"hour": 23, "active_seconds": 60.0,
+			"activity_totals": {"coding": 7300.0}})
+	lines = profile.build_memory_lines()
+	_assert_true(lines.size() >= 1, "night_memory_generated")
+	var joined := "\n".join(lines)
+	_assert_true(joined.contains("深夜") or joined.contains("晚上"), "night_memory_text")
+	_assert_true(joined.contains("代码"), "coding_memory_text")
+	profile.queue_free()
 
 func _assert_true(condition: bool, test_name: String) -> void:
 	if condition:

@@ -55,6 +55,35 @@ func build_tags(snapshot: Dictionary, recent_events: Array[Dictionary]) -> Array
 		tags.append("neutral")
 	return tags
 
+func build_memory_lines() -> Array[String]:
+	## 从累计数据生成记忆反馈台词；数据不足返回空（不硬凑）
+	var lines: Array[String] = []
+	var summary := get_profile_summary()
+	var active_by_hour: Dictionary = summary.get("active_by_hour", {})
+	var total_active := 0.0
+	var night_active := 0.0
+	for hour_key in active_by_hour:
+		var value := float(active_by_hour[hour_key])
+		total_active += value
+		var hour := int(hour_key)
+		if hour >= 22 or hour < 6:
+			night_active += value
+
+	if total_active > 3600.0 and night_active / total_active > 0.6:
+		lines.append("你最近总在深夜活跃，要注意休息呀。")
+
+	if _snapshot_history.size() > 0:
+		var latest: Dictionary = _snapshot_history[_snapshot_history.size() - 1]
+		var totals: Dictionary = latest.get("activity_totals", {})
+		var coding_secs := float(totals.get("coding", 0.0))
+		var video_secs := float(totals.get("video", 0.0))
+		if coding_secs > 7200.0:
+			lines.append("你已经连续写了好久代码，辛苦啦。")
+		elif video_secs > 3600.0:
+			lines.append("最近看了不少视频呢，偶尔也要动一动哦。")
+
+	return lines
+
 func get_profile_summary() -> Dictionary:
 	return {
 		"total_snapshots": _snapshot_history.size(),

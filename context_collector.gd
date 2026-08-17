@@ -16,6 +16,12 @@ var _mouse_click_count: int = 0
 var _item_use_count: int = 0
 var _state_change_count: int = 0
 
+# 前台应用感知（由外部喂入，collector 不持有 monitor）
+var _fg_app := ""
+var _fg_activity := ""
+var _fg_last_update_unix: int = 0
+var _activity_totals: Dictionary = {}  # activity -> 累计秒
+
 func _ready() -> void:
 	var now := Time.get_unix_time_from_system()
 	_session_start_unix = now
@@ -29,6 +35,17 @@ func update_context(delta: float) -> void:
 		_continuous_active_seconds += delta
 	else:
 		_continuous_active_seconds = 0.0
+
+func update_foreground(app_name: String, activity: String) -> void:
+	## 由外部（main/monitor 接线）喂入前台应用感知数据；活动切换时累计用时
+	var now := Time.get_unix_time_from_system()
+	if not _fg_activity.is_empty() and activity != _fg_activity:
+		var elapsed := now - _fg_last_update_unix
+		if elapsed > 0:
+			_activity_totals[_fg_activity] = float(_activity_totals.get(_fg_activity, 0.0)) + float(elapsed)
+	_fg_app = app_name
+	_fg_activity = activity
+	_fg_last_update_unix = now
 
 func record_event(event_type: String, payload: Dictionary = {}) -> void:
 	var now := Time.get_unix_time_from_system()
@@ -93,5 +110,9 @@ func get_snapshot() -> Dictionary:
 		"typing_count": _typing_count,
 		"mouse_click_count": _mouse_click_count,
 		"item_use_count": _item_use_count,
-		"state_change_count": _state_change_count
+		"state_change_count": _state_change_count,
+		"foreground_app": _fg_app,
+		"activity": _fg_activity,
+		"activity_seconds": float(Time.get_unix_time_from_system() - _fg_last_update_unix) if not _fg_activity.is_empty() else 0.0,
+		"activity_totals": _activity_totals.duplicate(true)
 	}

@@ -69,3 +69,26 @@
 4. 专注会话无用户入口、数值不可胜、88% 是测试设施
 5. SMART 管线感知浅（只有打字率/点击率/闲置/时钟，分不清在干什么）
 6. test_behavior_system 缺 quit 调用、headless 不退出
+
+## P1 完成记录（2026-08-17）
+
+**拆分结果**（全部提交于 main 分支）：
+
+| 文件 | 改造前 | 改造后 | 说明 |
+|---|---|---|---|
+| focus_session_mode.gd | 1884 行 | 529 行 | 会话核心：循环/数值/胜负/demo 事件注入 |
+| → components/focus/objective_system.gd | - | 171 行 | 目标卡系统（纯逻辑，8 测试） |
+| → components/focus/focus_hud.gd | - | 151 行 | HUD 视图（CanvasLayer） |
+| → components/focus/tutorial_controller.gd | - | 65 行 | 教程状态机 |
+| → tests/debug_tools/session_recorder.gd | - | 1090 行 | 录制/回放/垃圾桶/ops 调试设施（默认不加载） |
+| main.gd | 962 行 | 645 行 | 剩余：窗口/菜单/猫接线/SMART 集成 |
+| → components/desktop/tray_controller.gd | - | 95 行 | 系统托盘 |
+| → components/desktop/passthrough_manager.gd | - | 84 行 | 鼠标穿透 |
+| → components/ui/smart_line_bubble.gd | - | 77 行 | SMART 台词气泡 |
+| → components/ui/hover_panel.gd | - | 121 行 | 右缘悬浮面板 |
+
+**心理统一**：CatBehaviorSystem 新增 chaos 维度（事件驱动不衰减，34 测试）；专注会话 affection/chaos 以 getter/setter 代理到行为系统（`bind_behavior()` 注入），focus 保留会话内表现分。
+
+**行为变更例外**（唯一一处）：`start_session()` 不再重置 affection/chaos 为固定初值——统一后延续猫的当前心理状态。旧测试 `affection_synced_from_behavior` 等已覆盖此语义。
+
+**验证**：五套 headless 测试全绿（23+15+13+34+8=93 断言）；MCP 90 秒端到端无错误、无 Focus session failure、SMART 正常、猫渲染确认（橙色像素聚类 561）。

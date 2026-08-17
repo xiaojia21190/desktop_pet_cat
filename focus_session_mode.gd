@@ -19,6 +19,7 @@ const OBJECTIVE_BUILD_AFFECTION := "build_affection"
 @export var chaos_start: float = 20.0
 @export var objective_interval_seconds: int = 45
 @export var show_tutorial_on_start: bool = true
+@export var auto_start_session: bool = false
 @export var demo_script_mode: bool = false
 @export var recording_default_duration_seconds: int = 120
 @export var recording_auto_export: bool = true
@@ -110,7 +111,9 @@ func _ready() -> void:
 	_trash_purge_old_days = maxi(trash_purge_old_default_days, 1)
 	_load_last_deleted_recording()
 	_build_ui()
-	start_session()
+	# 默认不自动开启专注会话，避免桌宠启动约 1 分钟后必然弹出失败面板
+	if auto_start_session:
+		start_session()
 
 func _process(delta: float) -> void:
 	if not _running:
@@ -159,6 +162,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	if key_event.keycode == KEY_F9:
 		set_demo_script_enabled(not demo_script_mode, true)
+		if _demo_control_panel:
+			_demo_control_panel.visible = demo_script_mode
 		_hint_label.text = "Demo script mode: " + ("ON" if demo_script_mode else "OFF")
 		return
 
@@ -209,6 +214,9 @@ func start_session() -> void:
 	_time_accumulator = 0.0
 	_last_state_impact_ms.clear()
 	_result_panel.visible = false
+	_hud_panel.visible = true
+	var vp_size := get_viewport().get_visible_rect().size
+	_hud_panel.position = Vector2((vp_size.x - 430) * 0.5, (vp_size.y - 260) * 0.5)
 	_demo_cursor = 0
 	_demo_objective_cursor = 0
 	_demo_paused = false
@@ -922,6 +930,7 @@ func _finish_session(result: String) -> void:
 	_running = false
 	_finished = true
 	_result_panel.visible = true
+	_hud_panel.visible = false
 
 	if result == RESULT_VICTORY:
 		_result_title.text = "Session Complete"
@@ -1259,9 +1268,20 @@ func _build_ui() -> void:
 	add_child(_root)
 
 	_hud_panel = PanelContainer.new()
-	_hud_panel.position = Vector2(16, 16)
+	var vp_size := get_viewport().get_visible_rect().size
 	_hud_panel.custom_minimum_size = Vector2(430, 260)
+	_hud_panel.position = Vector2((vp_size.x - 430) * 0.5, (vp_size.y - 260) * 0.5)
 	_hud_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hud_panel.visible = false
+	var _aurora_tex := load("res://assets/aurora/panel_dark.png")
+	if _aurora_tex:
+		var sb := StyleBoxTexture.new()
+		sb.texture = _aurora_tex
+		sb.texture_margin_left = 20
+		sb.texture_margin_top = 20
+		sb.texture_margin_right = 20
+		sb.texture_margin_bottom = 20
+		_hud_panel.add_theme_stylebox_override("panel", sb)
 	_root.add_child(_hud_panel)
 
 	var hud_box := VBoxContainer.new()
@@ -1311,6 +1331,7 @@ func _build_ui() -> void:
 	_demo_control_panel.position = Vector2(462, 16)
 	_demo_control_panel.custom_minimum_size = Vector2(420, 320)
 	_demo_control_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_demo_control_panel.visible = false
 	_root.add_child(_demo_control_panel)
 
 	var demo_box := VBoxContainer.new()
@@ -1489,7 +1510,8 @@ func _build_ui() -> void:
 	record_row.add_child(demo_folder_btn)
 
 	_result_panel = PanelContainer.new()
-	_result_panel.position = Vector2(16, 290)
+	var rp_vp := get_viewport().get_visible_rect().size
+	_result_panel.position = Vector2((rp_vp.x - 430) * 0.5, (rp_vp.y - 260) * 0.5 + 274)
 	_result_panel.custom_minimum_size = Vector2(430, 112)
 	_result_panel.visible = false
 	_root.add_child(_result_panel)

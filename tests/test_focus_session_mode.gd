@@ -18,6 +18,13 @@ func _run() -> void:
 	await get_tree().process_frame
 	mode._ensure_recording_dirs()
 
+	# 默认不自启会话：桌宠启动时不应自动进入专注模式
+	_assert_true(not mode._running, "session_not_autostarted_by_default")
+	_assert_true(not mode._hud_panel.visible, "hud_hidden_by_default")
+
+	mode.start_session()
+	_assert_true(mode._running, "start_session_runs")
+
 	_assert_true(mode.get_snapshot().has("focus"), "snapshot_has_focus")
 	_assert_true(mode.get_snapshot().has("remaining_seconds"), "snapshot_has_remaining_seconds")
 

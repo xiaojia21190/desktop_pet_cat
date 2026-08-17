@@ -9,9 +9,6 @@ const MIN_VALUE := 0.0
 const RESULT_VICTORY := "victory"
 const RESULT_FAILURE := "failure"
 
-const OBJECTIVE_KEEP_FOCUS := "keep_focus"
-const OBJECTIVE_REDUCE_CHAOS := "reduce_chaos"
-const OBJECTIVE_BUILD_AFFECTION := "build_affection"
 
 @export var session_duration_seconds: int = 30 * 60
 @export var focus_start: float = 85.0
@@ -37,17 +34,11 @@ var _running: bool = false
 var _finished: bool = false
 var _time_accumulator: float = 0.0
 var _objective_timer: float = 0.0
-var _objective_key: String = ""
-var _objective_target: float = 0.0
-var _objective_start_focus: float = 0.0
-var _objective_start_affection: float = 0.0
-var _objective_start_chaos: float = 0.0
 var _last_state_impact_ms: Dictionary = {}
 
-var _objective_cards: Array[Dictionary] = []
+var _objective_system: FocusObjectiveSystem
 var _demo_events: Array[Dictionary] = []
 var _demo_cursor: int = 0
-var _demo_objective_cursor: int = 0
 var _demo_paused: bool = false
 var _current_objective_tier: int = 1
 
@@ -105,7 +96,12 @@ var _result_detail: Label
 
 func _ready() -> void:
 	layer = 100
-	_objective_cards = _build_default_objective_cards()
+	_objective_system = FocusObjectiveSystem.new()
+	_objective_system.name = "ObjectiveSystem"
+	add_child(_objective_system)
+	_objective_system.set_cards(FocusObjectiveSystem.default_cards())
+	_objective_system.objective_completed.connect(_on_objective_completed)
+	_objective_system.objective_failed.connect(_on_objective_failed)
 	_demo_events = _build_default_demo_events()
 	_tutorial_steps = _build_default_tutorial_steps()
 	_trash_purge_old_days = maxi(trash_purge_old_default_days, 1)
@@ -133,7 +129,13 @@ func _process(delta: float) -> void:
 		# 核心循环：被动衰减 -> Demo脚本注入 -> 目标/胜负判定
 		_apply_passive_changes()
 		_consume_demo_events()
-		_check_objective_timeout()
+		if _objective_system.check_timeout(_objective_timer, focus_value, affection_value, chaos_value):
+			_apply_delta(-4.0, -3.0, 6.0, "Objective failed. Penalty applied.")
+			_record_event("objective_failed", {
+				"id": _objective_system.get_objective_key(),
+				"target": _objective_system.get_objective_target()
+			})
+			_roll_objective()
 		_check_end_condition()
 		_check_recording_target()
 		if not _running:
@@ -218,7 +220,7 @@ func start_session() -> void:
 	var vp_size := get_viewport().get_visible_rect().size
 	_hud_panel.position = Vector2((vp_size.x - 430) * 0.5, (vp_size.y - 260) * 0.5)
 	_demo_cursor = 0
-	_demo_objective_cursor = 0
+	_objective_system.reset_demo_cursor()
 	_demo_paused = false
 	_current_objective_tier = 1
 	_hint_label.text = "Session started. Keep focus until time runs out."
@@ -231,26 +233,12 @@ func start_session() -> void:
 	})
 
 	_setup_tutorial()
-	_roll_new_objective()
+	_roll_objective()
 	_update_ui()
 
 func set_objective_cards(cards: Array[Dictionary]) -> void:
-	var normalized: Array[Dictionary] = []
-	for card in cards:
-		if not card.has("id"):
-			continue
-		normalized.append({
-			"id": String(card.get("id", "")),
-			"target_min": float(card.get("target_min", 0.0)),
-			"target_max": float(card.get("target_max", 100.0)),
-			"weight": float(card.get("weight", 1.0)),
-			"tier_min": int(card.get("tier_min", 1)),
-			"tier_max": int(card.get("tier_max", 3))
-		})
-	if normalized.is_empty():
-		return
-	_objective_cards = normalized
-	_roll_new_objective()
+	_objective_system.set_cards(cards)
+	_roll_objective()
 	_update_ui()
 
 func set_demo_events(events: Array[Dictionary]) -> void:
@@ -804,6 +792,7 @@ func _purge_trash_older_than(days: int) -> int:
 
 func set_demo_script_enabled(enabled: bool, restart_session: bool = false) -> void:
 	demo_script_mode = enabled
+	_objective_system.set_demo_mode(enabled)
 	_demo_paused = false
 	if not enabled:
 		_replay_mode = false
@@ -855,7 +844,13 @@ func on_item_used(item_type: String) -> void:
 			return
 
 	_record_event("item_used", {"item_type": item_type})
-	_check_objective_progress()
+	if _objective_system.check_progress(focus_value, affection_value, chaos_value):
+		_apply_delta(3.0, 4.0, -4.0, "Objective completed. Bonus applied.")
+		_record_event("objective_completed", {
+			"id": _objective_system.get_objective_key(),
+			"target": _objective_system.get_objective_target()
+		})
+		_roll_objective()
 	_check_end_condition()
 
 func on_cat_state_changed(to_state: StringName) -> void:
@@ -884,7 +879,13 @@ func on_cat_state_changed(to_state: StringName) -> void:
 			return
 
 	_record_event("state_impact", {"state": String(to_state)})
-	_check_objective_progress()
+	if _objective_system.check_progress(focus_value, affection_value, chaos_value):
+		_apply_delta(3.0, 4.0, -4.0, "Objective completed. Bonus applied.")
+		_record_event("objective_completed", {
+			"id": _objective_system.get_objective_key(),
+			"target": _objective_system.get_objective_target()
+		})
+		_roll_objective()
 	_check_end_condition()
 
 func get_snapshot() -> Dictionary:
@@ -894,7 +895,7 @@ func get_snapshot() -> Dictionary:
 		"chaos": chaos_value,
 		"remaining_seconds": _remaining_seconds,
 		"running": _running,
-		"objective": _objective_key
+		"objective": _objective_system.get_objective_key()
 	}
 
 func _apply_passive_changes() -> void:
@@ -907,7 +908,13 @@ func _apply_passive_changes() -> void:
 		affection_shift = -0.45
 	affection_value = clampf(affection_value + affection_shift, MIN_VALUE, MAX_VALUE)
 
-	_check_objective_progress()
+	if _objective_system.check_progress(focus_value, affection_value, chaos_value):
+		_apply_delta(3.0, 4.0, -4.0, "Objective completed. Bonus applied.")
+		_record_event("objective_completed", {
+			"id": _objective_system.get_objective_key(),
+			"target": _objective_system.get_objective_target()
+		})
+		_roll_objective()
 
 func _apply_delta(focus_delta: float, affection_delta: float, chaos_delta: float, hint: String = "") -> void:
 	focus_value = clampf(focus_value + focus_delta, MIN_VALUE, MAX_VALUE)
@@ -915,6 +922,31 @@ func _apply_delta(focus_delta: float, affection_delta: float, chaos_delta: float
 	chaos_value = clampf(chaos_value + chaos_delta, MIN_VALUE, MAX_VALUE)
 	if not hint.is_empty():
 		_hint_label.text = hint
+
+func _roll_objective() -> void:
+	_objective_timer = float(objective_interval_seconds)
+	_objective_system.roll_new_objective(_current_difficulty_tier(), focus_value, affection_value, chaos_value)
+	_record_event("objective_roll", {
+		"id": _objective_system.get_objective_key(),
+		"target": _objective_system.get_objective_target(),
+		"tier": _current_difficulty_tier()
+	})
+
+func _current_difficulty_tier() -> int:
+	var ratio := 0.0
+	if session_duration_seconds > 0:
+		ratio = clampf(float(_elapsed_seconds) / float(session_duration_seconds), 0.0, 1.0)
+	if ratio < 0.34:
+		return 1
+	if ratio < 0.67:
+		return 2
+	return 3
+
+func _on_objective_completed(objective_id: String, _target: float) -> void:
+	pass  # 奖励在调用点就地应用，信号仅作外部观测
+
+func _on_objective_failed(objective_id: String, _target: float) -> void:
+	pass  # 惩罚在调用点就地应用，信号仅作外部观测
 
 func _check_end_condition() -> void:
 	if focus_value <= 0.0 or chaos_value >= 100.0:
@@ -948,152 +980,6 @@ func _finish_session(result: String) -> void:
 	_record_event("session_finished", {"result": result})
 	if _recording_mode:
 		_finalize_recording("session_finished")
-
-func _roll_new_objective() -> void:
-	if _objective_cards.is_empty():
-		return
-
-	_current_objective_tier = _current_difficulty_tier()
-	var card := {}
-	for _i in range(8):
-		card = _pick_objective_card()
-		_objective_key = String(card.get("id", ""))
-		_objective_target = _sample_target(_objective_key, card)
-		if not _is_objective_completed():
-			break
-
-	_objective_timer = float(objective_interval_seconds)
-	_objective_start_focus = focus_value
-	_objective_start_affection = affection_value
-	_objective_start_chaos = chaos_value
-	_record_event("objective_roll", {
-		"id": _objective_key,
-		"target": _objective_target,
-		"tier": _current_objective_tier
-	})
-
-func _pick_objective_card() -> Dictionary:
-	var cards := _cards_for_tier(_current_objective_tier)
-	if cards.is_empty():
-		cards = _objective_cards
-
-	if demo_script_mode:
-		var idx := _demo_objective_cursor % cards.size()
-		_demo_objective_cursor += 1
-		return cards[idx]
-
-	return _weighted_pick(cards)
-
-func _current_difficulty_tier() -> int:
-	var ratio := 0.0
-	if session_duration_seconds > 0:
-		ratio = clampf(float(_elapsed_seconds) / float(session_duration_seconds), 0.0, 1.0)
-	if ratio < 0.34:
-		return 1
-	if ratio < 0.67:
-		return 2
-	return 3
-
-func _cards_for_tier(tier: int) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	for card in _objective_cards:
-		var min_tier := int(card.get("tier_min", 1))
-		var max_tier := int(card.get("tier_max", 3))
-		if tier >= min_tier and tier <= max_tier:
-			result.append(card)
-	return result
-
-func _weighted_pick(cards: Array[Dictionary]) -> Dictionary:
-	if cards.is_empty():
-		return {}
-
-	var total_weight := 0.0
-	for card in cards:
-		total_weight += maxf(float(card.get("weight", 1.0)), 0.01)
-
-	var roll := randf_range(0.0, total_weight)
-	var cursor := 0.0
-	for card in cards:
-		cursor += maxf(float(card.get("weight", 1.0)), 0.01)
-		if roll <= cursor:
-			return card
-
-	return cards[cards.size() - 1]
-
-func _sample_target(objective_id: String, card: Dictionary) -> float:
-	var min_target := float(card.get("target_min", 0.0))
-	var max_target := float(card.get("target_max", 100.0))
-	var target := randf_range(min_target, max_target)
-
-	match objective_id:
-		OBJECTIVE_KEEP_FOCUS:
-			if focus_value >= target:
-				target = minf(95.0, focus_value + 6.0)
-		OBJECTIVE_BUILD_AFFECTION:
-			if affection_value >= target:
-				target = minf(95.0, affection_value + 6.0)
-		OBJECTIVE_REDUCE_CHAOS:
-			if chaos_value <= target:
-				target = maxf(2.0, chaos_value - 1.0)
-		_:
-			pass
-
-	return target
-
-func _check_objective_progress() -> void:
-	if _objective_key.is_empty():
-		return
-	if not _is_objective_completed():
-		return
-
-	_apply_delta(3.0, 4.0, -4.0, "Objective completed. Bonus applied.")
-	_record_event("objective_completed", {
-		"id": _objective_key,
-		"target": _objective_target
-	})
-	_roll_new_objective()
-
-func _check_objective_timeout() -> void:
-	if _objective_timer > 0.0 or _objective_key.is_empty():
-		return
-	if _is_objective_completed():
-		return
-
-	_apply_delta(-4.0, -3.0, 6.0, "Objective failed. Penalty applied.")
-	_record_event("objective_failed", {
-		"id": _objective_key,
-		"target": _objective_target
-	})
-	_roll_new_objective()
-
-func _is_objective_completed() -> bool:
-	match _objective_key:
-		OBJECTIVE_KEEP_FOCUS:
-			return focus_value >= _objective_target
-		OBJECTIVE_REDUCE_CHAOS:
-			return chaos_value <= _objective_target
-		OBJECTIVE_BUILD_AFFECTION:
-			return affection_value >= _objective_target
-		_:
-			return false
-
-func _objective_progress() -> float:
-	match _objective_key:
-		OBJECTIVE_KEEP_FOCUS:
-			if _objective_target <= 0.0:
-				return 0.0
-			return clampf(focus_value / _objective_target, 0.0, 1.0)
-		OBJECTIVE_REDUCE_CHAOS:
-			var from := _objective_start_chaos
-			var to := _objective_target
-			var span := maxf(from - to, 0.01)
-			return clampf((from - chaos_value) / span, 0.0, 1.0)
-		OBJECTIVE_BUILD_AFFECTION:
-			var start := _objective_start_affection
-			var span_up := maxf(_objective_target - start, 0.01)
-			return clampf((affection_value - start) / span_up, 0.0, 1.0)
-		_:
-			return 0.0
 
 func _consume_demo_events() -> void:
 	if not demo_script_mode:
@@ -1179,7 +1065,7 @@ func _record_event(event_name: String, extra: Dictionary = {}) -> void:
 		"focus": round(focus_value * 10.0) / 10.0,
 		"affection": round(affection_value * 10.0) / 10.0,
 		"chaos": round(chaos_value * 10.0) / 10.0,
-		"objective": _objective_key
+		"objective": _objective_system.get_objective_key()
 	}
 	for key in extra.keys():
 		payload[key] = extra[key]
@@ -1548,7 +1434,7 @@ func _create_metric_bar(parent: VBoxContainer, metric_name: String) -> ProgressB
 
 func _update_ui() -> void:
 	_time_label.text = "Remaining: " + _format_seconds(_remaining_seconds)
-	var objective_progress_percent := int(round(_objective_progress() * 100.0))
+	var objective_progress_percent := int(round(_objective_system.progress(focus_value, affection_value, chaos_value) * 100.0))
 	_objective_label.text = "Objective Card: " + _objective_title_text()
 	_objective_progress_label.text = "Tier " + str(_current_objective_tier) + " | Target " + _objective_target_text() + " | Left " + str(int(ceil(_objective_timer))) + "s"
 	_objective_progress_bar.value = float(objective_progress_percent)
@@ -1558,24 +1444,24 @@ func _update_ui() -> void:
 	_refresh_demo_control_ui()
 
 func _objective_title_text() -> String:
-	match _objective_key:
-		OBJECTIVE_KEEP_FOCUS:
+	match _objective_system.get_objective_key():
+		FocusObjectiveSystem.OBJECTIVE_KEEP_FOCUS:
 			return "Keep Focus"
-		OBJECTIVE_REDUCE_CHAOS:
+		FocusObjectiveSystem.OBJECTIVE_REDUCE_CHAOS:
 			return "Reduce Chaos"
-		OBJECTIVE_BUILD_AFFECTION:
+		FocusObjectiveSystem.OBJECTIVE_BUILD_AFFECTION:
 			return "Build Affection"
 		_:
 			return "-"
 
 func _objective_target_text() -> String:
-	match _objective_key:
-		OBJECTIVE_KEEP_FOCUS:
-			return "Focus >= " + str(int(round(_objective_target)))
-		OBJECTIVE_REDUCE_CHAOS:
-			return "Chaos <= " + str(int(round(_objective_target)))
-		OBJECTIVE_BUILD_AFFECTION:
-			return "Affection >= " + str(int(round(_objective_target)))
+	match _objective_system.get_objective_key():
+		FocusObjectiveSystem.OBJECTIVE_KEEP_FOCUS:
+			return "Focus >= " + str(int(round(_objective_system.get_objective_target())))
+		FocusObjectiveSystem.OBJECTIVE_REDUCE_CHAOS:
+			return "Chaos <= " + str(int(round(_objective_system.get_objective_target())))
+		FocusObjectiveSystem.OBJECTIVE_BUILD_AFFECTION:
+			return "Affection >= " + str(int(round(_objective_system.get_objective_target())))
 		_:
 			return "-"
 
@@ -1587,16 +1473,6 @@ func _format_seconds(total_seconds: int) -> String:
 
 func _build_help_text() -> String:
 	return "F5 restart | F1 skip tutorial | F2 ops-panel | F3 log | F4 purge-old | F6 purge | F7 restore | F8 delete | F9 demo | F10 record | F11 replay | F12 speed"
-
-func _build_default_objective_cards() -> Array[Dictionary]:
-	return [
-		{"id": OBJECTIVE_KEEP_FOCUS, "target_min": 62.0, "target_max": 78.0, "weight": 1.6, "tier_min": 1, "tier_max": 2},
-		{"id": OBJECTIVE_KEEP_FOCUS, "target_min": 72.0, "target_max": 90.0, "weight": 1.1, "tier_min": 2, "tier_max": 3},
-		{"id": OBJECTIVE_REDUCE_CHAOS, "target_min": 18.0, "target_max": 34.0, "weight": 1.4, "tier_min": 1, "tier_max": 2},
-		{"id": OBJECTIVE_REDUCE_CHAOS, "target_min": 6.0, "target_max": 22.0, "weight": 1.0, "tier_min": 2, "tier_max": 3},
-		{"id": OBJECTIVE_BUILD_AFFECTION, "target_min": 48.0, "target_max": 70.0, "weight": 1.3, "tier_min": 1, "tier_max": 2},
-		{"id": OBJECTIVE_BUILD_AFFECTION, "target_min": 62.0, "target_max": 88.0, "weight": 0.9, "tier_min": 2, "tier_max": 3}
-	]
 
 func _build_default_tutorial_steps() -> Array[Dictionary]:
 	return [

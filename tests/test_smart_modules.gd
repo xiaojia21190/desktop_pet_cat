@@ -20,6 +20,7 @@ func _run() -> void:
 	_test_customization_llm_settings()
 	await _test_collector_perception_fields()
 	_test_activity_tags()
+	_test_psyche_injection()
 
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
@@ -183,6 +184,25 @@ func _test_customization_llm_settings() -> void:
 	var dict2: Dictionary = customization.to_settings_dict()
 	_assert_equal(bool(dict2.get("perception_enabled")), true, "dict_perception_enabled")
 	customization.queue_free()
+
+func _test_psyche_injection() -> void:
+	# —— 心理注入：决策快照携带 psyche 字段 ——
+	var controller = preload("res://smart_pet_controller.gd").new()
+	add_child(controller)
+	var behavior = preload("res://cat_behavior_system.gd").new()
+	add_child(behavior)
+	behavior.mood = 75.0
+	behavior.energy = 25.0
+	controller.bind_behavior(behavior)
+	var snapshot := {"hour": 14}
+	controller._inject_psyche(snapshot)
+	var psyche: Dictionary = snapshot.get("psyche", {})
+	_assert_equal(float(psyche.get("mood", 0.0)), 75.0, "psyche_mood_injected")
+	_assert_equal(float(psyche.get("energy", 0.0)), 25.0, "psyche_energy_injected")
+	_assert_true(psyche.has("affection"), "psyche_affection_present")
+	_assert_true(psyche.has("chaos"), "psyche_chaos_present")
+	controller.queue_free()
+	behavior.queue_free()
 
 func _assert_true(condition: bool, test_name: String) -> void:
 	if condition:

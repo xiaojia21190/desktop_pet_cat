@@ -302,6 +302,8 @@ func _setup_smart_pet_controller(settings: Dictionary) -> void:
 	smart_pet_controller.name = "SmartPetController"
 	add_child(smart_pet_controller)
 	smart_pet_controller.bind_nodes(self, cat)
+	if cat and cat.behavior_system:
+		smart_pet_controller.bind_behavior(cat.behavior_system)
 	smart_pet_controller.configure(settings)
 	smart_pet_controller.smart_action_requested.connect(_on_smart_action_requested)
 	smart_pet_controller.smart_line_generated.connect(_on_smart_line_generated)

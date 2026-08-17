@@ -24,6 +24,7 @@ var _profile_service
 var _policy_engine
 var _llm_adapter
 var _customization_service
+var _behavior  # CatBehaviorSystem 引用（心理唯一源）
 
 func _ready() -> void:
 	_context_collector = ContextCollectorScript.new()
@@ -45,14 +46,28 @@ func _ready() -> void:
 	add_child(_customization_service)
 
 	_llm_adapter.line_ready.connect(_on_llm_line_ready)
+	_llm_adapter.decision_ready.connect(_on_llm_decision_ready)
 
 func bind_nodes(main_node: Node, cat_node: Node2D) -> void:
 	_main_node = main_node
 	_cat_node = cat_node
 
+func bind_behavior(behavior) -> void:
+	# 心理注入：决策时读取猫的当前心理状态
+	_behavior = behavior
+
+func _inject_psyche(snapshot: Dictionary) -> void:
+	if _behavior:
+		snapshot["psyche"] = {
+			"mood": _behavior.mood,
+			"energy": _behavior.energy,
+			"affection": _behavior.affection,
+			"chaos": _behavior.chaos
+		}
+
 func configure(settings: Dictionary) -> void:
 	_customization_service.apply_settings(settings)
-	_llm_adapter.enabled = _customization_service.llm_enabled
+	_llm_adapter.configure(_customization_service.get_llm_settings())
 
 func get_settings_snapshot() -> Dictionary:
 	return _customization_service.to_settings_dict()
@@ -90,6 +105,9 @@ func _process(delta: float) -> void:
 	_timer = 0.0
 	_evaluate_policy()
 
+var _last_tags: Array[String] = []
+var _last_snapshot_key: String = ""
+
 func _evaluate_policy() -> void:
 	var snapshot_raw = _context_collector.get_snapshot()
 	var snapshot: Dictionary = {}
@@ -97,6 +115,7 @@ func _evaluate_policy() -> void:
 		snapshot = snapshot_raw as Dictionary
 	snapshot["quiet_hours_start"] = _customization_service.quiet_hours_start
 	snapshot["quiet_hours_end"] = _customization_service.quiet_hours_end
+	_inject_psyche(snapshot)
 
 	var recent_raw = _context_collector.get_recent_events(600)
 	var recent_events: Array[Dictionary] = []
@@ -105,12 +124,22 @@ func _evaluate_policy() -> void:
 			if typeof(item) == TYPE_DICTIONARY:
 				recent_events.append(item as Dictionary)
 
-	_profile_service.ingest_snapshot(snapshot)
-	var tags_raw = _profile_service.build_tags(snapshot, recent_events)
-	var tags: Array[String] = []
-	if typeof(tags_raw) == TYPE_ARRAY:
-		for tag_value in tags_raw:
-			tags.append(String(tag_value))
+	# 生成快照特征 key，相同时复用上次 tags 跳过 ingest
+	var snap_key := "%s|%s|%s" % [
+		str(snapshot.get("typing_rate", 0.0)).left(4),
+		str(snapshot.get("idle_duration", 0)).left(4),
+		str(snapshot.get("hour", 0))
+	]
+	var tags: Array[String] = _last_tags
+	if snap_key != _last_snapshot_key:
+		_last_snapshot_key = snap_key
+		_profile_service.ingest_snapshot(snapshot)
+		var tags_raw = _profile_service.build_tags(snapshot, recent_events)
+		tags = []
+		if typeof(tags_raw) == TYPE_ARRAY:
+			for tag_value in tags_raw:
+				tags.append(String(tag_value))
+		_last_tags = tags
 
 	var persona_raw = _customization_service.get_persona()
 	var persona: Dictionary = {}
@@ -128,19 +157,25 @@ func _evaluate_policy() -> void:
 	var action_id := String(decision.get("action_id", ""))
 	if action_id.is_empty():
 		return
-	smart_action_requested.emit(action_id, decision)
-	record_event("smart_decision", {"action_id": action_id, "intent": String(decision.get("policy_intent", ""))})
 
 	var fallback_line := String(decision.get("template_line", ""))
+	record_event("smart_decision", {"action_id": action_id, "intent": String(decision.get("policy_intent", ""))})
+
 	if _customization_service.llm_enabled:
-		_llm_adapter.generate_line_async({
+		_llm_adapter.generate_decision_async({
 			"intent": String(decision.get("policy_intent", "")),
+			"fallback_action": action_id,
 			"fallback_line": fallback_line,
 			"tags": tags,
 			"persona": persona
-		}, fallback_line)
+		}, action_id, fallback_line)
 	else:
+		smart_action_requested.emit(action_id, decision)
 		smart_line_generated.emit(fallback_line, "policy")
 
 func _on_llm_line_ready(line: String, source: String, _meta: Dictionary) -> void:
+	smart_line_generated.emit(line, source)
+
+func _on_llm_decision_ready(action: String, line: String, source: String, _meta: Dictionary) -> void:
+	smart_action_requested.emit(action, {"source": source})
 	smart_line_generated.emit(line, source)

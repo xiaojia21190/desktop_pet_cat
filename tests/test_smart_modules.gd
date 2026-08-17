@@ -23,6 +23,7 @@ func _run() -> void:
 	_test_psyche_injection()
 	_test_psyche_modulated_policy()
 	_test_memory_lines()
+	_test_night_owl_care()
 
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
@@ -255,6 +256,21 @@ func _test_memory_lines() -> void:
 	_assert_true(joined.contains("深夜") or joined.contains("晚上"), "night_memory_text")
 	_assert_true(joined.contains("代码"), "coding_memory_text")
 	profile.queue_free()
+
+func _test_night_owl_care() -> void:
+	var policy = ReactionPolicyEngineScript.new()
+	add_child(policy)
+	# 深夜 + 长活跃 → 关怀提醒（记忆线优先）
+	var decision: Dictionary = policy.evaluate(
+		{"hour": 23, "fullscreen": false, "continuous_active_seconds": 2800.0,
+		 "quiet_hours_start": 3, "quiet_hours_end": 4,
+		 "memory_lines": ["你最近总在深夜活跃，要注意休息呀。"]},
+		["night_owl"], [],
+		{"personality": "gentle", "reminder_intensity": "medium"})
+	_assert_true(bool(decision.get("react", false)), "night_owl_care_reacts")
+	_assert_equal(String(decision.get("action_id", "")), "comfort", "night_owl_care_action_comfort")
+	_assert_true(String(decision.get("template_line", "")).contains("深夜"), "night_owl_care_uses_memory")
+	policy.queue_free()
 
 func _assert_true(condition: bool, test_name: String) -> void:
 	if condition:

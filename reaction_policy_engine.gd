@@ -35,6 +35,15 @@ func evaluate(snapshot: Dictionary, tags: Array[String], recent_events: Array[Di
 	if _is_quiet_hours(snapshot) or bool(snapshot.get("fullscreen", false)):
 		return _decide(now, ACTION_SLEEP_CURL, "quiet_mode", _line_for("quiet_mode", personality), energy)
 
+	# —— P4：深夜关怀（记忆驱动；静音时段已被上面拦截）——
+	var hour: int = int(snapshot.get("hour", 12))
+	var memory_lines: Array = snapshot.get("memory_lines", [])
+	if (hour >= 23 or hour <= 1) and continuous_active_precheck(snapshot, 2700.0):
+		var care_line := "这么晚还在忙，记得早点休息。"
+		if memory_lines.size() > 0:
+			care_line = String(memory_lines[0])
+		return _decide(now, ACTION_COMFORT, "night_owl_care", care_line, energy)
+
 	if _has_recent_event(recent_events, "session_resume", 120):
 		return _decide(now, ACTION_GREET, "welcome_back", _line_for("welcome_back", personality), energy)
 

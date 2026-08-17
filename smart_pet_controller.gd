@@ -116,6 +116,13 @@ func _evaluate_policy() -> void:
 	snapshot["quiet_hours_start"] = _customization_service.quiet_hours_start
 	snapshot["quiet_hours_end"] = _customization_service.quiet_hours_end
 	_inject_psyche(snapshot)
+	# P4：作息记忆线进决策上下文（深夜关怀等意图消费）
+	var memory_raw = _profile_service.build_memory_lines()
+	var memory_lines: Array = []
+	if typeof(memory_raw) == TYPE_ARRAY:
+		for line_value in memory_raw:
+			memory_lines.append(String(line_value))
+	snapshot["memory_lines"] = memory_lines
 
 	var recent_raw = _context_collector.get_recent_events(600)
 	var recent_events: Array[Dictionary] = []

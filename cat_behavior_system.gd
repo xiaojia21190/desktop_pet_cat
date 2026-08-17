@@ -13,6 +13,7 @@ var mood: float = 50.0        # 心情：影响傲娇/撒娇倾向
 var energy: float = 80.0      # 精力：影响活跃/懒散倾向
 var affection: float = 30.0   # 好感度：影响对用户的态度
 var curiosity: float = 60.0   # 好奇心：影响探索/互动倾向
+var chaos: float = 20.0       # 混乱度：影响猫闹腾程度（事件驱动，不随时间衰减）
 
 # 情绪衰减/恢复速率（每秒）
 const MOOD_DECAY = 0.5        # 心情自然衰减
@@ -52,6 +53,7 @@ func get_affection_state() -> AffectionState:
 signal mood_changed(new_mood: float, old_mood: float)
 signal energy_changed(new_energy: float, old_energy: float)
 signal affection_changed(new_affection: float, old_affection: float)
+signal chaos_changed(new_chaos: float, old_chaos: float)
 signal emotion_state_changed(emotion_type: String, new_state: int)
 
 func modify_mood(delta: float):
@@ -67,6 +69,12 @@ func modify_energy(delta: float):
 	if energy != old:
 		energy_changed.emit(energy, old)
 		_check_state_change("energy", old, energy)
+
+func modify_chaos(delta: float):
+	var old = chaos
+	chaos = clamp(chaos + delta, 0, 100)
+	if chaos != old:
+		chaos_changed.emit(chaos, old)
 
 func modify_affection(delta: float):
 	var old = affection
@@ -207,6 +215,8 @@ var behavior_weights = {
 	"pounce": 10.0,
 	"roll": 10.0,
 	"tail_wag": 10.0,
+	"chase_mouse": 12.0,
+	"pounce_mouse": 8.0,
 }
 
 # 学习参数
@@ -236,12 +246,18 @@ func reinforce_behavior(action: String, positive: bool = true):
 			disliked_actions[action] = 0
 		disliked_actions[action] += 1
 
-# 根据当前情绪状态调整权重
+# 根据当前情绪状态调整权重（带缓存）
 func get_adjusted_weights() -> Dictionary:
+	var e := get_energy_state()
+	var m := get_mood_state()
+	var a := get_affection_state()
+	if not _cached_weights.is_empty() and e == _cache_energy_state and m == _cache_mood_state and a == _cache_affection_state:
+		return _cached_weights
+
 	var adjusted = behavior_weights.duplicate()
 
 	# 根据精力调整
-	match get_energy_state():
+	match e:
 		EnergyState.ENERGETIC:
 			_multiply_weights(adjusted, ["run", "trot", "pounce", "roll"], 2.0)
 			_multiply_weights(adjusted, ["idle_lie", "sleep", "daze"], 0.3)
@@ -250,7 +266,7 @@ func get_adjusted_weights() -> Dictionary:
 			_multiply_weights(adjusted, ["idle_lie", "sleep", "yawn"], 3.0)
 
 	# 根据心情调整
-	match get_mood_state():
+	match m:
 		MoodState.HAPPY:
 			_multiply_weights(adjusted, ["roll", "kneading", "happy"], 2.0)
 			_multiply_weights(adjusted, ["ignore", "angry", "walk_away"], 0.3)
@@ -259,7 +275,7 @@ func get_adjusted_weights() -> Dictionary:
 			_multiply_weights(adjusted, ["happy", "kneading"], 0.2)
 
 	# 根据好感度调整
-	match get_affection_state():
+	match a:
 		AffectionState.LOVING:
 			_multiply_weights(adjusted, ["head_pat_happy", "kneading", "happy"], 2.0)
 			_multiply_weights(adjusted, ["head_pat_dodge", "ignore"], 0.3)
@@ -267,6 +283,10 @@ func get_adjusted_weights() -> Dictionary:
 			_multiply_weights(adjusted, ["ignore", "walk_away", "peek", "head_pat_dodge"], 2.5)
 			_multiply_weights(adjusted, ["head_pat_happy"], 0.1)
 
+	_cached_weights = adjusted
+	_cache_energy_state = e
+	_cache_mood_state = m
+	_cache_affection_state = a
 	return adjusted
 
 func _multiply_weights(weights: Dictionary, actions: Array, multiplier: float):
@@ -331,6 +351,26 @@ const STATE_CHAINS = {
 	"angry_sequence": {
 		"states": ["angry", "tail_wag", "walk_away", "ignore"],
 		"durations": [1.0, 1.5, 2.0, 3.0],
+		"interruptible": true
+	},
+	"curious_peek": {
+		"states": ["watch", "sneak_eat", "peek", "idle_stand"],
+		"durations": [1.0, 1.5, 2.0, 0.5],
+		"interruptible": true
+	},
+	"stretch_relax": {
+		"states": ["stretch", "yawn", "idle_lie"],
+		"durations": [2.0, 2.0, -1],
+		"interruptible": true
+	},
+	"playful_burst": {
+		"states": ["run", "pounce_attack", "rolling", "happy"],
+		"durations": [1.0, 0.5, 1.5, 1.0],
+		"interruptible": true
+	},
+	"grooming_sequence": {
+		"states": ["lick_groom", "stretch", "idle_sit"],
+		"durations": [3.0, 2.0, 1.0],
 		"interruptible": true
 	},
 }
@@ -438,9 +478,18 @@ func get_time_behavior_modifier() -> Dictionary:
 var _time_check_timer: float = 0.0
 const TIME_CHECK_INTERVAL = 60.0  # 每分钟检查一次时间
 
+# 权重缓存
+var _cached_weights: Dictionary = {}
+var _cache_energy_state: int = -1
+var _cache_mood_state: int = -1
+var _cache_affection_state: int = -1
+
+# 时间修正缓存
+var _cached_time_mod: Dictionary = {"energy_mod": 1.0, "activity_mod": 1.0}
+
 func update(delta: float):
-	# 情绪自然衰减（应用时间修正）
-	var time_mod = get_time_behavior_modifier()
+	# 情绪自然衰减（应用时间修正缓存）
+	var time_mod = _cached_time_mod
 	var energy_decay_rate = ENERGY_DECAY * (2.0 - time_mod.energy_mod)  # 夜晚精力衰减更快
 
 	modify_mood(-MOOD_DECAY * delta)
@@ -467,7 +516,8 @@ func update(delta: float):
 
 func _apply_time_based_effects():
 	var time = get_time_of_day()
-	var mod = get_time_behavior_modifier()
+	_cached_time_mod = get_time_behavior_modifier()
+	var mod = _cached_time_mod
 
 	match time:
 		"morning":
@@ -496,6 +546,7 @@ func get_save_data() -> Dictionary:
 		"mood": mood,
 		"energy": energy,
 		"affection": affection,
+		"chaos": chaos,
 		"curiosity": curiosity,
 		"interaction_stats": interaction_stats,
 		"behavior_weights": behavior_weights,
@@ -508,6 +559,7 @@ func load_save_data(data: Dictionary):
 	mood = data.get("mood", 50.0)
 	energy = data.get("energy", 80.0)
 	affection = data.get("affection", 30.0)
+	chaos = data.get("chaos", 20.0)
 	curiosity = data.get("curiosity", 60.0)
 	interaction_stats = data.get("interaction_stats", interaction_stats)
 	behavior_weights = data.get("behavior_weights", behavior_weights)

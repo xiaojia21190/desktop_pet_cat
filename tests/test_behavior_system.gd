@@ -29,6 +29,8 @@ func _run_all_tests():
 	test_energy_modification()
 	test_affection_modification()
 	test_emotion_clamping()
+	test_chaos_modification()
+	test_chaos_clamping()
 
 	# 记忆系统测试
 	test_interaction_recording()
@@ -103,6 +105,19 @@ func test_emotion_clamping():
 
 	behavior_system.modify_mood(-200)
 	_assert_equal(behavior_system.mood, 0.0, "mood_clamp_min")
+
+func test_chaos_modification():
+	behavior_system.chaos = 20.0
+	behavior_system.modify_chaos(15)
+	_assert_equal(behavior_system.chaos, 35.0, "chaos_modification")
+
+func test_chaos_clamping():
+	behavior_system.chaos = 90.0
+	behavior_system.modify_chaos(50)
+	_assert_equal(behavior_system.chaos, 100.0, "chaos_clamp_max")
+
+	behavior_system.modify_chaos(-200)
+	_assert_equal(behavior_system.chaos, 0.0, "chaos_clamp_min")
 
 # ============================================
 # 记忆系统测试

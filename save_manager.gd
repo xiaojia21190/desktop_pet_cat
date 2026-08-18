@@ -42,7 +42,7 @@ func _get_default_data() -> Dictionary:
 			"quiet_hours_start": 23,
 			"quiet_hours_end": 8,
 			"personality": "tsundere",
-			"reminder_intensity": "medium",
+			"presence_level": 2,
 			"perception_enabled": false,
 			"perception_default_rules": true,
 			"focus_duration_index": 1
@@ -90,7 +90,7 @@ func _write_config(data: Dictionary) -> int:
 	config.set_value("settings", "perception_default_rules", settings.get("perception_default_rules", true))
 	config.set_value("settings", "focus_duration_index", int(settings.get("focus_duration_index", 1)))
 	config.set_value("settings", "personality", settings.get("personality", "tsundere"))
-	config.set_value("settings", "reminder_intensity", settings.get("reminder_intensity", "medium"))
+	config.set_value("settings", "presence_level", int(settings.get("presence_level", 2)))
 
 	config.set_value("meta", "saved_at", meta.get("saved_at", 0))
 	config.set_value("meta", "version", meta.get("version", SAVE_VERSION))
@@ -138,7 +138,13 @@ func load_data() -> Dictionary:
 	settings["quiet_hours_start"] = config.get_value("settings", "quiet_hours_start", settings["quiet_hours_start"])
 	settings["quiet_hours_end"] = config.get_value("settings", "quiet_hours_end", settings["quiet_hours_end"])
 	settings["personality"] = config.get_value("settings", "personality", settings["personality"])
-	settings["reminder_intensity"] = config.get_value("settings", "reminder_intensity", settings["reminder_intensity"])
+	# presence_level 读取（含旧档 reminder_intensity 迁移：low/medium/high → 1/2/3）
+	var raw_presence = config.get_value("settings", "presence_level", -1)
+	if raw_presence == -1:
+		var legacy: String = String(config.get_value("settings", "reminder_intensity", "medium"))
+		settings["presence_level"] = 1 if legacy == "low" else (3 if legacy == "high" else 2)
+	else:
+		settings["presence_level"] = int(raw_presence)
 	settings["perception_enabled"] = config.get_value("settings", "perception_enabled", settings.get("perception_enabled", false))
 	settings["perception_default_rules"] = config.get_value("settings", "perception_default_rules", settings.get("perception_default_rules", true))
 	settings["focus_duration_index"] = int(config.get_value("settings", "focus_duration_index", settings.get("focus_duration_index", 1)))

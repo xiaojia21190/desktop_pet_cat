@@ -33,13 +33,13 @@ func evaluate(snapshot: Dictionary, tags: Array[String], recent_events: Array[Di
 	var psyche: Dictionary = snapshot.get("psyche", {})
 	var energy: float = float(psyche.get("energy", 100.0))
 
-	if _is_quiet_hours(snapshot) or bool(snapshot.get("fullscreen", false)):
+	if _is_hard_quiet(snapshot) or bool(snapshot.get("fullscreen", false)):
 		return _decide(now, ACTION_SLEEP_CURL, "quiet_mode", _line_for("quiet_mode", personality), energy)
 
-	# —— P4：深夜关怀（记忆驱动；静音时段已被上面拦截）——
+	# —— P4：深夜关怀（软静音内放行，原 23-1 点窗口被静音全灭）——
 	var hour: int = int(snapshot.get("hour", 12))
 	var memory_lines: Array = snapshot.get("memory_lines", [])
-	if (hour >= 23 or hour <= 1) and continuous_active_precheck(snapshot, 2700.0):
+	if _in_soft_quiet(snapshot) and continuous_active_precheck(snapshot, 1800.0):
 		var care_line := "这么晚还在忙，记得早点休息。"
 		if memory_lines.size() > 0:
 			care_line = String(memory_lines[0])
@@ -121,7 +121,23 @@ func _has_recent_event(recent_events: Array[Dictionary], event_type: String, wit
 			return true
 	return false
 
-func _is_quiet_hours(snapshot: Dictionary) -> bool:
+const SOFT_QUIET_MINUTES := 60  # 静音时段前 60 分钟为软静音（进入缓冲）
+
+## 硬静音：完全静默（quiet_mode 仅此处返回）
+func _is_hard_quiet(snapshot: Dictionary) -> bool:
+	if not _in_quiet_window(snapshot):
+		return false
+	return not _in_soft_quiet(snapshot)
+
+## 软静音：静音时段前 60 分钟，允许轻关怀类意图
+func _in_soft_quiet(snapshot: Dictionary) -> bool:
+	if not _in_quiet_window(snapshot):
+		return false
+	var minute_of_day: int = int(snapshot.get("hour", 12)) * 60 + int(snapshot.get("minute", 0))
+	var start_minute: int = int(snapshot.get("quiet_hours_start", 23)) * 60
+	return minute_of_day >= start_minute and minute_of_day < start_minute + SOFT_QUIET_MINUTES
+
+func _in_quiet_window(snapshot: Dictionary) -> bool:
 	var hour: int = int(snapshot.get("hour", 12))
 	var start_hour: int = int(snapshot.get("quiet_hours_start", 23))
 	var end_hour: int = int(snapshot.get("quiet_hours_end", 8))

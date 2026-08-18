@@ -59,23 +59,26 @@ func _test_soft_hard_quiet() -> void:
 		{"hour": 23, "minute": 30, "quiet_hours_start": 23, "quiet_hours_end": 8,
 		 "fullscreen": false, "continuous_active_seconds": 1800.0,
 		 "presence_level": 2, "psyche": {"energy": 100.0}},
-		[], [], {"personality": "tsundere"})
+		_empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_equal(String(d.get("policy_intent", "")), "night_owl_care", "soft_quiet_allows_care")
 	# 02:00 硬静音 → quiet_mode
 	d = engine.evaluate(
 		{"hour": 2, "quiet_hours_start": 23, "quiet_hours_end": 8,
 		 "fullscreen": false, "continuous_active_seconds": 1800.0,
 		 "presence_level": 2, "psyche": {"energy": 100.0}},
-		[], [], {"personality": "tsundere"})
+		_empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_equal(String(d.get("policy_intent", "")), "quiet_mode", "hard_quiet_silences")
-	# 非跨午夜场景：2-8 → 2:00-2:59 软，3:00 起硬
-	d = engine.evaluate(
+	# 非跨午夜场景：2-8 → 2:00-2:59 软，3:00 起硬（新实例避免 comfort 冷却串扰）
+	var engine2 = PolicyEngineScript.new()
+	add_child(engine2)
+	d = engine2.evaluate(
 		{"hour": 2, "minute": 30, "quiet_hours_start": 2, "quiet_hours_end": 8,
 		 "fullscreen": false, "continuous_active_seconds": 1800.0,
 		 "presence_level": 2, "psyche": {"energy": 100.0}},
-		[], [], {"personality": "tsundere"})
+		_empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_equal(String(d.get("policy_intent", "")), "night_owl_care", "nonwrap_soft_quiet")
 	engine.queue_free()
+	engine2.queue_free()
 
 func _test_sliding_window() -> void:
 	# 滑窗累计：45s-5min 停顿按 50% 折算（帧级累计）；>5min 清零
@@ -103,11 +106,11 @@ func _test_cooldown_multiplier() -> void:
 	var snap := {"hour": 14, "quiet_hours_start": 23, "quiet_hours_end": 8,
 		"fullscreen": false, "continuous_active_seconds": 4000.0,
 		"presence_level": 0, "psyche": {"energy": 100.0}}
-	var d1: Dictionary = engine.evaluate(snap, [], [], {"personality": "tsundere"})
+	var d1: Dictionary = engine.evaluate(snap, _empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_equal(String(d1.get("policy_intent", "")), "long_focus", "first_break_hint_fires")
 	# 安静档 ×4：900×4=3600s → 3000s 前触发过则拦截
 	engine._last_trigger_time["break_hint"] = int(Time.get_unix_time_from_system()) - 3000
-	var d2: Dictionary = engine.evaluate(snap, [], [], {"personality": "tsundere"})
+	var d2: Dictionary = engine.evaluate(snap, _empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_true(not bool(d2.get("react", true)), "quiet_multiplier_blocks")
 	engine.queue_free()
 
@@ -119,10 +122,10 @@ func _test_intent_whitelist() -> void:
 		"fullscreen": false, "continuous_active_seconds": 600.0,
 		"psyche": {"energy": 100.0}}
 	snap["presence_level"] = 0
-	var quiet_d: Dictionary = engine.evaluate(snap.duplicate(), [], [], {"personality": "tsundere"})
+	var quiet_d: Dictionary = engine.evaluate(snap.duplicate(), _empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_true(String(quiet_d.get("policy_intent", "")) != "meal_hint", "quiet_no_meal_hint")
 	snap["presence_level"] = 2
-	var mid_d: Dictionary = engine.evaluate(snap.duplicate(), [], [], {"personality": "tsundere"})
+	var mid_d: Dictionary = engine.evaluate(snap.duplicate(), _empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_equal(String(mid_d.get("policy_intent", "")), "meal_hint", "medium_meal_hint")
 	engine.queue_free()
 
@@ -144,3 +147,11 @@ func _print_summary() -> void:
 	print("passed: %d  failed: %d" % [_passed, _failed])
 	for f in _failures:
 		print("  FAIL: " + f)
+
+func _empty_tags() -> Array[String]:
+	var arr: Array[String] = []
+	return arr
+
+func _empty_events() -> Array[Dictionary]:
+	var arr: Array[Dictionary] = []
+	return arr

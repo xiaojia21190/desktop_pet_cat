@@ -167,7 +167,7 @@ func _evaluate_policy() -> void:
 	# —— LLM 全上下文决策：开启时 LLM 是大脑，规则建议只作参考 ——
 	if _customization_service.llm_enabled:
 		# 安全兜底：静音时段/全屏不打扰（硬规则，LLM 不可越过）
-		if _policy_engine._is_quiet_hours(snapshot) or bool(snapshot.get("fullscreen", false)):
+		if _policy_engine._is_hard_quiet(snapshot) or bool(snapshot.get("fullscreen", false)):
 			return
 		var fg_app := String(snapshot.get("foreground_app", ""))
 		var llm_context := {

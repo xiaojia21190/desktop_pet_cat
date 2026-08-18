@@ -1,0 +1,28 @@
+.ace-tool/
+
+# Godot editor
+.godot/
+
+# Temporary files
+.tmp_*
+*.tmp
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Export
+*.exe
+*.pck
+
+# UID cache files (auto-generated)
+*.uid

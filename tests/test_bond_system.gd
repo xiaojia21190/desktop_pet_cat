@@ -15,6 +15,7 @@ func _run() -> void:
 	_test_daily_cap()
 	_test_unlocks()
 	_test_save_roundtrip()
+	_test_petting_intent()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -89,6 +90,53 @@ func _test_save_roundtrip() -> void:
 	_assert_true(is_equal_approx(bond2._today_bond, 0.0), "stale_day_resets_today")
 	bond.queue_free()
 	bond2.queue_free()
+
+const InputComponentScript = preload("res://components/cat_input_component.gd")
+
+func _test_petting_intent() -> void:
+	# 撸猫意图状态机：按住 0.6s 进入 PET(3)；漂移>20px 升级 DRAG(2)；松手发 petting_ended
+	var owner := Node2D.new()
+	owner.global_position = Vector2(500, 500)
+	add_child(owner)
+	var comp = InputComponentScript.new()
+	owner.add_child(comp)  # _ready 中 owner_node = get_parent()
+
+	var started: Array[String] = []
+	var ended: Array[float] = []
+	comp.petting_started.connect(func(part): started.append(part))
+	comp.petting_ended.connect(func(sec): ended.append(sec))
+
+	# 按下命中猫（100px 半径内）→ PENDING(1)
+	var press := InputEventMouseButton.new()
+	press.pressed = true
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.global_position = Vector2(500, 500)
+	press.position = Vector2(500, 500)
+	comp._input(press)
+	_assert_equal(comp._intent, 1, "press_enters_pending")
+
+	# 快进 0.7s（超过 pet_start_delay=0.6）→ PET(3)
+	for i in range(7):
+		comp._process(0.1)
+	_assert_equal(comp._intent, 3, "hold_enters_pet")
+	_assert_equal(started.size(), 1, "petting_started_once")
+
+	# 漂移超 20px（sq>400）→ 升级 DRAG(2)
+	var drift := InputEventMouseMotion.new()
+	drift.position = Vector2(530, 500)
+	comp._handle_mouse_motion(drift)
+	_assert_equal(comp._intent, 2, "drift_upgrades_drag")
+	_assert_equal(ended.size(), 1, "petting_ended_before_drag")
+
+	# 松手 → 归零并触发 drag_ended
+	var release := InputEventMouseButton.new()
+	release.pressed = false
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.global_position = Vector2(530, 500)
+	release.position = Vector2(530, 500)
+	comp._input(release)
+	_assert_equal(comp._intent, 0, "release_resets_none")
+	owner.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

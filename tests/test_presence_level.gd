@@ -103,8 +103,8 @@ func _test_cooldown_multiplier() -> void:
 	# 档位冷却倍率：安静 ×4 → 基础 900 的 break_hint 安静档 3600s 内不重复
 	var engine = PolicyEngineScript.new()
 	add_child(engine)
-	var snap := {"hour": 14, "quiet_hours_start": 23, "quiet_hours_end": 8,
-		"fullscreen": false, "continuous_active_seconds": 4000.0,
+	var snap := {"hour": 14, "minute": 30, "quiet_hours_start": 23, "quiet_hours_end": 8,
+		"fullscreen": false, "continuous_active_seconds": 5000.0,
 		"presence_level": 0, "psyche": {"energy": 100.0}}
 	var d1: Dictionary = engine.evaluate(snap, _empty_tags(), _empty_events(), {"personality": "tsundere"})
 	_assert_equal(String(d1.get("policy_intent", "")), "long_focus", "first_break_hint_fires")

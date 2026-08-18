@@ -149,17 +149,18 @@ func _test_profile_tags() -> void:
 	service.queue_free()
 
 func _test_policy_build_fail_streak() -> void:
+	# P5b：build_fail_streak 意图已删除（零数据源死代码）——含该事件的快照不再触发
 	var policy = ReactionPolicyEngineScript.new()
 	add_child(policy)
 	var now := Time.get_unix_time_from_system()
+	var tags: Array[String] = []
 	var decision: Dictionary = policy.evaluate(
-		{"hour": 14, "quiet_hours_start": 23, "quiet_hours_end": 8, "fullscreen": false, "continuous_active_seconds": 120.0},
-		[],
+		{"hour": 14, "minute": 30, "quiet_hours_start": 23, "quiet_hours_end": 8, "fullscreen": false, "continuous_active_seconds": 120.0},
+		tags,
 		[{"type": "build_fail_streak", "t": now, "streak": 3}],
-		{"personality": "tsundere", "reminder_intensity": "medium"}
+		{"personality": "tsundere"}
 	)
-	_assert_true(bool(decision.get("react", false)), "policy_build_fail_streak_react")
-	_assert_equal(String(decision.get("action_id", "")), "comfort", "policy_build_fail_streak_action")
+	_assert_true(not bool(decision.get("react", false)), "policy_build_fail_streak_removed")
 	policy.queue_free()
 
 func _test_customization_llm_settings() -> void:

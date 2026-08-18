@@ -35,11 +35,9 @@ var passthrough_manager
 var smart_line_bubble
 var hover_panel_component
 var quick_action_menu
-var _build_failure_streak := 0
 var _start_minimized := false  # --minimized 启动:视觉隐藏仅托盘常驻(开机自启用)
 
 var _cached_screen_size: Vector2 = Vector2(1920, 1080)
-const BUILD_FAILURE_STREAK_THRESHOLD := 2
 const SETTINGS_PANEL_WIDTH := 560.0
 const SETTINGS_PANEL_HEIGHT := 900.0
 const FORCE_START_AT_BOTTOM_RIGHT := false
@@ -512,11 +510,9 @@ func _on_focus_session_finished(result: String, summary: Dictionary) -> void:
 	if tray_controller:
 		tray_controller.set_focus_session_active(false)
 	if result == "victory":
-		_build_failure_streak = 0
 		_record_smart_event("focus_milestone", {"summary": summary})
 	else:
 		_record_smart_event("focus_failed", {"summary": summary})
-		_record_build_failure_streak({"source": "focus_session", "summary": summary})
 
 func _on_keyboard_typing_for_smart(_event: InputEvent) -> void:
 	if smart_pet_controller:
@@ -547,22 +543,6 @@ func _on_smart_line_generated(line: String, source: String) -> void:
 func _record_smart_event(event_type: String, payload: Dictionary = {}) -> void:
 	if smart_pet_controller and smart_pet_controller.has_method("record_event"):
 		smart_pet_controller.record_event(event_type, payload)
-
-func report_build_result(success: bool, payload: Dictionary = {}) -> void:
-	var event_payload: Dictionary = payload.duplicate(true)
-	if success:
-		_build_failure_streak = 0
-		_record_smart_event("build_success", event_payload)
-		return
-	_record_smart_event("build_failed", event_payload)
-	_record_build_failure_streak(event_payload)
-
-func _record_build_failure_streak(payload: Dictionary = {}) -> void:
-	_build_failure_streak += 1
-	var streak_payload: Dictionary = payload.duplicate(true)
-	streak_payload["streak"] = _build_failure_streak
-	if _build_failure_streak >= BUILD_FAILURE_STREAK_THRESHOLD:
-		_record_smart_event("build_fail_streak", streak_payload)
 
 func _map_smart_action_to_animation(action_id: String) -> String:
 	match action_id:

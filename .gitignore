@@ -26,3 +26,4 @@ Thumbs.db
 
 # UID cache files (auto-generated)
 *.uid
+__pycache__/

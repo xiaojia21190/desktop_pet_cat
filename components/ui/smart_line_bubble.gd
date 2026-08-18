@@ -71,6 +71,12 @@ func hide_bubble() -> void:
 func is_visible_to_user() -> bool:
 	return _panel != null and _panel.visible
 
+## P5c 亲密度小提示：主气泡空闲时显示"亲密度 +N"；占用时静默丢弃
+func show_gain_tip(amount: float, anchor: Vector2, viewport_size: Vector2) -> void:
+	if is_visible_to_user():
+		return  # 主气泡正在展示台词，不打断
+	show_line("亲密度 +%.0f" % amount, anchor + Vector2(40, -20), viewport_size)
+
 func _clamped_position(anchor: Vector2, viewport_size: Vector2) -> Vector2:
 	# 用面板实际渲染尺寸（custom_minimum_size 高度为 0，取 get_rect 实高）
 	var bubble_size := Vector2(_panel.size.x, maxf(_panel.size.y, BUBBLE_MIN_HEIGHT))

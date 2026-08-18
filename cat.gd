@@ -10,6 +10,7 @@ const BondSystemScript = preload("res://components/bond_system.gd")
 signal typing_attack_started
 signal cat_left_clicked(part: String, pos: Vector2)
 signal bond_level_up(level: int, message: String)
+signal bond_gained(amount: float)  # P5c：每次互动 bond 增量（气泡小提示数据源）
 
 # 组件引用
 @onready var state_machine: StateMachine = $StateMachine
@@ -487,7 +488,13 @@ func _record_item_interaction(interaction_type: String) -> void:
 	if behavior_system:
 		behavior_system.record_interaction(interaction_type)
 	if bond_system:
-		bond_system.add_bond(interaction_type)
+		# P5c 饿猫喂食加成：energy < 40 时喂食 ×1.5（饿的时候喂更亲）
+		var multiplier := 1.0
+		if interaction_type == "food_given" and behavior_system and behavior_system.energy < 40.0:
+			multiplier = 1.5
+		var gained: float = bond_system.add_bond(interaction_type, -1.0, multiplier)
+		if gained > 0.0:
+			bond_gained.emit(gained)
 
 func _is_wand(item: Node2D) -> bool:
 	return String(item.get("item_type")) == "wand"

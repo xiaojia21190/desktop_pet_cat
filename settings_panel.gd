@@ -185,6 +185,52 @@ func _on_visibility_changed():
 		_update_timed_hide_remaining()
 		# 面板每次打开刷新品种解锁状态
 		refresh_breed_locks(_get_bond_level())
+		refresh_bond_ui()
+
+## P5c：亲密度进度区（等级 + 进度 + 下一级解锁预告），代码构建
+var _bond_level_label: Label
+var _bond_progress_bar: ProgressBar
+
+func _ensure_bond_ui() -> void:
+	if _bond_level_label:
+		return
+	var vbox = get_node_or_null("ScrollContainer/VBoxContainer")
+	if not vbox:
+		return
+	_bond_level_label = Label.new()
+	_bond_level_label.name = "BondLevelLabel"
+	_bond_level_label.add_theme_color_override("font_color", Color.WHITE)
+	vbox.add_child(_bond_level_label)
+	_bond_progress_bar = ProgressBar.new()
+	_bond_progress_bar.name = "BondProgressBar"
+	_bond_progress_bar.min_value = 0.0
+	_bond_progress_bar.max_value = 100.0
+	_bond_progress_bar.show_percentage = false
+	_bond_progress_bar.custom_minimum_size = Vector2(0, 14)
+	vbox.add_child(_bond_progress_bar)
+
+func refresh_bond_ui() -> void:
+	# 亲密度等级/进度刷新（面板打开时与 bond 变化时调用）
+	_ensure_bond_ui()
+	if not _bond_level_label:
+		return
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if not main or not main.cat or not main.cat.bond_system:
+		return
+	var bs = main.cat.bond_system
+	var info: Dictionary = bs.get_level_info()
+	var next: Dictionary = bs.get_next_level_info()
+	_bond_level_label.text = "亲密度 Lv.%d「%s」" % [bs.get_level(), String(info.get("title", ""))]
+	if next.is_empty():
+		_bond_progress_bar.value = 100.0
+	else:
+		_bond_progress_bar.value = bs.get_progress() * 100.0
+		var unlock_breed := String(next.get("unlock_breed", ""))
+		var unlock_anim := String(next.get("unlock_anim", ""))
+		if not unlock_breed.is_empty():
+			_bond_level_label.text += "　下一级解锁：品种"
+		elif not unlock_anim.is_empty():
+			_bond_level_label.text += "　下一级解锁：新动作"
 
 func _update_timed_hide_remaining():
 	if not timed_hide_remaining_label:

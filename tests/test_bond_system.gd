@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_unlocks()
 	_test_save_roundtrip()
 	_test_petting_intent()
+	_test_hungry_feed_bonus()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -156,3 +157,18 @@ func _print_summary() -> void:
 	print("passed: %d  failed: %d" % [_passed, _failed])
 	for f in _failures:
 		print("  FAIL: " + f)
+
+
+func _test_hungry_feed_bonus() -> void:
+	# 饿猫喂食 ×1.5：bond_system.add_bond 支持 multiplier 参数
+	var bond = BondSystemScript.new()
+	add_child(bond)
+	bond.bond = 0.0
+	var normal: float = bond.add_bond("food_given")
+	_assert_true(is_equal_approx(normal, 4.0), "normal_feed_4")
+	var bond2 = BondSystemScript.new()  # 新实例避免递减干扰
+	add_child(bond2)
+	var bonus: float = bond2.add_bond("food_given", -1.0, 1.5)
+	_assert_true(is_equal_approx(bonus, 6.0), "hungry_feed_6")
+	bond.queue_free()
+	bond2.queue_free()

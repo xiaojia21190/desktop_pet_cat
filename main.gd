@@ -66,6 +66,7 @@ func _ready():
 		cat.typing_attack_started.connect(_on_typing_attack_started)
 		cat.cat_left_clicked.connect(_on_cat_left_clicked)
 		cat.bond_level_up.connect(_on_bond_level_up)
+		cat.bond_gained.connect(_on_bond_gained)
 
 	_setup_timed_hide_timer()
 
@@ -153,8 +154,16 @@ func _on_bond_level_up(_level: int, message: String) -> void:
 		smart_line_bubble.show_line(message, cat.global_position, _cached_screen_size)
 	AudioManager.play_cat_sound()
 	# 面板若开着,刷新品种解锁显示
-	if settings_panel and settings_panel.visible and settings_panel.has_method("refresh_breed_locks"):
-		settings_panel.refresh_breed_locks(int(cat.bond_system.get_level()))
+	if settings_panel and settings_panel.visible and settings_panel.has_method("refresh_bond_ui"):
+		settings_panel.refresh_bond_ui()
+
+
+func _on_bond_gained(amount: float) -> void:
+	# P5c：互动 bond 增量轻提示（主气泡占用时丢弃）
+	if smart_line_bubble and cat and not smart_line_bubble.is_visible_to_user():
+		smart_line_bubble.show_gain_tip(amount, cat.global_position, _cached_screen_size)
+	if settings_panel and settings_panel.visible and settings_panel.has_method("refresh_bond_ui"):
+		settings_panel.refresh_bond_ui()
 
 
 func _center_settings_panel() -> void:

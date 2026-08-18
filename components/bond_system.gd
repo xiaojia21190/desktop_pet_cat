@@ -72,14 +72,14 @@ func get_progress() -> float:
 		return 1.0
 	return clampf((bond - cur["need"]) / span, 0.0, 1.0)
 
-func add_bond(interaction_type: String, amount: float = -1.0) -> float:
+func add_bond(interaction_type: String, amount: float = -1.0, multiplier: float = 1.0) -> float:
 	## 记录互动涨 bond;返回实际增量(0=被日上限或无增益类型拦下)
 	if not BOND_GAINS.has(interaction_type):
 		return 0.0
 	_roll_day_if_needed()
 	if _today_bond >= DAILY_BOND_CAP:
 		return 0.0
-	var gain: float = BOND_GAINS[interaction_type] if amount < 0.0 else amount
+	var gain: float = (BOND_GAINS[interaction_type] if amount < 0.0 else amount) * multiplier
 	# 同类连续重复递减
 	var now := Time.get_unix_time_from_system()
 	if interaction_type == _last_gain_type and now - _last_gain_time < REPEAT_WINDOW:

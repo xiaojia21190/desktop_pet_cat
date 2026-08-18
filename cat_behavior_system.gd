@@ -205,7 +205,9 @@ var behavior_weights = {
 	"daze": 10.0,
 	"kneading": 8.0,
 	"stretch": 5.0,
-	"yawn": 2.0,
+	"yawn": 4.0,
+	"sleep_curl": 6.0,
+	"jump": 3.0,
 	# 移动行为
 	"walk": 20.0,
 	"trot": 10.0,
@@ -542,7 +544,7 @@ func _apply_time_based_effects():
 # ============================================
 
 func get_save_data() -> Dictionary:
-	return {
+	var data := {
 		"mood": mood,
 		"energy": energy,
 		"affection": affection,
@@ -554,6 +556,10 @@ func get_save_data() -> Dictionary:
 		"disliked_actions": disliked_actions,
 		"total_play_time": total_play_time,
 	}
+	# 亲密度养成数据(bond_system 经 meta 挂载)
+	if has_meta("bond_data"):
+		data["bond"] = get_meta("bond_data")
+	return data
 
 func load_save_data(data: Dictionary):
 	mood = data.get("mood", 50.0)

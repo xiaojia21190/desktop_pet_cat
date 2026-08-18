@@ -89,8 +89,10 @@ func get_snapshot() -> Dictionary:
 	if viewport:
 		screen_size = viewport.get_visible_rect().size
 
-	var window_mode: DisplayServer.WindowMode = DisplayServer.window_get_mode()
-	var is_fullscreen := window_mode == DisplayServer.WINDOW_MODE_FULLSCREEN or window_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	# 全屏/免打扰判定：宠物自身窗口是 borderless 全屏覆盖，
+	# window_get_mode 永远报 fullscreen（会把所有决策拦死）。
+	# 语义上应判断"用户是否在专注看片/游戏"→ 用前台 activity 分类代替。
+	var is_fullscreen := _fg_activity == "game" or _fg_activity == "video"
 	var now := int(Time.get_unix_time_from_system())
 	var session_seconds: int = maxi(now - _session_start_unix, 1)
 	var typing_per_min: float = (float(_typing_count) * 60.0) / float(session_seconds)

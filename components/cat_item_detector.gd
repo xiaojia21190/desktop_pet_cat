@@ -106,7 +106,7 @@ func _react_to_item(item: Node2D, item_type: ItemTypes.Type) -> void:
 	var rand := randf()
 
 	match item_type:
-		ItemTypes.Type.FOOD:
+		ItemTypes.Type.FOOD, ItemTypes.Type.BOX:
 			if rand < food_ignore_chance:
 				item_reaction.emit("ignore", item)
 			elif rand < food_ignore_chance + food_eat_chance:
@@ -114,7 +114,7 @@ func _react_to_item(item: Node2D, item_type: ItemTypes.Type) -> void:
 			else:
 				item_reaction.emit("carry", item)
 
-		ItemTypes.Type.WAND:
+		ItemTypes.Type.WAND, ItemTypes.Type.YARN:
 			if rand < wand_ignore_chance:
 				item_reaction.emit("ignore", item)
 			else:

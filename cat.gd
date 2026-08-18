@@ -2,12 +2,14 @@ extends CharacterBody2D
 
 @warning_ignore("shadowed_global_identifier")
 const CatStates = preload("res://cat_states.gd")
+const BondSystemScript = preload("res://components/bond_system.gd")
 
 ## 桌面宠物猫主控制器
 ## 使用组件和状态机模式重构
 
 signal typing_attack_started
 signal cat_left_clicked(part: String, pos: Vector2)
+signal bond_level_up(level: int, message: String)
 
 # 组件引用
 @onready var state_machine: StateMachine = $StateMachine
@@ -15,12 +17,14 @@ signal cat_left_clicked(part: String, pos: Vector2)
 @onready var animation_component: CatAnimationComponent = $AnimationComponent
 @onready var item_detector: CatItemDetector = $ItemDetector
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
+@onready var live_overlay: Node2D = $LiveOverlay
 
 # 行为系统
 var behavior_system: CatBehaviorSystem
+var bond_system: Node
 
-# 状态切换间隔
-@export var state_change_interval: float = 3.0
+# 状态驻留间隔(每次切换后随机 6-9s;存档 intensity 设置会覆盖此默认值)
+@export var state_change_interval: float = 7.0
 var _state_timer: float = 0.0
 @export var block_trigger_distance: float = 180.0
 @export var block_mouse_move_distance: float = 8.0
@@ -78,12 +82,28 @@ func _init_behavior_system() -> void:
 	behavior_system.chain_step_changed.connect(_on_chain_step_changed)
 	behavior_system.chain_completed.connect(_on_chain_completed)
 
+	# 亲密度养成:只涨不跌的 bond 进度(与瞬时好感度分离)
+	bond_system = BondSystemScript.new()
+	bond_system.name = "BondSystem"
+	add_child(bond_system)
+	bond_system.bond_changed.connect(_on_bond_changed)
+	bond_system.level_up.connect(_on_bond_level_up)
+
+	# 实时反应层:眼神跟踪/眨眼/受惊/爱心(叠加在动画之上)
+	if live_overlay:
+		live_overlay.setup(animated_sprite, 0.55)  # 与 AnimatedSprite2D scale 一致
+		live_overlay.bind_behavior(behavior_system)
+		live_overlay.startled.connect(_on_live_startled)
+
 func _connect_signals() -> void:
 	# 输入组件信号
 	if input_component:
 		input_component.drag_started.connect(_on_drag_started)
 		input_component.drag_ended.connect(_on_drag_ended)
 		input_component.clicked.connect(_on_clicked)
+		input_component.petting_started.connect(_on_petting_started)
+		input_component.petting_tick.connect(_on_petting_tick)
+		input_component.petting_ended.connect(_on_petting_ended)
 
 	# 道具检测信号
 	if item_detector:
@@ -124,6 +144,10 @@ func _load_saved_data() -> void:
 	if behavior_system and not behavior_data.is_empty():
 		behavior_system.load_save_data(behavior_data)
 
+	# 加载亲密度养成数据
+	if bond_system and behavior_data.has("bond"):
+		bond_system.load_save_data(behavior_data["bond"])
+
 func _process(delta: float) -> void:
 	# 更新行为系统
 	if behavior_system:
@@ -147,10 +171,25 @@ func _process(delta: float) -> void:
 	if _try_proximity_interaction(delta, mouse_pos):
 		return
 
+	# 状态驻留:随机 6-9 秒,且等当前动画播完再切(避免动画被打断的生硬感)
 	_state_timer += delta
 	if _state_timer > state_change_interval:
-		_state_timer = 0.0
-		_smart_state_change()
+		if _current_animation_finished():
+			_state_timer = 0.0
+			state_change_interval = randf_range(6.0, 9.0)
+			_smart_state_change()
+
+## 当前动画是否已播完(循环动画视为播完,随时可切)
+func _current_animation_finished() -> bool:
+	if not animated_sprite or not animated_sprite.is_playing():
+		return true
+	var frames := animated_sprite.sprite_frames
+	if frames == null:
+		return true
+	# 循环动画不打断判定,非循环动画等到最后一帧
+	if frames.get_animation_loop(animated_sprite.animation):
+		return true
+	return animated_sprite.frame >= frames.get_frame_count(animated_sprite.animation) - 1
 
 func _smart_state_change() -> void:
 	if not behavior_system:
@@ -164,19 +203,28 @@ func _smart_state_change() -> void:
 	if _try_trigger_chain(activity_mod):
 		return
 
-	var available_actions := ["idle_stand", "idle_sit", "walk", "watch", "lick", "daze", "kneading", "roll", "tail_wag", "chase_mouse", "pounce_mouse"]
+	var available_actions := ["idle_stand", "idle_sit", "walk", "watch", "lick",
+		"daze", "kneading", "stretch", "yawn", "roll", "tail_wag",
+		"chase_mouse", "pounce_mouse", "jump"]
 
-	# 夜晚减少活跃行为
+	# 夜晚作息:大幅偏向打盹/蜷睡/哈欠,减少活跃行为
 	if activity_mod < 0.7:
-		available_actions = ["idle_stand", "idle_sit", "daze", "lick", "kneading"]
+		available_actions = ["sleep_curl", "idle_lie", "daze", "yawn", "stretch", "kneading"]
 
 	var selected := behavior_system.select_weighted_behavior(available_actions)
 
 	match selected:
 		"idle_stand", "idle_sit":
 			state_machine.transition_to(CatStates.IDLE)
-		"daze", "kneading":
+		"daze", "kneading", "idle_lie":
 			state_machine.transition_to(CatStates.IDLE, {"animation": selected})
+		"sleep_curl":
+			state_machine.transition_to(CatStates.IDLE, {"animation": "sleep_curl"})
+		"stretch", "yawn":
+			# 醒来舒展/犯困:直接播动画(状态机没有对应状态)
+			animation_component.play(selected)
+		"jump":
+			_jump_excited()
 		"walk":
 			state_machine.transition_to(CatStates.WALKING)
 		"watch":
@@ -193,6 +241,13 @@ func _smart_state_change() -> void:
 			state_machine.transition_to(CatStates.POUNCING)
 		_:
 			_random_state_change()
+
+## 兴奋小跳:jump 起跳 + land 落地组合
+func _jump_excited() -> void:
+	animation_component.play("jump")
+	await animated_sprite.animation_finished
+	animation_component.play("land")
+
 
 func _try_trigger_chain(activity_mod: float) -> bool:
 	if not behavior_system or behavior_system.is_in_chain():
@@ -356,6 +411,39 @@ func _get_blocking_chance() -> float:
 # 信号处理
 # ============================================
 
+# —— 撸猫(按住不动 0.6s)——
+func _on_petting_started(part: String) -> void:
+	# 撸猫时暂停自主状态切换,猫享受地眯眼
+	set_process(false)
+	match part:
+		"head":
+			animation_component.play("head_pat_happy")
+		"tail":
+			animation_component.play("startled")  # 摸尾巴会炸毛
+		_:
+			animation_component.play("comfort")
+
+func _on_petting_tick(part: String) -> void:
+	# 每 0.5s:心情+2 好感+0.3(摸尾巴例外:反向)
+	if behavior_system:
+		if part == "tail":
+			behavior_system.modify_mood(-1)
+		else:
+			behavior_system.modify_mood(2)
+			behavior_system.modify_affection(0.3)
+	if bond_system and part != "tail":
+		bond_system.add_bond("pet", 0.6)
+	# 舒服时小概率换个姿势
+	if randf() < 0.25:
+		animation_component.play("kneading" if randf() < 0.5 else "comfort")
+
+func _on_petting_ended(pet_seconds: float) -> void:
+	set_process(true)
+	# 撸超过 3 秒:满足地伸懒腰
+	if pet_seconds > 3.0 and behavior_system:
+		behavior_system.modify_mood(3)
+		animation_component.play("stretch")
+
 func _on_drag_started() -> void:
 	if item_detector:
 		item_detector.set_enabled(false)
@@ -398,6 +486,8 @@ func _on_wand_play_requested(wand: Node2D) -> void:
 func _record_item_interaction(interaction_type: String) -> void:
 	if behavior_system:
 		behavior_system.record_interaction(interaction_type)
+	if bond_system:
+		bond_system.add_bond(interaction_type)
 
 func _is_wand(item: Node2D) -> bool:
 	return String(item.get("item_type")) == "wand"
@@ -417,6 +507,37 @@ func _on_state_changed(from_state: StringName, to_state: StringName) -> void:
 func _on_typing_detected(_key_event: InputEvent) -> void:
 	if randf() < 0.3:
 		state_machine.transition_to(CatStates.TYPING_ATTACK)
+
+func _on_bond_changed(_bond: float, _level: int) -> void:
+	# bond 变化时同步到行为存档(事件驱动,避免每帧写)
+	if behavior_system and bond_system:
+		behavior_system.set_meta("bond_data", bond_system.get_save_data())
+
+func _on_bond_level_up(new_level: int, unlock: Dictionary) -> void:
+	# 升级庆祝:解锁动画演示 + 气播提示(main 监听 cat_signal)
+	var title := String(unlock.get("title", ""))
+	var unlock_anim := String(unlock.get("unlock_anim", ""))
+	var unlock_breed := String(unlock.get("unlock_breed", ""))
+	if not unlock_anim.is_empty():
+		animation_component.play(unlock_anim)
+	var msg := "亲密度升到 Lv.%d「%s」!" % [new_level, title]
+	if not unlock_breed.is_empty():
+		msg += " 解锁新品种"
+	bond_level_up.emit(new_level, msg)
+
+func _on_live_startled() -> void:	# 鼠标快速晃动受惊:非占用状态时切受惊/闪避动画
+	if not state_machine:
+		return
+	if state_machine.is_in_state(CatStates.IDLE) and randf() > 0.4:
+		return  # 待机中 40% 概率才反应,避免过度触发
+	if state_machine.is_in_state(CatStates.EATING) \
+			or state_machine.is_in_state(CatStates.CARRYING) \
+			or state_machine.is_in_state(CatStates.WAND_PLAYING):
+		return
+	if randf() < 0.6:
+		animation_component.play("startled")
+	else:
+		animation_component.play("dodge")
 
 func _on_emotion_state_changed(emotion_type: String, new_state: int) -> void:
 	if emotion_type == "energy" and new_state == CatBehaviorSystem.EnergyState.TIRED:
@@ -440,6 +561,8 @@ func _trigger_tsundere_reaction(part: String) -> void:
 	# 记录互动，情绪变化由 behavior_system.record_interaction 统一处理
 	if behavior_system:
 		behavior_system.record_interaction(part + "_touch")
+	if bond_system:
+		bond_system.add_bond(part + "_pat" if part == "head" else part + "_touch")
 
 	var affection_state := CatBehaviorSystem.AffectionState.NEUTRAL
 	if behavior_system:
@@ -456,11 +579,12 @@ func _trigger_tsundere_reaction(part: String) -> void:
 			if rand < dodge_chance:
 				state_machine.transition_to(CatStates.IDLE)
 				play_animation("head_pat_dodge")
-			elif rand < dodge_chance + (1 - dodge_chance - happy_chance):
-				state_machine.transition_to(CatStates.TAIL_WAGGING)
-			else:
+			elif rand < dodge_chance + happy_chance:
 				state_machine.transition_to(CatStates.IDLE)
 				play_animation("head_pat_happy")
+			else:
+				# 其余情况:舒服地眯眼摇尾
+				state_machine.transition_to(CatStates.TAIL_WAGGING)
 
 		"body":
 			if rand < 0.5:

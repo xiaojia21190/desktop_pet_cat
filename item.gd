@@ -5,6 +5,12 @@ extends Node2D
 const DESPAWN_TIME = 10.0
 const WAND_SIZE = Vector2i(80, 16)
 const FOOD_DIAMETER = 36
+const ITEM_TEXTURES := {
+	"food": "res://assets/items/food.png",
+	"wand": "res://assets/items/wand.png",
+	"yarn": "res://assets/items/yarn.png",
+	"box": "res://assets/items/box.png",
+}
 const WAND_DRAG_RADIUS := 40.0
 const WAND_WIGGLE_INTERVAL := 0.15
 const WAND_WIGGLE_AMP := 5.0
@@ -32,7 +38,13 @@ func _ready():
 		timer.start()
 
 func _setup_sprite():
-	if not sprite or sprite.texture:
+	if not sprite:
+		return
+	var tex_path := String(ITEM_TEXTURES.get(item_type, ""))
+	if not tex_path.is_empty() and ResourceLoader.exists(tex_path):
+		sprite.texture = load(tex_path) as Texture2D
+		return
+	if sprite.texture:
 		return
 	if item_type == "food":
 		sprite.texture = _make_circle_texture(FOOD_DIAMETER, Color(0.9, 0.6, 0.2))

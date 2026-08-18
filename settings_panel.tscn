@@ -102,10 +102,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -170.0
-offset_top = -340.0
-offset_right = 200.0
-offset_bottom = 340.0
+offset_left = -280.0
+offset_top = -450.0
+offset_right = 280.0
+offset_bottom = 450.0
 theme_override_styles/panel = SubResource("panel_bg")
 script = ExtResource("1")
 
@@ -118,7 +118,7 @@ offset_left = -36.0
 offset_top = 4.0
 offset_right = -4.0
 offset_bottom = 32.0
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 0.9)
+theme_override_colors/font_color = Color(1, 1, 1, 0.95)
 theme_override_colors/font_hover_color = Color(1, 0.4, 0.4, 1)
 theme_override_colors/font_pressed_color = Color(1, 0.3, 0.3, 1)
 theme_override_styles/normal = SubResource("close_btn_normal")
@@ -145,12 +145,14 @@ theme_override_constants/separation = 6
 
 [node name="TitleBanner" type="TextureRect" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 113)
+expand_mode = 1
 texture = ExtResource("aurora_banner")
 stretch_mode = 6
 
 [node name="TitleLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_colors/font_color = Color(1, 0.98, 0.85, 1)
 theme_override_font_sizes/font_size = 18
 text = "猫咪设置"
 horizontal_alignment = 1
@@ -161,14 +163,16 @@ theme_override_constants/separation = 8
 
 [node name="SectionDisplay" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.78, 1.0, 1)
+custom_minimum_size = Vector2(0, 44)
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.82, 0.88, 1.0, 1)
 theme_override_font_sizes/font_size = 13
 theme_override_styles/normal = SubResource("section_card_bg")
-text = "  显示"
+text = "显示"
 
 [node name="OpacityLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "透明度"
 
 [node name="OpacitySlider" type="HSlider" parent="ScrollContainer/VBoxContainer"]
@@ -183,16 +187,24 @@ theme_override_styles/grabber_area_highlight = SubResource("slider_fill_style")
 
 [node name="AlwaysOnTopCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_icons/checked = ExtResource("aurora_check_on")
 theme_override_icons/unchecked = ExtResource("aurora_check_off")
 theme_override_constants/icon_max_width = 24
 button_pressed = true
 text = "置顶显示"
 
+[node name="AutoStartCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_icons/checked = ExtResource("aurora_check_on")
+theme_override_icons/unchecked = ExtResource("aurora_check_off")
+theme_override_constants/icon_max_width = 24
+text = "开机自动启动（后台）"
+
 [node name="TimedHideLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "定时隐藏"
 
 [node name="TimedHideOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
@@ -200,7 +212,7 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("btn_normal_style")
 theme_override_styles/hover = SubResource("btn_hover_style")
 theme_override_styles/pressed = SubResource("btn_normal_style")
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="TimedHideRemainingLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 visible = false
@@ -214,14 +226,16 @@ theme_override_constants/separation = 8
 
 [node name="SectionAudio" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.78, 1.0, 1)
+custom_minimum_size = Vector2(0, 44)
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.82, 0.88, 1.0, 1)
 theme_override_font_sizes/font_size = 13
 theme_override_styles/normal = SubResource("section_card_bg")
 text = "  音效"
 
 [node name="SoundCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_icons/checked = ExtResource("aurora_check_on")
 theme_override_icons/unchecked = ExtResource("aurora_check_off")
 theme_override_constants/icon_max_width = 24
@@ -230,7 +244,7 @@ text = "音效"
 
 [node name="BGMCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_icons/checked = ExtResource("aurora_check_on")
 theme_override_icons/unchecked = ExtResource("aurora_check_off")
 theme_override_constants/icon_max_width = 24
@@ -239,7 +253,7 @@ text = "背景音乐"
 
 [node name="VolumeLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "音量"
 
 [node name="VolumeSlider" type="HSlider" parent="ScrollContainer/VBoxContainer"]
@@ -258,14 +272,16 @@ theme_override_constants/separation = 8
 
 [node name="SectionBehavior" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.78, 1.0, 1)
+custom_minimum_size = Vector2(0, 44)
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.82, 0.88, 1.0, 1)
 theme_override_font_sizes/font_size = 13
 theme_override_styles/normal = SubResource("section_card_bg")
 text = "  行为"
 
 [node name="IntensityLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "捣乱强度"
 
 [node name="IntensityOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
@@ -273,11 +289,11 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("btn_normal_style")
 theme_override_styles/hover = SubResource("btn_hover_style")
 theme_override_styles/pressed = SubResource("btn_normal_style")
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="SmartModeCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_icons/checked = ExtResource("aurora_check_on")
 theme_override_icons/unchecked = ExtResource("aurora_check_off")
 theme_override_constants/icon_max_width = 24
@@ -286,7 +302,7 @@ text = "智能模式"
 
 [node name="PerceptionCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_icons/checked = ExtResource("aurora_check_on")
 theme_override_icons/unchecked = ExtResource("aurora_check_off")
 theme_override_constants/icon_max_width = 24
@@ -295,7 +311,7 @@ text = "感知前台应用（仅进程名，本地使用）"
 
 [node name="PerceptionDefaultRulesCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_icons/checked = ExtResource("aurora_check_on")
 theme_override_icons/unchecked = ExtResource("aurora_check_off")
 theme_override_constants/icon_max_width = 24
@@ -304,7 +320,7 @@ text = "使用默认分类规则"
 
 [node name="FocusDurationLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "专注会话时长"
 
 [node name="FocusDurationOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
@@ -317,7 +333,7 @@ selected = 1
 
 [node name="CatBreedLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "猫咪品种"
 
 [node name="CatBreedOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
@@ -335,14 +351,16 @@ theme_override_constants/separation = 8
 
 [node name="SectionAI" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.78, 1.0, 1)
+custom_minimum_size = Vector2(0, 44)
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.82, 0.88, 1.0, 1)
 theme_override_font_sizes/font_size = 13
 theme_override_styles/normal = SubResource("section_card_bg")
 text = "  AI 增强"
 
 [node name="LLMEnabledCheck" type="CheckBox" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_icons/checked = ExtResource("aurora_check_on")
 theme_override_icons/unchecked = ExtResource("aurora_check_off")
 theme_override_constants/icon_max_width = 24
@@ -351,7 +369,7 @@ text = "启用 LLM"
 
 [node name="LLMEndpointLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.6, 0.64, 1)
+theme_override_colors/font_color = Color(0.82, 0.8, 0.88, 1)
 theme_override_font_sizes/font_size = 12
 text = "Endpoint"
 
@@ -361,7 +379,7 @@ placeholder_text = "https://api.openai.com/v1/chat/completions"
 
 [node name="LLMModelLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.6, 0.64, 1)
+theme_override_colors/font_color = Color(0.82, 0.8, 0.88, 1)
 theme_override_font_sizes/font_size = 12
 text = "Model"
 
@@ -371,7 +389,7 @@ placeholder_text = "gpt-4o-mini"
 
 [node name="LLMApiEnvLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.6, 0.64, 1)
+theme_override_colors/font_color = Color(0.82, 0.8, 0.88, 1)
 theme_override_font_sizes/font_size = 12
 text = "API Key 环境变量"
 
@@ -381,7 +399,7 @@ text = "OPENAI_API_KEY"
 
 [node name="LLMApiKeyLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.6, 0.64, 1)
+theme_override_colors/font_color = Color(0.82, 0.8, 0.88, 1)
 theme_override_font_sizes/font_size = 12
 text = "API Key（留空走环境变量）"
 
@@ -395,14 +413,16 @@ theme_override_constants/separation = 8
 
 [node name="SectionPersonality" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.78, 1.0, 1)
+custom_minimum_size = Vector2(0, 44)
+vertical_alignment = 1
+theme_override_colors/font_color = Color(0.82, 0.88, 1.0, 1)
 theme_override_font_sizes/font_size = 13
 theme_override_styles/normal = SubResource("section_card_bg")
 text = "  性格"
 
 [node name="PersonalityLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "性格"
 
 [node name="PersonalityOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
@@ -410,11 +430,11 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("btn_normal_style")
 theme_override_styles/hover = SubResource("btn_hover_style")
 theme_override_styles/pressed = SubResource("btn_normal_style")
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="ReminderIntensityLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "提醒强度"
 
 [node name="ReminderIntensityOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
@@ -422,11 +442,11 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("btn_normal_style")
 theme_override_styles/hover = SubResource("btn_hover_style")
 theme_override_styles/pressed = SubResource("btn_normal_style")
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 
 [node name="QuietHoursLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "安静时段"
 
 [node name="QuietHoursRow" type="HBoxContainer" parent="ScrollContainer/VBoxContainer"]
@@ -442,7 +462,7 @@ value = 23.0
 
 [node name="QuietRangeSep" type="Label" parent="ScrollContainer/VBoxContainer/QuietHoursRow"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = " - "
 
 [node name="QuietEndSpin" type="SpinBox" parent="ScrollContainer/VBoxContainer/QuietHoursRow"]
@@ -459,8 +479,11 @@ theme_override_constants/separation = 8
 
 [node name="SaveManagerButton" type="Button" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.88, 0.95, 1)
-theme_override_colors/font_hover_color = Color(1, 0.95, 0.8, 1)
+custom_minimum_size = Vector2(0, 44)
+theme_override_colors/font_color = Color(1, 0.95, 0.75, 1)
+theme_override_colors/font_hover_color = Color(1, 0.98, 0.85, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.95, 0.75, 1)
+theme_override_font_sizes/font_size = 15
 theme_override_styles/normal = SubResource("btn_normal_style")
 theme_override_styles/hover = SubResource("btn_hover_style")
 theme_override_styles/pressed = SubResource("btn_normal_style")

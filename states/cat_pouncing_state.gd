@@ -56,4 +56,9 @@ func physics_update(delta: float) -> void:
 		return
 
 	if _timer >= land_duration:
+		# 玩闹成功:开心庆祝再回空闲(心情+3)
+		if cat.behavior_system:
+			cat.behavior_system.modify_mood(3)
+		play_animation("celebrate")
+		await cat.animated_sprite.animation_finished
 		transition_to(CatStates.IDLE)

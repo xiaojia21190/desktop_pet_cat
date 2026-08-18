@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://cm0eyq8q1mypy"]
+[gd_scene load_steps=24 format=3 uid="uid://cm0eyq8q1mypy"]
 
 [ext_resource type="Script" uid="uid://cmeabkbxqyasw" path="res://cat.gd" id="1_cat"]
 [ext_resource type="SpriteFrames" path="res://resources/animations/orange_tabby.tres" id="2_lfnqg"]
@@ -17,6 +17,7 @@
 [ext_resource type="Script" uid="uid://bxpywshcvkige" path="res://components/cat_input_component.gd" id="14_input"]
 [ext_resource type="Script" uid="uid://cxknd6rjf10tp" path="res://components/cat_animation_component.gd" id="15_anim"]
 [ext_resource type="Script" uid="uid://bvr6a3pyaknya" path="res://components/cat_item_detector.gd" id="16_item"]
+[ext_resource type="Script" path="res://components/cat_live_overlay.gd" id="17_live"]
 [ext_resource type="Script" uid="uid://7ajgmhqa8j7x" path="res://states/cat_blocking_state.gd" id="18_block"]
 [ext_resource type="Script" uid="uid://krfdw05pwaq2" path="res://states/cat_licking_state.gd" id="19_lick"]
 [ext_resource type="Script" path="res://states/cat_wand_playing_state.gd" id="20_wandplay"]
@@ -36,6 +37,10 @@ scale = Vector2(0.55, 0.55)
 sprite_frames = ExtResource("2_lfnqg")
 animation = &"carry"
 frame_progress = 0.76583225
+
+[node name="LiveOverlay" type="Node2D" parent="."]
+position = Vector2(-35.2, -35.2)
+script = ExtResource("17_live")
 
 [node name="StateMachine" type="Node" parent="."]
 script = ExtResource("2_sm")
@@ -85,6 +90,7 @@ script = ExtResource("20_wandplay")
 
 [node name="LeashWalking" type="Node" parent="StateMachine"]
 script = ExtResource("21_leash")
+
 
 [node name="InputComponent" type="Node" parent="."]
 script = ExtResource("14_input")

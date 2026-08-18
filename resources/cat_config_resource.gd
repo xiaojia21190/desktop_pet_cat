@@ -93,28 +93,24 @@ static func create_default() -> CatConfigResource:
 	var orange = CatTypeData.new()
 	orange.cat_id = "orange_tabby"
 	orange.display_name = "橘猫"
-	orange.sprite_path = "res://assets/Orange Tabby.png"
 	orange.description = "傲娇的橘猫，喜欢捣乱"
 	res.cat_types.append(orange)
 
 	var calico = CatTypeData.new()
 	calico.cat_id = "calico"
 	calico.display_name = "三花猫"
-	calico.sprite_path = "res://assets/Calico.png"
 	calico.description = "优雅的三花猫"
 	res.cat_types.append(calico)
 
 	var british = CatTypeData.new()
 	british.cat_id = "british_blue"
 	british.display_name = "英短蓝猫"
-	british.sprite_path = "res://assets/British Shorthair Blue.png"
 	british.description = "圆脸的英短蓝猫"
 	res.cat_types.append(british)
 
 	var tuxedo = CatTypeData.new()
 	tuxedo.cat_id = "tuxedo"
 	tuxedo.display_name = "燕尾服猫"
-	tuxedo.sprite_path = "res://assets/Tuxedo Cat.png"
 	tuxedo.description = "绅士的燕尾服猫"
 	res.cat_types.append(tuxedo)
 

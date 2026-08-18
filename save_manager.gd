@@ -5,6 +5,12 @@ const SAVE_VERSION = 1
 const EXPORT_EXTENSION = ".catpet"
 const MAX_IMPORT_FILE_SIZE = 30 * 1024 * 1024  # 30MB 最大导入文件大小
 
+# 节点提供者（由 main.gd 注册注入，避免反向抓取场景树）
+var _main_provider: Callable
+var _cat_provider: Callable
+var _panel_provider: Callable
+var _smart_controller_provider: Callable
+
 func _get_default_data() -> Dictionary:
 	return {
 		"meta": {
@@ -160,7 +166,7 @@ func apply_settings(data: Dictionary = {}):
 
 	var settings: Dictionary = data.get("settings", {})
 	var opacity = settings.get("opacity", 1.0)
-	var main = _get_main()
+	var main = _main_provider.call() if _main_provider else null
 	if main and main is CanvasItem:
 		var color = main.modulate
 		color.a = opacity
@@ -182,14 +188,14 @@ func apply_settings(data: Dictionary = {}):
 			else:
 				AudioManager.bgm_player.stop()
 
-	var cat = _get_cat()
+	var cat = _cat_provider.call() if _cat_provider else null
 	if cat:
 		cat.state_change_interval = _intensity_to_interval(settings.get("intensity", 1))
 
 	if main and main.has_method("apply_timed_hide_settings"):
 		main.apply_timed_hide_settings(settings)
 
-	var smart_controller = _get_smart_controller()
+	var smart_controller = _smart_controller_provider.call() if _smart_controller_provider else null
 	if smart_controller and smart_controller.has_method("configure"):
 		smart_controller.configure(settings)
 
@@ -199,11 +205,11 @@ func _gather_current_data() -> Dictionary:
 	var cat_data = data["cat"]
 	var behavior_data = data["behavior"]
 
-	var main = _get_main()
+	var main = _main_provider.call() if _main_provider else null
 	if main and main is CanvasItem:
 		settings["opacity"] = main.modulate.a
 
-	var cat = _get_cat()
+	var cat = _cat_provider.call() if _cat_provider else null
 	if cat:
 		cat_data["scale_factor"] = cat.scale_factor
 		cat_data["position"] = cat.position
@@ -214,101 +220,10 @@ func _gather_current_data() -> Dictionary:
 		if cat.behavior_system:
 			behavior_data = cat.behavior_system.get_save_data()
 
-	var panel = _get_settings_panel()
-	if panel:
-		var opacity_slider = panel.get_node_or_null("VBoxContainer/OpacitySlider")
-		if opacity_slider:
-			settings["opacity"] = opacity_slider.value
-
-		var always_on_top_check = panel.get_node_or_null("VBoxContainer/AlwaysOnTopCheck")
-		if always_on_top_check:
-			settings["always_on_top"] = always_on_top_check.button_pressed
-
-		var intensity_option = panel.get_node_or_null("VBoxContainer/IntensityOption")
-		if intensity_option:
-			settings["intensity"] = intensity_option.selected
-
-		var timed_hide_option = panel.get_node_or_null("VBoxContainer/TimedHideOption")
-		if timed_hide_option:
-			settings["timed_hide_option"] = timed_hide_option.selected
-
-		var sound_check = panel.get_node_or_null("VBoxContainer/SoundCheck")
-		if sound_check:
-			settings["sound_enabled"] = sound_check.button_pressed
-
-		var bgm_check = panel.get_node_or_null("VBoxContainer/BGMCheck")
-		if bgm_check:
-			settings["bgm_enabled"] = bgm_check.button_pressed
-
-		var volume_slider = panel.get_node_or_null("VBoxContainer/VolumeSlider")
-		if volume_slider:
-			settings["volume"] = volume_slider.value
-
-		var smart_mode_check = panel.get_node_or_null("VBoxContainer/SmartModeCheck")
-		if smart_mode_check:
-			settings["smart_mode"] = smart_mode_check.button_pressed
-
-		var llm_enabled_check = panel.get_node_or_null("VBoxContainer/LLMEnabledCheck")
-		if llm_enabled_check:
-			settings["llm_enabled"] = llm_enabled_check.button_pressed
-
-		var llm_endpoint_input = panel.get_node_or_null("VBoxContainer/LLMEndpointInput")
-		if llm_endpoint_input:
-			settings["llm_endpoint"] = String(llm_endpoint_input.text).strip_edges()
-
-		var llm_model_input = panel.get_node_or_null("VBoxContainer/LLMModelInput")
-		if llm_model_input:
-			settings["llm_model"] = String(llm_model_input.text).strip_edges()
-
-		var llm_api_key_input = panel.get_node_or_null("VBoxContainer/LLMApiKeyInput")
-		if llm_api_key_input:
-			settings["llm_api_key"] = String(llm_api_key_input.text).strip_edges()
-
-		var llm_api_env_input = panel.get_node_or_null("VBoxContainer/LLMApiEnvInput")
-		if llm_api_env_input:
-			settings["llm_api_key_env"] = String(llm_api_env_input.text).strip_edges()
-
-		var personality_option = panel.get_node_or_null("VBoxContainer/PersonalityOption")
-		if personality_option:
-			match personality_option.selected:
-				1:
-					settings["personality"] = "gentle"
-				2:
-					settings["personality"] = "playful"
-				_:
-					settings["personality"] = "tsundere"
-
-		var reminder_option = panel.get_node_or_null("VBoxContainer/ReminderIntensityOption")
-		if reminder_option:
-			match reminder_option.selected:
-				0:
-					settings["reminder_intensity"] = "low"
-				2:
-					settings["reminder_intensity"] = "high"
-				_:
-					settings["reminder_intensity"] = "medium"
-
-		var quiet_start_spin = panel.get_node_or_null("VBoxContainer/QuietHoursRow/QuietStartSpin")
-		if quiet_start_spin:
-			settings["quiet_hours_start"] = int(round(quiet_start_spin.value))
-
-		var quiet_end_spin = panel.get_node_or_null("VBoxContainer/QuietHoursRow/QuietEndSpin")
-		if quiet_end_spin:
-			settings["quiet_hours_end"] = int(round(quiet_end_spin.value))
-
-		var perception_check = panel.get_node_or_null("VBoxContainer/PerceptionCheck")
-		if perception_check:
-			settings["perception_enabled"] = perception_check.button_pressed
-
-		var perception_rules_check = panel.get_node_or_null("VBoxContainer/PerceptionDefaultRulesCheck")
-		if perception_rules_check:
-			settings["perception_default_rules"] = perception_rules_check.button_pressed
-
-		var focus_duration_option = panel.get_node_or_null("VBoxContainer/FocusDurationOption")
-		if focus_duration_option:
-			settings["focus_duration_index"] = focus_duration_option.selected
-
-		settings["data_collection_level"] = "minimal"
+	# 面板设置项：由面板自身 collect_settings() 提供（旧实现路径错误导致全部 null）
+	var panel = _panel_provider.call() if _panel_provider else null
+	if panel and panel.has_method("collect_settings"):
+		settings.merge(panel.collect_settings(), true)
 	elif AudioManager:
 		settings["sound_enabled"] = AudioManager.sound_enabled
 		settings["bgm_enabled"] = AudioManager.bgm_enabled
@@ -321,7 +236,7 @@ func _gather_current_data() -> Dictionary:
 		if timed_hide_data.has("timed_hide_end_time"):
 			settings["timed_hide_end_time"] = timed_hide_data["timed_hide_end_time"]
 
-	var smart_controller = _get_smart_controller()
+	var smart_controller = _smart_controller_provider.call() if _smart_controller_provider else null
 	if smart_controller and smart_controller.has_method("get_settings_snapshot"):
 		var smart_settings = smart_controller.get_settings_snapshot()
 		if smart_settings is Dictionary:
@@ -332,38 +247,24 @@ func _gather_current_data() -> Dictionary:
 	data["behavior"] = behavior_data
 	return data
 
-func _get_main():
-	var root = get_tree().get_root()
-	if not root:
-		return null
-	return root.get_node_or_null("Main")
-
-func _get_cat():
-	var main = _get_main()
-	if not main:
-		return null
-	return main.get_node_or_null("Cat")
-
-func _get_settings_panel():
-	var main = _get_main()
-	if not main:
-		return null
-	return main.get_node_or_null("SettingsPanel")
-
-func _get_smart_controller():
-	var main = _get_main()
-	if not main:
-		return null
-	return main.get_node_or_null("SmartPetController")
+## 注册节点提供者（依赖注入，替代 get_tree() 反向抓取）
+## main.gd 在 _ready 中调用，防止字段重命名后静默存空数据
+func register_providers(main_provider: Callable, cat_provider: Callable,
+		panel_provider: Callable, smart_controller_provider: Callable) -> void:
+	_main_provider = main_provider
+	_cat_provider = cat_provider
+	_panel_provider = panel_provider
+	_smart_controller_provider = smart_controller_provider
 
 func _intensity_to_interval(intensity: int) -> float:
+	# 间隔调长:让动画有存在感(原 5/3/1.5 太快,动画常被打断)
 	match intensity:
 		0:
-			return 5.0
+			return 9.0
 		2:
-			return 1.5
+			return 4.0
 		_:
-			return 3.0
+			return 6.5
 
 func _interval_to_intensity(interval: float) -> int:
 	if interval <= 1.6:
@@ -373,12 +274,12 @@ func _interval_to_intensity(interval: float) -> int:
 	return 0
 
 func set_cat_intensity(intensity: int):
-	var cat = _get_cat()
+	var cat = _cat_provider.call() if _cat_provider else null
 	if cat:
 		cat.state_change_interval = _intensity_to_interval(intensity)
 
 func set_timed_hide_option(option_index: int):
-	var main = _get_main()
+	var main = _main_provider.call() if _main_provider else null
 	if main and main.has_method("set_timed_hide_option"):
 		main.set_timed_hide_option(option_index)
 
@@ -442,7 +343,7 @@ func apply_save_data(data: Dictionary) -> void:
 	_apply_settings_panel(normalized.get("settings", {}))
 
 func _apply_cat_data(cat_data: Dictionary) -> void:
-	var cat = _get_cat()
+	var cat = _cat_provider.call() if _cat_provider else null
 	if not cat:
 		return
 	if cat_data.has("scale_factor"):
@@ -456,12 +357,12 @@ func _apply_cat_data(cat_data: Dictionary) -> void:
 			animation_component.switch_cat_type(cat_type)
 
 func _apply_behavior_data(behavior_data: Dictionary) -> void:
-	var cat = _get_cat()
+	var cat = _cat_provider.call() if _cat_provider else null
 	if cat and cat.behavior_system:
 		cat.behavior_system.load_save_data(behavior_data)
 
 func _apply_settings_panel(settings: Dictionary) -> void:
-	var panel = _get_settings_panel()
+	var panel = _panel_provider.call() if _panel_provider else null
 	if panel and panel.has_method("apply_settings"):
 		panel.apply_settings(settings)
 

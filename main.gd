@@ -16,13 +16,13 @@ var settings_panel: Panel
 const POPUP_MENU_ITEMS_NAME := "items_menu"
 const POPUP_MENU_ID_WAND := 0
 const POPUP_MENU_ID_FOOD := 1
+const POPUP_MENU_ID_YARN := 2
+const POPUP_MENU_ID_BOX := 3
 const POPUP_MENU_ID_SETTINGS := 10
 const POPUP_MENU_ID_TOGGLE_VISIBILITY := 11
 const POPUP_MENU_ID_EXIT := 12
-const TIMED_HIDE_DURATIONS := [0, 15 * 60, 30 * 60, 60 * 60, 120 * 60]
-var timed_hide_option := 0
-var timed_hide_end_time := 0
-var timed_hide_timer: Timer
+const TIMED_HIDE_CONTROLLER_SCRIPT := preload("res://components/desktop/timed_hide_controller.gd")
+var timed_hide_controller
 var focus_session_mode
 var smart_pet_controller
 var foreground_app_monitor
@@ -36,9 +36,12 @@ var smart_line_bubble
 var hover_panel_component
 var quick_action_menu
 var _build_failure_streak := 0
+var _start_minimized := false  # --minimized 启动:视觉隐藏仅托盘常驻(开机自启用)
 
 var _cached_screen_size: Vector2 = Vector2(1920, 1080)
 const BUILD_FAILURE_STREAK_THRESHOLD := 2
+const SETTINGS_PANEL_WIDTH := 560.0
+const SETTINGS_PANEL_HEIGHT := 900.0
 const FORCE_START_AT_BOTTOM_RIGHT := false
 
 const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
@@ -62,8 +65,17 @@ func _ready():
 	if cat:
 		cat.typing_attack_started.connect(_on_typing_attack_started)
 		cat.cat_left_clicked.connect(_on_cat_left_clicked)
+		cat.bond_level_up.connect(_on_bond_level_up)
 
 	_setup_timed_hide_timer()
+
+	# 注册节点提供者（SaveManager 存档收集依赖注入，先于 apply_settings）
+	SaveManager.register_providers(
+		func(): return self,
+		func(): return cat,
+		func(): return settings_panel,
+		func(): return smart_pet_controller
+	)
 
 	var data = SaveManager.load_data()
 	SaveManager.apply_settings(data)
@@ -90,6 +102,8 @@ func _ready():
 		settings_panel = panel_scene.instantiate()
 		settings_panel.visible = false
 		add_child(settings_panel)
+		# Panel 挂在 Node2D 下锚点失效（父级无尺寸）→ 代码定位屏幕居中
+		_center_settings_panel()
 
 	_setup_focus_session_mode()
 	_setup_smart_pet_controller(settings)
@@ -102,6 +116,52 @@ func _ready():
 	add_child(passthrough_manager)
 	_update_mouse_passthrough_region()
 	_log_window_state()
+
+	# --minimized 启动:隐藏猫仅托盘常驻(托盘菜单可再显示)
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--minimized":
+			_start_minimized = true
+			break
+
+	# 延迟重申窗口标志:编辑器/快速启动场景下窗口创建与标志设置存在竞态,
+	# 透明窗口若标志丢失会整屏黑;启动 0.5s 后再强制应用一次确保生效
+	get_tree().create_timer(0.5).timeout.connect(func():
+		if not _start_minimized:
+			_apply_window_style()
+			_update_mouse_passthrough_region()
+	)
+	if _start_minimized:
+		_set_pet_visible(false)
+		# minimized 模式:窗口位置可能被后续布局/size 变化复位,持续压制 3 秒
+		var guard_start := Time.get_ticks_msec()
+		var guard_timer := Timer.new()
+		guard_timer.wait_time = 0.1
+		add_child(guard_timer)
+		guard_timer.timeout.connect(func():
+			if _start_minimized and not _is_pet_visible():
+				get_window().position = Vector2i(-20000, -20000)
+			if Time.get_ticks_msec() - guard_start > 3000:
+				guard_timer.queue_free()
+		)
+		guard_timer.start()
+
+
+func _on_bond_level_up(_level: int, message: String) -> void:
+	# 亲密度升级:气泡提示 + 播放庆祝音
+	if smart_line_bubble and cat:
+		smart_line_bubble.show_line(message, cat.global_position, _cached_screen_size)
+	AudioManager.play_cat_sound()
+	# 面板若开着,刷新品种解锁显示
+	if settings_panel and settings_panel.visible and settings_panel.has_method("refresh_breed_locks"):
+		settings_panel.refresh_breed_locks(int(cat.bond_system.get_level()))
+
+
+func _center_settings_panel() -> void:
+	if not settings_panel:
+		return
+	var vp := get_viewport_rect().size
+	settings_panel.size = Vector2(SETTINGS_PANEL_WIDTH, SETTINGS_PANEL_HEIGHT)
+	settings_panel.position = Vector2((vp.x - SETTINGS_PANEL_WIDTH) * 0.5, (vp.y - SETTINGS_PANEL_HEIGHT) * 0.5)
 
 func _apply_initial_cat_position(meta: Dictionary, cat_data: Dictionary) -> void:
 	if not cat:
@@ -159,6 +219,7 @@ func _on_screen_size_changed():
 			hover_panel_component._target_x = _cached_screen_size.x
 	if smart_line_bubble and cat:
 		smart_line_bubble.reposition(cat.global_position, _cached_screen_size)
+	_center_settings_panel()
 	_update_mouse_passthrough_region()
 
 func _process(delta):
@@ -208,79 +269,33 @@ func _update_shake(delta):
 		modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 func _setup_timed_hide_timer():
-	timed_hide_timer = Timer.new()
-	timed_hide_timer.one_shot = true
-	timed_hide_timer.timeout.connect(_on_timed_hide_timeout)
-	add_child(timed_hide_timer)
+	timed_hide_controller = TIMED_HIDE_CONTROLLER_SCRIPT.new()
+	timed_hide_controller.name = "TimedHideController"
+	add_child(timed_hide_controller)
+	timed_hide_controller.bind_save_request(func(): SaveManager.save_data())
+	timed_hide_controller.hide_timeout.connect(_on_timed_hide_timeout)
+	timed_hide_controller.option_changed.connect(func(_index: int): _sync_timed_hide_panel())
 
+# —— 定时隐藏公共接口：转发到 TimedHideController（外部调用点不变）——
 func apply_timed_hide_settings(settings: Dictionary) -> void:
-	var option_index = int(settings.get("timed_hide_option", 0))
-	var end_time = int(settings.get("timed_hide_end_time", 0))
-	if _get_timed_hide_duration(option_index) <= 0:
-		timed_hide_option = 0
-		timed_hide_end_time = 0
-		_stop_timed_hide_timer()
-		return
-	var remaining = end_time - Time.get_unix_time_from_system()
-	if remaining <= 0:
-		timed_hide_option = 0
-		timed_hide_end_time = 0
-		_stop_timed_hide_timer()
-		return
-	timed_hide_option = option_index
-	timed_hide_end_time = end_time
-	_start_timed_hide_timer(float(remaining))
+	timed_hide_controller.apply_settings(settings)
 
 func set_timed_hide_option(option_index: int) -> void:
-	var duration = _get_timed_hide_duration(option_index)
-	if duration <= 0:
-		timed_hide_option = 0
-		timed_hide_end_time = 0
-		_stop_timed_hide_timer()
-		return
-	timed_hide_option = option_index
-	timed_hide_end_time = int(Time.get_unix_time_from_system()) + duration
-	_start_timed_hide_timer(float(duration))
+	timed_hide_controller.select_option(option_index)
 
 func get_timed_hide_remaining_seconds() -> int:
-	if timed_hide_end_time <= 0:
-		return 0
-	return maxi(int(timed_hide_end_time - Time.get_unix_time_from_system()), 0)
+	return timed_hide_controller.get_remaining_seconds()
 
 func get_timed_hide_save_data() -> Dictionary:
-	return {
-		"timed_hide_option": timed_hide_option,
-		"timed_hide_end_time": timed_hide_end_time
-	}
-
-func _start_timed_hide_timer(duration_seconds: float):
-	if not timed_hide_timer:
-		return
-	timed_hide_timer.stop()
-	timed_hide_timer.wait_time = duration_seconds
-	timed_hide_timer.start()
-
-func _stop_timed_hide_timer():
-	if timed_hide_timer:
-		timed_hide_timer.stop()
-
-func _get_timed_hide_duration(option_index: int) -> int:
-	if option_index < 0 or option_index >= TIMED_HIDE_DURATIONS.size():
-		return 0
-	return TIMED_HIDE_DURATIONS[option_index]
+	return timed_hide_controller.get_save_data()
 
 func _on_timed_hide_timeout():
-	timed_hide_end_time = 0
-	if timed_hide_option != 0:
-		timed_hide_option = 0
-		_sync_timed_hide_panel()
-		SaveManager.save_data()
 	_record_smart_event("user_busy")
 	_set_pet_visible(false)
 
 func _sync_timed_hide_panel():
 	if settings_panel and settings_panel.has_method("set_timed_hide_option"):
-		settings_panel.set_timed_hide_option(timed_hide_option)
+		settings_panel.set_timed_hide_option(timed_hide_controller.option_index)
 
 func _setup_focus_session_mode() -> void:
 	if focus_session_mode:
@@ -377,6 +392,8 @@ func _build_popup_menu():
 	popup_menu.add_child(popup_menu_items)
 	popup_menu_items.add_item("逗猫棒", POPUP_MENU_ID_WAND)
 	popup_menu_items.add_item("零食", POPUP_MENU_ID_FOOD)
+	popup_menu_items.add_item("毛线球", POPUP_MENU_ID_YARN)
+	popup_menu_items.add_item("纸箱", POPUP_MENU_ID_BOX)
 	popup_menu_items.id_pressed.connect(_on_popup_item_selected)
 
 	popup_menu.add_submenu_item("道具", POPUP_MENU_ITEMS_NAME)
@@ -420,6 +437,10 @@ func _input(event):
 func _on_popup_item_selected(id):
 	if id == POPUP_MENU_ID_WAND:
 		spawn_item("wand", last_menu_position)
+	elif id == POPUP_MENU_ID_YARN:
+		spawn_item("yarn", last_menu_position)
+	elif id == POPUP_MENU_ID_BOX:
+		spawn_item("box", last_menu_position)
 	elif id == POPUP_MENU_ID_FOOD:
 		spawn_item("food", last_menu_position)
 
@@ -453,6 +474,15 @@ func spawn_item(item_type: String, pos: Vector2):
 			scene = ITEM_WAND_SCENE
 		"food":
 			scene = ITEM_FOOD_SCENE
+		"yarn", "box":
+			# 毛线球/纸箱复用 wand 场景结构（脚本按 item_type 加载对应贴图）
+			scene = ITEM_WAND_SCENE
+			var inst = scene.instantiate()
+			inst.item_type = item_type
+			inst.global_position = pos
+			add_child(inst)
+			_after_item_spawned(item_type)
+			return
 
 	if scene == null:
 		return
@@ -460,6 +490,9 @@ func spawn_item(item_type: String, pos: Vector2):
 	var item = scene.instantiate()
 	item.global_position = pos
 	add_child(item)
+	_after_item_spawned(item_type)
+
+func _after_item_spawned(item_type: String) -> void:
 	AudioManager.play_item_sound()
 	if smart_pet_controller:
 		smart_pet_controller.record_item_use(item_type)
@@ -604,14 +637,26 @@ func _toggle_pet_visibility():
 	_set_pet_visible(not _is_pet_visible())
 
 func _set_pet_visible(pet_visible: bool):
-	var window = get_window()
-	window.visible = pet_visible
+	# Godot 不允许隐藏主窗口,且铺屏 borderless 窗口的 position 会被钳制;
+	# 视觉隐藏 = 缩到 1x1 移到角落 + 鼠标全穿透,托盘常驻不受影响
+	var window := get_window()
+	if pet_visible:
+		var screen_index := DisplayServer.window_get_current_screen()
+		window.size = Vector2i(DisplayServer.screen_get_size(screen_index))
+		window.position = DisplayServer.screen_get_position(screen_index)
+		if passthrough_manager:
+			passthrough_manager.set_force_passthrough(false)
+	else:
+		window.size = Vector2i(1, 1)
+		window.position = Vector2i(-20000, -20000)
+		if passthrough_manager:
+			passthrough_manager.set_force_passthrough(true)
 	_update_visibility_menu_labels()
 	_update_mouse_passthrough_region()
 
 func _is_pet_visible() -> bool:
-	var window = get_window()
-	return window.visible
+	# 视觉可见 = 窗口为全屏尺寸(隐藏方案是缩为 1x1)
+	return get_window().size.x > 100
 
 func _fit_window_to_screen() -> void:
 	var window := get_window()
@@ -688,6 +733,12 @@ func _on_quick_action_selected(action: String) -> void:
 		"food":
 			var pos: Vector2 = cat.global_position if cat else get_global_mouse_position()
 			spawn_item("food", pos + Vector2(60, 0))
+		"yarn":
+			var pos: Vector2 = cat.global_position if cat else get_global_mouse_position()
+			spawn_item("yarn", pos + Vector2(60, 0))
+		"box":
+			var pos: Vector2 = cat.global_position if cat else get_global_mouse_position()
+			spawn_item("box", pos + Vector2(60, 0))
 		"leash":
 			_toggle_leash_walk()
 		"settings":
@@ -706,4 +757,8 @@ func _toggle_leash_walk() -> void:
 
 func _on_quick_action_menu_closed() -> void:
 	_update_mouse_passthrough_region()
+
+
+
+
 

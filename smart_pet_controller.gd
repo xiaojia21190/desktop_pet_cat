@@ -13,6 +13,7 @@ const LLMAdapterScript = preload("res://llm_adapter.gd")
 const CustomizationServiceScript = preload("res://customization_service.gd")
 
 @export var policy_tick_interval: float = 3.0
+@export var llm_tick_interval: float = 45.0  ## LLM 全上下文决策周期（秒）
 
 var _main_node: Node
 var _cat_node: Node2D
@@ -47,6 +48,7 @@ func _ready() -> void:
 
 	_llm_adapter.line_ready.connect(_on_llm_line_ready)
 	_llm_adapter.decision_ready.connect(_on_llm_decision_ready)
+	_llm_adapter.no_reaction.connect(_on_llm_no_reaction)
 
 func bind_nodes(main_node: Node, cat_node: Node2D) -> void:
 	_main_node = main_node
@@ -99,7 +101,11 @@ func _process(delta: float) -> void:
 
 	_context_collector.update_context(delta)
 	_timer += delta
-	if _timer < policy_tick_interval:
+	# LLM 模式下用更长的决策周期（每问一次都是完整 API 调用）
+	var interval := policy_tick_interval
+	if _customization_service.llm_enabled:
+		interval = llm_tick_interval
+	if _timer < interval:
 		return
 
 	_timer = 0.0
@@ -158,6 +164,37 @@ func _evaluate_policy() -> void:
 	if typeof(decision_raw) == TYPE_DICTIONARY:
 		decision = decision_raw as Dictionary
 
+	# —— LLM 全上下文决策：开启时 LLM 是大脑，规则建议只作参考 ——
+	if _customization_service.llm_enabled:
+		# 安全兜底：静音时段/全屏不打扰（硬规则，LLM 不可越过）
+		if _policy_engine._is_quiet_hours(snapshot) or bool(snapshot.get("fullscreen", false)):
+			return
+		var fg_app := String(snapshot.get("foreground_app", ""))
+		var llm_context := {
+			"hour": int(snapshot.get("hour", 12)),
+			"foreground_app": fg_app,
+			"activity": String(snapshot.get("activity", "")),
+			"continuous_active_seconds": float(snapshot.get("continuous_active_seconds", 0.0)),
+			"idle_seconds": float(snapshot.get("idle_seconds", 0.0)),
+			"typing_per_min": float(snapshot.get("typing_per_min", 0.0)),
+			"fullscreen": bool(snapshot.get("fullscreen", false))
+		}
+		var recent_names: Array[Dictionary] = []
+		for e in recent_events:
+			recent_names.append({"type": String(e.get("type", ""))})
+		_llm_adapter.generate_decision_async({
+			"psyche": snapshot.get("psyche", {}),
+			"context": llm_context,
+			"memory_lines": snapshot.get("memory_lines", []),
+			"recent_events": recent_names,
+			"tags": tags,
+			"persona": persona,
+			"fallback_action": String(decision.get("action_id", "idle")),
+			"fallback_line": String(decision.get("template_line", ""))
+		}, String(decision.get("action_id", "idle")), String(decision.get("template_line", "")))
+		return
+
+	# —— 规则模式（LLM 关闭）：沿用原判定 ——
 	if not bool(decision.get("react", false)):
 		return
 
@@ -167,22 +204,18 @@ func _evaluate_policy() -> void:
 
 	var fallback_line := String(decision.get("template_line", ""))
 	record_event("smart_decision", {"action_id": action_id, "intent": String(decision.get("policy_intent", ""))})
-
-	if _customization_service.llm_enabled:
-		_llm_adapter.generate_decision_async({
-			"intent": String(decision.get("policy_intent", "")),
-			"fallback_action": action_id,
-			"fallback_line": fallback_line,
-			"tags": tags,
-			"persona": persona
-		}, action_id, fallback_line)
-	else:
-		smart_action_requested.emit(action_id, decision)
-		smart_line_generated.emit(fallback_line, "policy")
+	smart_action_requested.emit(action_id, decision)
+	smart_line_generated.emit(fallback_line, "policy")
 
 func _on_llm_line_ready(line: String, source: String, _meta: Dictionary) -> void:
 	smart_line_generated.emit(line, source)
 
 func _on_llm_decision_ready(action: String, line: String, source: String, _meta: Dictionary) -> void:
 	smart_action_requested.emit(action, {"source": source})
-	smart_line_generated.emit(line, source)
+	# 空台词 = LLM 选择"只做动作不说话"（llm_silent），不弹气泡
+	if not line.is_empty():
+		smart_line_generated.emit(line, source)
+
+func _on_llm_no_reaction() -> void:
+	# LLM 判断当下不该打扰：安静周期，什么都不发
+	record_event("smart_quiet", {})

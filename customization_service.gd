@@ -16,7 +16,7 @@ var llm_endpoint: String = "https://api.openai.com/v1/chat/completions"
 var llm_model: String = "gpt-4o-mini"
 var llm_api_key: String = ""
 var llm_api_key_env: String = "OPENAI_API_KEY"
-var llm_timeout_seconds: float = 10.0
+var llm_timeout_seconds: float = 45.0
 
 func apply_settings(settings: Dictionary) -> void:
 	smart_mode = bool(settings.get("smart_mode", smart_mode))

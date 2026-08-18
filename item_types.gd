@@ -8,6 +8,8 @@ enum Type {
 	NONE,
 	FOOD,
 	WAND,
+	YARN,
+	BOX,
 }
 
 ## 从字符串转换为枚举
@@ -17,6 +19,10 @@ static func from_string(type_str: String) -> Type:
 			return Type.FOOD
 		"wand":
 			return Type.WAND
+		"yarn":
+			return Type.YARN
+		"box":
+			return Type.BOX
 		_:
 			return Type.NONE
 
@@ -27,5 +33,9 @@ static func to_string_name(type: Type) -> String:
 			return "food"
 		Type.WAND:
 			return "wand"
+		Type.YARN:
+			return "yarn"
+		Type.BOX:
+			return "box"
 		_:
 			return ""

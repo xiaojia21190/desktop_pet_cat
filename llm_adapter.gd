@@ -11,7 +11,7 @@ signal decision_ready(action: String, line: String, source: String, meta: Dictio
 @export var model: String = "gpt-4o-mini"
 @export var api_key: String = ""
 @export var api_key_env: String = "OPENAI_API_KEY"
-@export var timeout_seconds: float = 10.0
+@export var timeout_seconds: float = 45.0
 
 var _http_request: HTTPRequest
 var _fallback_line: String = ""
@@ -19,9 +19,7 @@ var _fallback_action: String = ""
 var _pending: bool = false
 var _decision_mode: bool = false
 
-# LLM 决策缓存（intent → {action, line, timestamp}）
-var _decision_cache: Dictionary = {}
-const CACHE_TTL_SECONDS: float = 480.0  # 8分钟
+# （决策缓存已移除：全上下文模式每次看最新状态）
 
 const VALID_ACTIONS: Array[String] = [
 	"idle", "walk", "watch", "pounce", "chase", "roll", "tail_wag",
@@ -31,22 +29,96 @@ const VALID_ACTIONS: Array[String] = [
 
 const SYSTEM_PROMPT_LINE := "You are a concise desktop pet assistant. Return one short line in Simplified Chinese."
 
-const SYSTEM_PROMPT_DECISION := """You are a desktop cat pet AI controller. Given the user's context, decide what action the cat should perform and what it should say.
+const SYSTEM_PROMPT_DECISION := """You are the mind of a desktop cat pet living on the user's screen. You receive the cat's inner state and everything you can perceive about the user. Decide how the cat behaves NOW.
 
 Available actions: idle, walk, watch, pounce, chase, roll, tail_wag, sleep_curl, greet, comfort, celebrate, break_hint, retreat, lick, blocking
 
-Rules:
-- Choose actions that match the context (e.g. comfort when user is frustrated, break_hint when working too long, greet when returning)
-- The line should be a short, cute cat personality sentence in Simplified Chinese (max 25 chars)
-- Personality styles: tsundere=傲娇, gentle=温柔, playful=活泼
+How to think:
+- You are a real cat with personality (tsundere=傲娇, gentle=温柔, playful=活泼), not a notification bot.
+- React to the USER's situation: what app they are using, how long they've been working, their recent interactions with you, time of day, your memory of their habits.
+- Use your inner state (mood/energy/affection/chaos): tired cat acts tired; high affection cat seeks contact.
+- Most of the time a cat does NOT talk. Only speak when there is a genuine reason (max ~1 line per few minutes). If nothing is worth saying, choose "react": false.
+- When you do speak: one short sentence (max 25 chars) in Simplified Chinese, in character, referencing the actual situation if natural.
+- Do NOT repeat the fallback line; it is only a last-resort hint.
 
-Return ONLY a JSON object: {"action":"<action>","line":"<text>"}"""
+Return ONLY a JSON object: {"react": true/false, "action": "<action>", "line": "<text or empty>"}"""
 
 func _ready() -> void:
 	_http_request = HTTPRequest.new()
 	_http_request.timeout = timeout_seconds
+	_http_request.use_threads = true
+	_apply_system_proxy()
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_request_completed)
+
+## 自动应用系统代理：HTTPRequest 默认不走系统代理，直连被墙时表现为
+## 重定向循环（RESULT_REDIRECT_LIMIT_REACHED）→ 永远回退规则引擎。
+## 优先级：HTTPS_PROXY/HTTP_PROXY 环境变量 > Windows 注册表代理。
+func _apply_system_proxy() -> void:
+	var proxy_url := _detect_system_proxy()
+	if proxy_url.is_empty():
+		return
+	var parsed := _parse_proxy_url(proxy_url)
+	if parsed.is_empty():
+		push_warning("LLM 代理配置无法解析: " + proxy_url)
+		return
+	_http_request.set_http_proxy(parsed["host"], int(parsed["port"]))
+	_http_request.set_https_proxy(parsed["host"], int(parsed["port"]))
+	print("LLM 已启用系统代理: ", parsed["host"], ":", parsed["port"])
+
+func _detect_system_proxy() -> String:
+	for env_name in ["HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"]:
+		var value := OS.get_environment(env_name).strip_edges()
+		if not value.is_empty():
+			return value
+	if OS.get_name() == "Windows":
+		return _read_windows_proxy()
+	return ""
+
+func _read_windows_proxy() -> String:
+	# 注册表 ProxyEnable=1 时读 ProxyServer（格式 host:port）
+	if not ClassDB.class_exists("RegEx"):
+		return ""
+	var output: Array = []
+	var exit_code := OS.execute("reg", ["query",
+		"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+		"/v", "ProxyEnable"], output, true)
+	if exit_code != 0 or output.is_empty():
+		return ""
+	if "0x1" not in String(output[0]):
+		return ""
+	output = []
+	exit_code = OS.execute("reg", ["query",
+		"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings",
+		"/v", "ProxyServer"], output, true)
+	if exit_code != 0 or output.is_empty():
+		return ""
+	var line := String(output[0])
+	for part in line.split("\n"):
+		part = part.strip_edges()
+		if part.begins_with("ProxyServer"):
+			var value := part.substr(part.find("REG_SZ") + 6).strip_edges()
+			# 支持格式：host:port 或 http=host:port;https=host:port
+			if ";" in value:
+				for seg in value.split(";"):
+					if seg.begins_with("https="):
+						return seg.substr(6)
+				return ""
+			return value
+	return ""
+
+func _parse_proxy_url(proxy_url: String) -> Dictionary:
+	var cleaned := proxy_url
+	for scheme in ["http://", "https://"]:
+		if cleaned.begins_with(scheme):
+			cleaned = cleaned.substr(scheme.length())
+	var host_port := cleaned.split(":")
+	if host_port.size() != 2:
+		return {}
+	var port := host_port[1].to_int()
+	if port <= 0:
+		return {}
+	return {"host": host_port[0], "port": port}
 
 func configure(settings: Dictionary) -> void:
 	enabled = bool(settings.get("llm_enabled", enabled))
@@ -74,16 +146,7 @@ func generate_decision_async(payload: Dictionary, fallback_action: String, fallb
 	_decision_mode = true
 	_fallback_action = fallback_action
 	_fallback_line = fallback_line
-
-	# 检查缓存
-	var cache_key := String(payload.get("intent", ""))
-	if not cache_key.is_empty() and _decision_cache.has(cache_key):
-		var cached: Dictionary = _decision_cache[cache_key]
-		var age: float = Time.get_unix_time_from_system() - float(cached.get("timestamp", 0.0))
-		if age < CACHE_TTL_SECONDS:
-			decision_ready.emit(String(cached.get("action", fallback_action)), String(cached.get("line", fallback_line)), "llm_cache", {})
-			return
-
+	# 全上下文决策不做意图缓存：每次都看最新状态，避免"同一意图永远同一句话"
 	_send_request(SYSTEM_PROMPT_DECISION, _build_decision_prompt(payload))
 
 func _send_request(system_prompt: String, user_prompt: String) -> void:
@@ -121,6 +184,7 @@ func _send_request(system_prompt: String, user_prompt: String) -> void:
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	_pending = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		push_warning("LLM 请求失败: result=%d code=%d body=%s" % [result, response_code, body.get_string_from_utf8().left(200)])
 		_emit_fallback("http_error")
 		return
 
@@ -140,16 +204,27 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 	else:
 		line_ready.emit(raw_line, "llm", {"code": response_code})
 
+signal no_reaction  ## LLM 判断当下不该说话/动作（猫保持自然状态）
+
 func _parse_decision_response(raw: String) -> void:
 	var json = JSON.parse_string(raw)
 	if typeof(json) == TYPE_DICTIONARY:
 		var d := json as Dictionary
+		var react := bool(d.get("react", true))
 		var action := String(d.get("action", "")).strip_edges()
 		var line := String(d.get("line", "")).strip_edges()
+
+		# LLM 自主判断不打扰：安静周期，不发动作不发台词
+		if not react:
+			no_reaction.emit()
+			return
+
+		# 只动作不说话（line 允许为空）
+		if action in VALID_ACTIONS and line.is_empty():
+			decision_ready.emit(action, "", "llm_silent", {})
+			return
+
 		if action in VALID_ACTIONS and not line.is_empty():
-			# 写入缓存
-			var cache_key := _fallback_action  # intent 用 fallback_action 区分
-			_decision_cache[cache_key] = {"action": action, "line": line, "timestamp": Time.get_unix_time_from_system()}
 			decision_ready.emit(action, line, "llm", {})
 			return
 
@@ -205,23 +280,93 @@ func _build_prompt(payload: Dictionary) -> String:
 	]
 
 func _build_decision_prompt(payload: Dictionary) -> String:
+	## 全上下文决策提示：心理/感知/记忆/事件/建议全打包，LLM 自主判断
 	var persona_raw = payload.get("persona", {})
 	var persona: Dictionary = {}
 	if typeof(persona_raw) == TYPE_DICTIONARY:
 		persona = persona_raw as Dictionary
 
+	var psyche_raw = payload.get("psyche", {})
+	var psyche: Dictionary = {}
+	if typeof(psyche_raw) == TYPE_DICTIONARY:
+		psyche = psyche_raw as Dictionary
+
+	var context_raw = payload.get("context", {})
+	var context: Dictionary = {}
+	if typeof(context_raw) == TYPE_DICTIONARY:
+		context = context_raw as Dictionary
+
 	var tags_raw = payload.get("tags", [])
-	var tags: Array[String] = []
+	var tag_text := ""
 	if typeof(tags_raw) == TYPE_ARRAY:
+		var tags: Array[String] = []
 		for tag_value in tags_raw:
 			tags.append(String(tag_value))
+		tag_text = ",".join(tags)
 
-	return "intent=%s; personality=%s; intensity=%s; tags=%s; fallback_action=%s" % [
-		String(payload.get("intent", "")),
+	var memories_raw = payload.get("memory_lines", [])
+	var memory_text := ""
+	if typeof(memories_raw) == TYPE_ARRAY and memories_raw.size() > 0:
+		var lines: Array[String] = []
+		for m in memories_raw:
+			lines.append(String(m))
+		memory_text = " | ".join(lines)
+
+	var events_raw = payload.get("recent_events", [])
+	var events_text := ""
+	if typeof(events_raw) == TYPE_ARRAY and events_raw.size() > 0:
+		var names: Array[String] = []
+		for e in events_raw:
+			if typeof(e) == TYPE_DICTIONARY:
+				names.append(String((e as Dictionary).get("type", "")))
+		events_text = ",".join(names)
+
+	var fg_app := String(context.get("foreground_app", ""))
+	var activity := String(context.get("activity", ""))
+	var activity_note := ""
+	if not fg_app.is_empty():
+		activity_note = "user is using %s (%s)" % [fg_app, activity if not activity.is_empty() else "unknown"]
+
+	return """== Cat inner state ==
+mood=%.0f/100, energy=%.0f/100, affection=%.0f/100, chaos=%.0f/100
+personality=%s, reminder_intensity=%s
+
+== What the cat perceives about the user ==
+time=hour %d, %s
+continuous_active=%d min, idle=%d min
+typing_rate=%.0f/min
+%s
+
+== Memory of this user ==
+%s
+
+== Recent events (oldest->newest) ==
+%s
+
+== Habit tags ==
+%s
+
+== Rule engine suggestion (reference only, you may override) ==
+action=%s, line=%s
+
+Decide NOW as this cat.""" % [
+		float(psyche.get("mood", 50.0)),
+		float(psyche.get("energy", 80.0)),
+		float(psyche.get("affection", 30.0)),
+		float(psyche.get("chaos", 20.0)),
 		String(persona.get("personality", "tsundere")),
 		String(persona.get("reminder_intensity", "medium")),
-		",".join(tags),
-		String(payload.get("fallback_action", "idle"))
+		int(context.get("hour", 12)),
+		activity_note,
+		int(float(context.get("continuous_active_seconds", 0.0)) / 60.0),
+		int(float(context.get("idle_seconds", 0.0)) / 60.0),
+		float(context.get("typing_per_min", 0.0)),
+		"in fullscreen" if bool(context.get("fullscreen", false)) else "",
+		memory_text if not memory_text.is_empty() else "(none yet)",
+		events_text if not events_text.is_empty() else "(quiet)",
+		tag_text,
+		String(payload.get("fallback_action", "idle")),
+		String(payload.get("fallback_line", ""))
 	]
 
 func _resolve_api_key() -> String:

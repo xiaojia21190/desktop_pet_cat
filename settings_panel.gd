@@ -21,7 +21,7 @@ extends Panel
 @onready var llm_api_env_input: LineEdit = $ScrollContainer/VBoxContainer/LLMApiEnvInput
 @onready var llm_api_key_input: LineEdit = $ScrollContainer/VBoxContainer/LLMApiKeyInput
 @onready var personality_option: OptionButton = $ScrollContainer/VBoxContainer/PersonalityOption
-@onready var reminder_intensity_option: OptionButton = $ScrollContainer/VBoxContainer/ReminderIntensityOption
+@onready var presence_level_option: OptionButton = $ScrollContainer/VBoxContainer/PresenceLevelOption
 @onready var quiet_start_spin: SpinBox = $ScrollContainer/VBoxContainer/QuietHoursRow/QuietStartSpin
 @onready var quiet_end_spin: SpinBox = $ScrollContainer/VBoxContainer/QuietHoursRow/QuietEndSpin
 @onready var save_manager_button: Button = $ScrollContainer/VBoxContainer/SaveManagerButton
@@ -55,10 +55,13 @@ func _ready():
 		personality_option.add_item("温柔")
 		personality_option.add_item("活泼")
 
-	if reminder_intensity_option.get_item_count() == 0:
-		reminder_intensity_option.add_item("低")
-		reminder_intensity_option.add_item("中")
-		reminder_intensity_option.add_item("高")
+	if presence_level_option.get_item_count() == 0:
+		presence_level_option.add_item("安静（≤1句/小时）")
+		presence_level_option.add_item("低频（关键时刻）")
+		presence_level_option.add_item("中频（工位同事）")
+		presence_level_option.add_item("高频（话痨猫）")
+		presence_level_option.add_item("智能（按活动自适应）")
+		presence_level_option.select(2)
 
 	var data = SaveManager.load_data()
 	var settings = data.get("settings", {})
@@ -93,7 +96,7 @@ func _ready():
 	llm_api_env_input.text = String(settings.get("llm_api_key_env", DEFAULT_LLM_API_ENV))
 	llm_api_key_input.text = String(settings.get("llm_api_key", ""))
 	_set_option_value(personality_option, _personality_to_index(String(settings.get("personality", "tsundere"))))
-	_set_option_value(reminder_intensity_option, _reminder_to_index(String(settings.get("reminder_intensity", "medium"))))
+	presence_level_option.select(clampi(int(settings.get("presence_level", 2)), 0, 4))
 	_set_spin_value(quiet_start_spin, float(settings.get("quiet_hours_start", 23)))
 	_set_spin_value(quiet_end_spin, float(settings.get("quiet_hours_end", 8)))
 
@@ -121,7 +124,7 @@ func _ready():
 	llm_api_env_input.text_changed.connect(_on_llm_api_env_changed)
 	llm_api_key_input.text_changed.connect(_on_llm_api_key_changed)
 	personality_option.item_selected.connect(_on_personality_selected)
-	reminder_intensity_option.item_selected.connect(_on_reminder_intensity_selected)
+	presence_level_option.item_selected.connect(_on_presence_level_selected)
 	quiet_start_spin.value_changed.connect(_on_quiet_hours_changed)
 	quiet_end_spin.value_changed.connect(_on_quiet_hours_changed)
 	if save_manager_button and not save_manager_button.pressed.is_connected(_on_save_manager_pressed):
@@ -315,7 +318,7 @@ func _on_personality_selected(_index: int) -> void:
 	_apply_smart_settings()
 	SaveManager.save_data()
 
-func _on_reminder_intensity_selected(_index: int) -> void:
+func _on_presence_level_selected(_index: int) -> void:
 	_apply_smart_settings()
 	SaveManager.save_data()
 
@@ -350,7 +353,7 @@ func apply_settings(settings: Dictionary) -> void:
 	_set_line_edit_value(llm_api_env_input, String(settings.get("llm_api_key_env", llm_api_env_input.text)))
 	_set_line_edit_value(llm_api_key_input, String(settings.get("llm_api_key", llm_api_key_input.text)))
 	_set_option_value(personality_option, _personality_to_index(String(settings.get("personality", "tsundere"))))
-	_set_option_value(reminder_intensity_option, _reminder_to_index(String(settings.get("reminder_intensity", "medium"))))
+	presence_level_option.select(clampi(int(settings.get("presence_level", 2)), 0, 4))
 	_set_spin_value(quiet_start_spin, float(settings.get("quiet_hours_start", quiet_start_spin.value)))
 	_set_spin_value(quiet_end_spin, float(settings.get("quiet_hours_end", quiet_end_spin.value)))
 	_apply_smart_settings()
@@ -420,13 +423,7 @@ func collect_settings() -> Dictionary:
 			settings["personality"] = "playful"
 		_:
 			settings["personality"] = "tsundere"
-	match reminder_intensity_option.selected:
-		0:
-			settings["reminder_intensity"] = "low"
-		2:
-			settings["reminder_intensity"] = "high"
-		_:
-			settings["reminder_intensity"] = "medium"
+	settings["presence_level"] = clampi(presence_level_option.selected, 0, 4)
 	settings["quiet_hours_start"] = int(round(quiet_start_spin.value))
 	settings["quiet_hours_end"] = int(round(quiet_end_spin.value))
 	settings["data_collection_level"] = "minimal"
@@ -450,24 +447,6 @@ func _index_to_personality(index: int) -> String:
 		_:
 			return "tsundere"
 
-func _reminder_to_index(value: String) -> int:
-	match value:
-		"low":
-			return 0
-		"high":
-			return 2
-		_:
-			return 1
-
-func _index_to_reminder(index: int) -> String:
-	match index:
-		0:
-			return "low"
-		2:
-			return "high"
-		_:
-			return "medium"
-
 func _apply_smart_settings() -> void:
 	var main = get_tree().get_root().get_node_or_null("Main")
 	if not main:
@@ -486,7 +465,7 @@ func _apply_smart_settings() -> void:
 			"llm_timeout_seconds": 10.0,
 			"data_collection_level": "minimal",
 			"personality": _index_to_personality(personality_option.selected),
-			"reminder_intensity": _index_to_reminder(reminder_intensity_option.selected),
+			"presence_level": clampi(presence_level_option.selected, 0, 4),
 			"quiet_hours_start": int(round(quiet_start_spin.value)),
 			"quiet_hours_end": int(round(quiet_end_spin.value))
 		})

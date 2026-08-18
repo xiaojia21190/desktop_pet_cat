@@ -432,12 +432,12 @@ theme_override_styles/hover = SubResource("btn_hover_style")
 theme_override_styles/pressed = SubResource("btn_normal_style")
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 
-[node name="ReminderIntensityLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
+[node name="PresenceLevelLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-text = "提醒强度"
+text = "存在感"
 
-[node name="ReminderIntensityOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
+[node name="PresenceLevelOption" type="OptionButton" parent="ScrollContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_styles/normal = SubResource("btn_normal_style")
 theme_override_styles/hover = SubResource("btn_hover_style")

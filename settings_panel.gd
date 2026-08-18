@@ -2,6 +2,7 @@ extends Panel
 
 @onready var opacity_slider: HSlider = $ScrollContainer/VBoxContainer/OpacitySlider
 @onready var always_on_top_check: CheckBox = $ScrollContainer/VBoxContainer/AlwaysOnTopCheck
+@onready var auto_start_check: CheckBox = $ScrollContainer/VBoxContainer/AutoStartCheck
 @onready var timed_hide_option: OptionButton = $ScrollContainer/VBoxContainer/TimedHideOption
 @onready var timed_hide_remaining_label: Label = $ScrollContainer/VBoxContainer/TimedHideRemainingLabel
 @onready var timed_hide_update_timer: Timer = $TimedHideUpdateTimer
@@ -29,6 +30,7 @@ extends Panel
 const DEFAULT_LLM_ENDPOINT := "https://api.openai.com/v1/chat/completions"
 const DEFAULT_LLM_MODEL := "gpt-4o-mini"
 const DEFAULT_LLM_API_ENV := "OPENAI_API_KEY"
+const AUTO_START_MGR = preload("res://components/desktop/auto_start_manager.gd")
 
 var save_manager_panel: PopupPanel
 
@@ -64,6 +66,11 @@ func _ready():
 	opacity_slider.value = opacity_value
 	_apply_opacity(opacity_value)
 	always_on_top_check.button_pressed = settings.get("always_on_top", always_on_top_check.button_pressed)
+	# 开机自启:读注册表实际状态(真实来源),编辑器下禁用提示
+	auto_start_check.button_pressed = AUTO_START_MGR.is_enabled()
+	auto_start_check.disabled = not AUTO_START_MGR.get_exe_path().get_file().begins_with("DesktopPetCat")
+	if auto_start_check.disabled:
+		auto_start_check.text = "开机自动启动（需导出 exe）"
 	intensity_option.select(settings.get("intensity", 1))
 	var timed_hide_index = int(settings.get("timed_hide_option", 0))
 	if timed_hide_index < 0 or timed_hide_index >= timed_hide_option.get_item_count():
@@ -97,6 +104,7 @@ func _ready():
 
 	opacity_slider.value_changed.connect(_on_opacity_changed)
 	always_on_top_check.toggled.connect(_on_always_on_top_toggled)
+	auto_start_check.toggled.connect(_on_auto_start_toggled)
 	intensity_option.item_selected.connect(_on_intensity_selected)
 	timed_hide_option.item_selected.connect(_on_timed_hide_selected)
 	sound_check.toggled.connect(_on_sound_toggled)
@@ -148,6 +156,13 @@ func _on_always_on_top_toggled(enabled):
 	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, enabled)
 	SaveManager.save_data()
 
+func _on_auto_start_toggled(enabled):
+	# 写/删注册表 Run 键;失败(如编辑器运行)则回弹
+	if AUTO_START_MGR.set_enabled(enabled):
+		auto_start_check.button_pressed = AUTO_START_MGR.is_enabled()
+	else:
+		auto_start_check.button_pressed = false
+
 func _on_intensity_selected(index):
 	SaveManager.set_cat_intensity(index)
 	SaveManager.save_data()
@@ -165,6 +180,8 @@ func _on_timed_hide_update_timer():
 func _on_visibility_changed():
 	if visible:
 		_update_timed_hide_remaining()
+		# 面板每次打开刷新品种解锁状态
+		refresh_breed_locks(_get_bond_level())
 
 func _update_timed_hide_remaining():
 	if not timed_hide_remaining_label:
@@ -223,14 +240,45 @@ func _on_perception_toggled(_enabled: bool) -> void:
 
 const FOCUS_DURATION_SECONDS := [15 * 60, 30 * 60, 60 * 60]
 const CAT_BREED_IDS: Array[String] = ["orange_tabby", "calico", "british_blue", "tuxedo"]
+## 品种解锁所需亲密度等级(bond_system 等级对齐);orange_tabby 初始解锁
+const CAT_BREED_UNLOCK_LEVEL := {"orange_tabby": 1, "calico": 3, "british_blue": 4, "tuxedo": 5}
+
+## 按当前亲密度等级刷新品种选项文案(未解锁显示 🔒)
+func refresh_breed_locks(bond_level: int) -> void:
+	var names := ["橘猫", "三花猫", "英短蓝猫", "燕尾服猫"]
+	for i in CAT_BREED_IDS.size():
+		var need: int = CAT_BREED_UNLOCK_LEVEL.get(CAT_BREED_IDS[i], 1)
+		if bond_level >= need:
+			cat_breed_option.set_item_text(i, names[i])
+		else:
+			cat_breed_option.set_item_text(i, "%s 🔒Lv%d" % [names[i], need])
+	var selected_need: int = CAT_BREED_UNLOCK_LEVEL.get(
+		CAT_BREED_IDS[clampi(cat_breed_option.selected, 0, CAT_BREED_IDS.size() - 1)], 1)
+	if bond_level < selected_need:
+		# 当前选中品种被锁(降级读档),回退橘猫
+		cat_breed_option.select(0)
+		_apply_cat_breed()
 
 func _on_focus_duration_selected(_index: int) -> void:
 	SaveManager.save_data()
 	_apply_focus_duration()
 
 func _on_cat_breed_selected(_index: int) -> void:
+	# 未解锁品种不可选(锁定的选项文案带 🔒,此处拦截)
+	var need: int = CAT_BREED_UNLOCK_LEVEL.get(
+		CAT_BREED_IDS[clampi(_index, 0, CAT_BREED_IDS.size() - 1)], 1)
+	var bond_level := _get_bond_level()
+	if bond_level < need:
+		cat_breed_option.select(0)  # 弹回橘猫
+		return
 	SaveManager.save_data()
 	_apply_cat_breed()
+
+func _get_bond_level() -> int:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.cat and main.cat.bond_system:
+		return int(main.cat.bond_system.get_level())
+	return 1
 
 func _apply_cat_breed() -> void:
 	var main = get_tree().get_root().get_node_or_null("Main")
@@ -343,6 +391,46 @@ func _set_line_edit_value(line_edit: LineEdit, value: String) -> void:
 	line_edit.set_block_signals(true)
 	line_edit.text = value
 	line_edit.set_block_signals(false)
+
+## 收集面板全部设置项（供 SaveManager 通过注册的 provider 调用）
+## 修复旧实现：save_manager 曾用错误路径 VBoxContainer/... 抓节点导致全部 null
+func collect_settings() -> Dictionary:
+	var settings: Dictionary = {}
+	settings["opacity"] = opacity_slider.value
+	settings["always_on_top"] = always_on_top_check.button_pressed
+	settings["intensity"] = intensity_option.selected
+	settings["timed_hide_option"] = timed_hide_option.selected
+	settings["sound_enabled"] = sound_check.button_pressed
+	settings["bgm_enabled"] = bgm_check.button_pressed
+	settings["volume"] = volume_slider.value
+	settings["smart_mode"] = smart_mode_check.button_pressed
+	settings["perception_enabled"] = perception_check.button_pressed
+	settings["perception_default_rules"] = perception_default_rules_check.button_pressed
+	settings["focus_duration_index"] = focus_duration_option.selected
+	settings["cat_type"] = CAT_BREED_IDS[clampi(cat_breed_option.selected, 0, CAT_BREED_IDS.size() - 1)]
+	settings["llm_enabled"] = llm_enabled_check.button_pressed
+	settings["llm_endpoint"] = llm_endpoint_input.text.strip_edges()
+	settings["llm_model"] = llm_model_input.text.strip_edges()
+	settings["llm_api_key"] = llm_api_key_input.text.strip_edges()
+	settings["llm_api_key_env"] = llm_api_env_input.text.strip_edges()
+	match personality_option.selected:
+		1:
+			settings["personality"] = "gentle"
+		2:
+			settings["personality"] = "playful"
+		_:
+			settings["personality"] = "tsundere"
+	match reminder_intensity_option.selected:
+		0:
+			settings["reminder_intensity"] = "low"
+		2:
+			settings["reminder_intensity"] = "high"
+		_:
+			settings["reminder_intensity"] = "medium"
+	settings["quiet_hours_start"] = int(round(quiet_start_spin.value))
+	settings["quiet_hours_end"] = int(round(quiet_end_spin.value))
+	settings["data_collection_level"] = "minimal"
+	return settings
 
 func _personality_to_index(value: String) -> int:
 	match value:

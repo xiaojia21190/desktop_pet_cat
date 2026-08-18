@@ -43,6 +43,7 @@ func _get_default_data() -> Dictionary:
 			"quiet_hours_end": 8,
 			"personality": "tsundere",
 			"presence_level": 2,
+			"first_interaction_done": false,
 			"perception_enabled": false,
 			"perception_default_rules": true,
 			"focus_duration_index": 1
@@ -91,6 +92,7 @@ func _write_config(data: Dictionary) -> int:
 	config.set_value("settings", "focus_duration_index", int(settings.get("focus_duration_index", 1)))
 	config.set_value("settings", "personality", settings.get("personality", "tsundere"))
 	config.set_value("settings", "presence_level", int(settings.get("presence_level", 2)))
+	config.set_value("settings", "first_interaction_done", bool(settings.get("first_interaction_done", false)))
 
 	config.set_value("meta", "saved_at", meta.get("saved_at", 0))
 	config.set_value("meta", "version", meta.get("version", SAVE_VERSION))
@@ -145,6 +147,7 @@ func load_data() -> Dictionary:
 		settings["presence_level"] = 1 if legacy == "low" else (3 if legacy == "high" else 2)
 	else:
 		settings["presence_level"] = int(raw_presence)
+	settings["first_interaction_done"] = bool(config.get_value("settings", "first_interaction_done", false))
 	settings["perception_enabled"] = config.get_value("settings", "perception_enabled", settings.get("perception_enabled", false))
 	settings["perception_default_rules"] = config.get_value("settings", "perception_default_rules", settings.get("perception_default_rules", true))
 	settings["focus_duration_index"] = int(config.get_value("settings", "focus_duration_index", settings.get("focus_duration_index", 1)))
@@ -214,6 +217,9 @@ func _gather_current_data() -> Dictionary:
 	var main = _main_provider.call() if _main_provider else null
 	if main and main is CanvasItem:
 		settings["opacity"] = main.modulate.a
+	# P5c：首次引导完成状态（main 持有 guide）
+	if main and main.get("first_interaction_done"):
+		settings["first_interaction_done"] = true
 
 	var cat = _cat_provider.call() if _cat_provider else null
 	if cat:

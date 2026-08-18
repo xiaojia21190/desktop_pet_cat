@@ -44,6 +44,8 @@ const FORCE_START_AT_BOTTOM_RIGHT := false
 
 const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
 const ITEM_FOOD_SCENE = preload("res://item_food.tscn")
+const FIRST_GUIDE_SCRIPT := preload("res://components/engagement/first_guide_controller.gd")
+var first_guide_controller  # 首次引导状态机（P5c）
 @warning_ignore("shadowed_global_identifier")
 const CatStates = preload("res://cat_states.gd")
 
@@ -107,6 +109,7 @@ func _ready():
 	_setup_smart_pet_controller(settings)
 	smart_line_bubble = SmartLineBubble.new()
 	add_child(smart_line_bubble)
+	_setup_first_guide(settings)
 	_setup_quick_action_menu()
 	_record_smart_event("session_resume")
 	_setup_tray()
@@ -221,6 +224,10 @@ func _on_screen_size_changed():
 	_update_mouse_passthrough_region()
 
 func _process(delta):
+	# 首次引导状态机驱动
+	if first_guide_controller and not first_guide_controller.is_done():
+		first_guide_controller.tick(delta)
+
 	# 处理悬浮面板边缘检测
 	if hover_panel_component:
 		hover_panel_component.update(delta, get_global_mouse_position(), _cached_screen_size)
@@ -495,8 +502,38 @@ func _after_item_spawned(item_type: String) -> void:
 	if smart_pet_controller:
 		smart_pet_controller.record_item_use(item_type)
 	_record_smart_event("item_used", {"item_type": item_type})
+	if first_guide_controller:
+		first_guide_controller.notify_interaction(item_type)
 	if focus_session_mode:
 		focus_session_mode.on_item_used(item_type)
+
+func _setup_first_guide(settings: Dictionary) -> void:
+	# P5c 首次引导：读档判断是否已完成；未完成则启动（气泡引导，非弹窗）
+	if first_guide_controller:
+		return
+	first_guide_controller = FIRST_GUIDE_SCRIPT.new()
+	first_guide_controller.name = "FirstGuideController"
+	add_child(first_guide_controller)
+	first_guide_controller.load_from_save(bool(settings.get("first_interaction_done", false)))
+	if not first_guide_controller.is_done():
+		first_guide_controller.start()
+	first_guide_controller.guide_stage_changed.connect(_on_guide_stage_changed)
+	# 撸猫结束 → 引导互动喂入（cat 内部信号，经 input_component 转发）
+	if cat and cat.input_component:
+		cat.input_component.petting_ended.connect(
+			func(_sec): first_guide_controller.notify_interaction("pet"))
+
+func _on_guide_stage_changed(stage: int, message: String) -> void:
+	# 引导消息走气泡；stage1/2 有 message，完成时静默
+	if message.is_empty():
+		return
+	if smart_line_bubble and cat:
+		smart_line_bubble.show_line(message, cat.global_position, _cached_screen_size)
+	print("[Guide] stage=", stage, " ", message)
+
+func first_interaction_done() -> bool:
+	# SaveManager._gather_current_data 经 main provider 读取
+	return first_guide_controller != null and first_guide_controller.is_done()
 
 func _on_cat_state_changed(_from_state: StringName, to_state: StringName) -> void:
 	if smart_pet_controller:

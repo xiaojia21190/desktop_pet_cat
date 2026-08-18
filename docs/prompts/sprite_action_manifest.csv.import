@@ -1,0 +1,17 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://din5tvrftubv5"
+
+[deps]
+
+files=["res://docs/prompts/sprite_action_manifest.frames.translation", "res://docs/prompts/sprite_action_manifest.state.translation", "res://docs/prompts/sprite_action_manifest.priority.translation", "res://docs/prompts/sprite_action_manifest.notes.translation"]
+
+source_file="res://docs/prompts/sprite_action_manifest.csv"
+dest_files=["res://docs/prompts/sprite_action_manifest.frames.translation", "res://docs/prompts/sprite_action_manifest.state.translation", "res://docs/prompts/sprite_action_manifest.priority.translation", "res://docs/prompts/sprite_action_manifest.notes.translation"]
+
+[params]
+
+compress=true
+delimiter=0

@@ -321,7 +321,6 @@
     "orange_tabby": {
       "display_name": "橘猫",
       "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
-      "sheet_path": "res://assets/Orange Tabby1_chroma.png",
       "defaults": {
         "columns": 8,
         "frame_width": 352,
@@ -434,18 +433,20 @@
           "frame_height": 128
         },
         "jump": {
-          "path": "res://assets/actions/orange_tabby/pounce_attack.png",
+          "path": "res://assets/actions/orange_tabby/jump.png",
           "row": 0,
-          "frames": 5,
-          "columns": 5,
+          "col_start": 0,
+          "frames": 4,
+          "columns": 4,
           "frame_width": 128,
           "frame_height": 128
         },
         "land": {
-          "path": "res://assets/actions/orange_tabby/idle_stand.png",
+          "path": "res://assets/actions/orange_tabby/land.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "col_start": 0,
+          "frames": 3,
+          "columns": 3,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -687,7 +688,6 @@
     "calico": {
       "display_name": "三花猫",
       "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
-      "sheet_path": "res://assets/calico_sheet.png",
       "defaults": {
         "columns": 8,
         "frame_width": 128,
@@ -735,15 +735,15 @@
           "frame_height": 128
         },
         "trot": {
-          "path": "res://assets/actions/calico/walk.png",
+          "path": "res://assets/actions/calico/trot.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
         "run": {
-          "path": "res://assets/actions/calico/chasing.png",
+          "path": "res://assets/actions/calico/run.png",
           "row": 0,
           "frames": 6,
           "columns": 6,
@@ -791,7 +791,7 @@
           "frame_height": 128
         },
         "pounce_ready": {
-          "path": "res://assets/actions/calico/watch_focus.png",
+          "path": "res://assets/actions/calico/pounce_ready.png",
           "row": 0,
           "frames": 5,
           "columns": 5,
@@ -799,7 +799,7 @@
           "frame_height": 128
         },
         "rolling": {
-          "path": "res://assets/actions/calico/greet.png",
+          "path": "res://assets/actions/calico/rolling.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -807,7 +807,7 @@
           "frame_height": 128
         },
         "happy": {
-          "path": "res://assets/actions/calico/greet.png",
+          "path": "res://assets/actions/calico/celebrate.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -815,7 +815,7 @@
           "frame_height": 128
         },
         "celebrate": {
-          "path": "res://assets/actions/calico/greet.png",
+          "path": "res://assets/actions/calico/celebrate.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -823,10 +823,10 @@
           "frame_height": 128
         },
         "carry": {
-          "path": "res://assets/actions/calico/eat.png",
+          "path": "res://assets/actions/calico/carry.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -863,7 +863,7 @@
           "frame_height": 128
         },
         "stretch": {
-          "path": "res://assets/actions/calico/idle_stand.png",
+          "path": "res://assets/actions/calico/stretch.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -871,7 +871,7 @@
           "frame_height": 128
         },
         "yawn": {
-          "path": "res://assets/actions/calico/idle_stand.png",
+          "path": "res://assets/actions/calico/yawn.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -879,18 +879,20 @@
           "frame_height": 128
         },
         "jump": {
-          "path": "res://assets/actions/calico/pounce_attack.png",
+          "path": "res://assets/actions/calico/jump.png",
           "row": 0,
-          "frames": 5,
-          "columns": 5,
+          "col_start": 0,
+          "frames": 4,
+          "columns": 4,
           "frame_width": 128,
           "frame_height": 128
         },
         "land": {
-          "path": "res://assets/actions/calico/idle_stand.png",
+          "path": "res://assets/actions/calico/land.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "col_start": 0,
+          "frames": 3,
+          "columns": 3,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -903,18 +905,18 @@
           "frame_height": 128
         },
         "dodge": {
-          "path": "res://assets/actions/calico/retreat.png",
+          "path": "res://assets/actions/calico/dodge.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "startled": {
-          "path": "res://assets/actions/calico/retreat.png",
+          "path": "res://assets/actions/calico/startled.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -959,7 +961,7 @@
           "frame_height": 128
         },
         "comfort": {
-          "path": "res://assets/actions/calico/idle_sit.png",
+          "path": "res://assets/actions/calico/comfort.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -967,7 +969,7 @@
           "frame_height": 128
         },
         "break_hint": {
-          "path": "res://assets/actions/calico/idle_stand.png",
+          "path": "res://assets/actions/calico/stretch.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -983,18 +985,18 @@
           "frame_height": 128
         },
         "head_pat_dodge": {
-          "path": "res://assets/actions/calico/retreat.png",
+          "path": "res://assets/actions/calico/dodge.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "angry": {
-          "path": "res://assets/actions/calico/retreat.png",
+          "path": "res://assets/actions/calico/startled.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1052,7 +1054,6 @@
     "british_blue": {
       "display_name": "英短蓝猫",
       "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
-      "sheet_path": "res://assets/british_blue_sheet.png",
       "defaults": {
         "columns": 8,
         "frame_width": 128,
@@ -1100,15 +1101,15 @@
           "frame_height": 128
         },
         "trot": {
-          "path": "res://assets/actions/british_blue/walk.png",
+          "path": "res://assets/actions/british_blue/trot.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
         "run": {
-          "path": "res://assets/actions/british_blue/chasing.png",
+          "path": "res://assets/actions/british_blue/run.png",
           "row": 0,
           "frames": 6,
           "columns": 6,
@@ -1156,7 +1157,7 @@
           "frame_height": 128
         },
         "pounce_ready": {
-          "path": "res://assets/actions/british_blue/watch_focus.png",
+          "path": "res://assets/actions/british_blue/pounce_ready.png",
           "row": 0,
           "frames": 5,
           "columns": 5,
@@ -1164,7 +1165,7 @@
           "frame_height": 128
         },
         "rolling": {
-          "path": "res://assets/actions/british_blue/greet.png",
+          "path": "res://assets/actions/british_blue/rolling.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1172,7 +1173,7 @@
           "frame_height": 128
         },
         "happy": {
-          "path": "res://assets/actions/british_blue/greet.png",
+          "path": "res://assets/actions/british_blue/celebrate.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1180,7 +1181,7 @@
           "frame_height": 128
         },
         "celebrate": {
-          "path": "res://assets/actions/british_blue/greet.png",
+          "path": "res://assets/actions/british_blue/celebrate.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1188,10 +1189,10 @@
           "frame_height": 128
         },
         "carry": {
-          "path": "res://assets/actions/british_blue/eat.png",
+          "path": "res://assets/actions/british_blue/carry.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1228,7 +1229,7 @@
           "frame_height": 128
         },
         "stretch": {
-          "path": "res://assets/actions/british_blue/idle_stand.png",
+          "path": "res://assets/actions/british_blue/stretch.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1236,7 +1237,7 @@
           "frame_height": 128
         },
         "yawn": {
-          "path": "res://assets/actions/british_blue/idle_stand.png",
+          "path": "res://assets/actions/british_blue/yawn.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1244,18 +1245,20 @@
           "frame_height": 128
         },
         "jump": {
-          "path": "res://assets/actions/british_blue/pounce_attack.png",
+          "path": "res://assets/actions/british_blue/jump.png",
           "row": 0,
-          "frames": 5,
-          "columns": 5,
+          "col_start": 0,
+          "frames": 4,
+          "columns": 4,
           "frame_width": 128,
           "frame_height": 128
         },
         "land": {
-          "path": "res://assets/actions/british_blue/idle_stand.png",
+          "path": "res://assets/actions/british_blue/land.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "col_start": 0,
+          "frames": 3,
+          "columns": 3,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1268,18 +1271,18 @@
           "frame_height": 128
         },
         "dodge": {
-          "path": "res://assets/actions/british_blue/retreat.png",
+          "path": "res://assets/actions/british_blue/dodge.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "startled": {
-          "path": "res://assets/actions/british_blue/retreat.png",
+          "path": "res://assets/actions/british_blue/startled.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1324,7 +1327,7 @@
           "frame_height": 128
         },
         "comfort": {
-          "path": "res://assets/actions/british_blue/idle_sit.png",
+          "path": "res://assets/actions/british_blue/comfort.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1332,7 +1335,7 @@
           "frame_height": 128
         },
         "break_hint": {
-          "path": "res://assets/actions/british_blue/idle_stand.png",
+          "path": "res://assets/actions/british_blue/stretch.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1348,18 +1351,18 @@
           "frame_height": 128
         },
         "head_pat_dodge": {
-          "path": "res://assets/actions/british_blue/retreat.png",
+          "path": "res://assets/actions/british_blue/dodge.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "angry": {
-          "path": "res://assets/actions/british_blue/retreat.png",
+          "path": "res://assets/actions/british_blue/startled.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1417,7 +1420,6 @@
     "tuxedo": {
       "display_name": "燕尾服猫",
       "action_path_template": "res://assets/actions/{cat_id}/{action_key}.png",
-      "sheet_path": "res://assets/tuxedo_sheet.png",
       "defaults": {
         "columns": 8,
         "frame_width": 128,
@@ -1441,7 +1443,7 @@
           "frame_height": 128
         },
         "idle_sit": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/idle_sit.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1449,7 +1451,7 @@
           "frame_height": 128
         },
         "idle_lie": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/idle_lie.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1465,18 +1467,18 @@
           "frame_height": 128
         },
         "trot": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/trot.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
         "run": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/run.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1497,39 +1499,39 @@
           "frame_height": 128
         },
         "chasing": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/chasing.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
         "pounce": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/pounce_attack.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "pounce_attack": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/pounce_attack.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "pounce_ready": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/pounce_ready.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "rolling": {
-          "path": "res://assets/actions/tuxedo/greet.png",
+          "path": "res://assets/actions/tuxedo/rolling.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1537,7 +1539,7 @@
           "frame_height": 128
         },
         "happy": {
-          "path": "res://assets/actions/tuxedo/greet.png",
+          "path": "res://assets/actions/tuxedo/celebrate.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1545,7 +1547,7 @@
           "frame_height": 128
         },
         "celebrate": {
-          "path": "res://assets/actions/tuxedo/greet.png",
+          "path": "res://assets/actions/tuxedo/celebrate.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1553,34 +1555,34 @@
           "frame_height": 128
         },
         "carry": {
-          "path": "res://assets/actions/tuxedo/eat.png",
+          "path": "res://assets/actions/tuxedo/carry.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 6,
+          "columns": 6,
           "frame_width": 128,
           "frame_height": 128
         },
         "watch": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/watch_focus.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "watch_focus": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/watch_focus.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "peek": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/watch_focus.png",
           "row": 0,
-          "frames": 7,
-          "columns": 7,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1593,7 +1595,7 @@
           "frame_height": 128
         },
         "stretch": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/stretch.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1601,7 +1603,7 @@
           "frame_height": 128
         },
         "yawn": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/yawn.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1609,47 +1611,49 @@
           "frame_height": 128
         },
         "jump": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/jump.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "col_start": 0,
+          "frames": 4,
+          "columns": 4,
           "frame_width": 128,
           "frame_height": 128
         },
         "land": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/land.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 3,
+          "columns": 3,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "retreat": {
+          "path": "res://assets/actions/tuxedo/retreat.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
           "frame_width": 128,
           "frame_height": 128
         },
-        "retreat": {
-          "path": "res://assets/actions/tuxedo/walk.png",
-          "row": 0,
-          "frames": 8,
-          "columns": 8,
-          "frame_width": 128,
-          "frame_height": 128
-        },
         "dodge": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/dodge.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "startled": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/startled.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "lick_groom": {
-          "path": "res://assets/actions/tuxedo/eat.png",
+          "path": "res://assets/actions/tuxedo/lick_groom.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1657,7 +1661,7 @@
           "frame_height": 128
         },
         "tail_wag": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/tail_wag.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1665,7 +1669,7 @@
           "frame_height": 128
         },
         "typing_attack": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/typing_attack.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1673,7 +1677,7 @@
           "frame_height": 128
         },
         "blocking": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/blocking.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1689,7 +1693,7 @@
           "frame_height": 128
         },
         "comfort": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/comfort.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1697,7 +1701,7 @@
           "frame_height": 128
         },
         "break_hint": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/stretch.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1713,18 +1717,18 @@
           "frame_height": 128
         },
         "head_pat_dodge": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/dodge.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
         "angry": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/startled.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 5,
+          "columns": 5,
           "frame_width": 128,
           "frame_height": 128
         },
@@ -1745,7 +1749,7 @@
           "frame_height": 128
         },
         "lick": {
-          "path": "res://assets/actions/tuxedo/eat.png",
+          "path": "res://assets/actions/tuxedo/lick_groom.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
@@ -1753,26 +1757,238 @@
           "frame_height": 128
         },
         "walk_away": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/retreat.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 7,
+          "columns": 7,
           "frame_width": 128,
           "frame_height": 128
         },
         "ignore": {
-          "path": "res://assets/actions/tuxedo/walk.png",
+          "path": "res://assets/actions/tuxedo/retreat.png",
           "row": 0,
-          "frames": 8,
-          "columns": 8,
+          "frames": 7,
+          "columns": 7,
           "frame_width": 128,
           "frame_height": 128
         },
         "kneading": {
-          "path": "res://assets/actions/tuxedo/idle_stand.png",
+          "path": "res://assets/actions/tuxedo/idle_sit.png",
           "row": 0,
           "frames": 7,
           "columns": 7,
+          "frame_width": 128,
+          "frame_height": 128
+        }
+      },
+      "require_action_files": false
+    },
+    "mochi": {
+      "display_name": "白猫 Mochi",
+      "action_path_template": "",
+      "sheet_path": "",
+      "defaults": {
+        "columns": 10,
+        "frame_width": 128,
+        "frame_height": 128,
+        "rows": 1
+      },
+      "actions": {
+        "idle_stand": {
+          "path": "res://assets/actions/mochi/idle_stand.png",
+          "row": 0,
+          "frames": 4,
+          "columns": 4,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "idle_sit": {
+          "path": "res://assets/actions/mochi/idle_sit.png",
+          "row": 0,
+          "frames": 2,
+          "columns": 2,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "idle_active": {
+          "path": "res://assets/actions/mochi/idle_stand.png",
+          "row": 0,
+          "frames": 4,
+          "columns": 4,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "walk": {
+          "path": "res://assets/actions/mochi/walk.png",
+          "row": 0,
+          "frames": 10,
+          "columns": 10,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "trot": {
+          "path": "res://assets/actions/mochi/walk.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 10,
+          "columns": 10,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "run": {
+          "path": "res://assets/actions/mochi/walk.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 10,
+          "columns": 10,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "greet": {
+          "path": "res://assets/actions/mochi/greet.png",
+          "row": 0,
+          "frames": 4,
+          "columns": 4,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "kneading": {
+          "path": "res://assets/actions/mochi/idle_sit.png",
+          "row": 0,
+          "frames": 2,
+          "columns": 2,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "head_pat_happy": {
+          "path": "res://assets/actions/mochi/greet.png",
+          "row": 0,
+          "frames": 4,
+          "columns": 4,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "land": {
+          "path": "res://assets/actions/mochi/land.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 3,
+          "columns": 3,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "jump": {
+          "path": "res://assets/actions/mochi/jump.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 4,
+          "columns": 4,
+          "frame_width": 128,
+          "frame_height": 128
+        }
+      },
+      "require_action_files": false
+    },
+    "dracula": {
+      "display_name": "德古拉猫",
+      "action_path_template": "",
+      "sheet_path": "",
+      "defaults": {
+        "columns": 6,
+        "frame_width": 128,
+        "frame_height": 128,
+        "rows": 1
+      },
+      "actions": {
+        "idle_stand": {
+          "path": "res://assets/actions/dracula/idle_stand.png",
+          "row": 0,
+          "frames": 3,
+          "columns": 3,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "idle_sit": {
+          "path": "res://assets/actions/dracula/idle_sit.png",
+          "row": 0,
+          "frames": 2,
+          "columns": 2,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "idle_active": {
+          "path": "res://assets/actions/dracula/idle_stand.png",
+          "row": 0,
+          "frames": 3,
+          "columns": 3,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "walk": {
+          "path": "res://assets/actions/dracula/walk.png",
+          "row": 0,
+          "frames": 6,
+          "columns": 6,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "trot": {
+          "path": "res://assets/actions/dracula/walk.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 6,
+          "columns": 6,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "run": {
+          "path": "res://assets/actions/dracula/walk.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 6,
+          "columns": 6,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "greet": {
+          "path": "res://assets/actions/dracula/greet.png",
+          "row": 0,
+          "frames": 3,
+          "columns": 3,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "kneading": {
+          "path": "res://assets/actions/dracula/idle_sit.png",
+          "row": 0,
+          "frames": 2,
+          "columns": 2,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "head_pat_happy": {
+          "path": "res://assets/actions/dracula/greet.png",
+          "row": 0,
+          "frames": 3,
+          "columns": 3,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "land": {
+          "path": "res://assets/actions/dracula/land.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 3,
+          "columns": 3,
+          "frame_width": 128,
+          "frame_height": 128
+        },
+        "jump": {
+          "path": "res://assets/actions/dracula/jump.png",
+          "row": 0,
+          "col_start": 0,
+          "frames": 4,
+          "columns": 4,
           "frame_width": 128,
           "frame_height": 128
         }

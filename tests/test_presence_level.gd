@@ -20,6 +20,9 @@ func _run() -> void:
 	_test_intent_whitelist()
 	_test_llm_presence_persona()
 	_test_dual_track_independent()
+	_test_invite_play()
+	_test_invite_restraint()
+	_test_throw_yarn()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -202,3 +205,71 @@ func _test_dual_track_independent() -> void:
 	# 规则轨道 fire 或 LLM fallback（api_key_missing → policy source）都证明轨道活着
 	_assert_true(fired.size() > 0, "rule_track_alive_with_llm_on")
 	ctrl.queue_free()
+
+
+func _test_invite_play() -> void:
+	var engine = PolicyEngineScript.new()
+	add_child(engine)
+	engine._invite_chance_override = 1.0
+	# 中频+ 45 分钟无互动 → invite_play（hour=14 避开饭点/久坐/整点闲聊）
+	var snap := {"hour": 14, "minute": 5, "quiet_hours_start": 23, "quiet_hours_end": 8,
+		"fullscreen": false, "continuous_active_seconds": 300.0,
+		"presence_level": 2, "minutes_since_interaction": 45.0,
+		"psyche": {"energy": 100.0}}
+	var d: Dictionary = engine.evaluate(snap, _empty_tags(), _empty_events(), {"personality": "tsundere"})
+	_assert_equal(String(d.get("policy_intent", "")), "invite_play", "invite_after_idle")
+	# 安静档不邀请
+	var engine2 = PolicyEngineScript.new()
+	add_child(engine2)
+	engine2._invite_chance_override = 1.0
+	snap["presence_level"] = 0
+	var d2: Dictionary = engine2.evaluate(snap.duplicate(), _empty_tags(), _empty_events(), {"personality": "tsundere"})
+	_assert_true(String(d2.get("policy_intent", "")) != "invite_play", "quiet_no_invite")
+	engine.queue_free()
+	engine2.queue_free()
+
+func _test_invite_restraint() -> void:
+	var engine = PolicyEngineScript.new()
+	add_child(engine)
+	engine._invite_chance_override = 1.0
+	var snap := {"hour": 14, "minute": 5, "quiet_hours_start": 23, "quiet_hours_end": 8,
+		"fullscreen": false, "continuous_active_seconds": 300.0,
+		"presence_level": 2, "minutes_since_interaction": 45.0,
+		"psyche": {"energy": 100.0}}
+	var d: Dictionary = engine.evaluate(snap, _empty_tags(), _empty_events(), {"personality": "tsundere"})
+	_assert_equal(String(d.get("policy_intent", "")), "invite_play", "first_invite")
+	# 冷却内（刚触发过）再判定被拦
+	snap["minutes_since_interaction"] = 46.0
+	d = engine.evaluate(snap, _empty_tags(), _empty_events(), {"personality": "tsundere"})
+	_assert_true(String(d.get("policy_intent", "")) != "invite_play", "cooldown_blocks")
+	# 忽略一次 → 冷却翻倍 360
+	engine.register_invite_ignored()
+	var base: int = engine.INVITE_BASE_COOLDOWN
+	_assert_true(engine._invite_ignore_count == 1, "ignored_counted")
+	_assert_true(base * 2 == 360, "base_cooldown_180")
+	# 三次忽略 → 当日停邀
+	engine.register_invite_ignored()
+	engine.register_invite_ignored()
+	_assert_true(engine._invite_blocked_today(), "three_strikes_daily_block")
+	engine.queue_free()
+
+func _test_throw_yarn() -> void:
+	var engine = PolicyEngineScript.new()
+	add_child(engine)
+	engine._throw_chance_override = 1.0
+	# 高频 + chaos 70 → throw_yarn
+	var snap := {"hour": 14, "minute": 5, "quiet_hours_start": 23, "quiet_hours_end": 8,
+		"fullscreen": false, "continuous_active_seconds": 300.0,
+		"presence_level": 3, "minutes_since_interaction": 45.0,
+		"psyche": {"energy": 100.0, "chaos": 70.0}}
+	var d: Dictionary = engine.evaluate(snap, _empty_tags(), _empty_events(), {"personality": "tsundere"})
+	_assert_equal(String(d.get("policy_intent", "")), "throw_yarn", "throw_yarn_high_presence")
+	# 中频（白名单拦）不触发
+	var engine2 = PolicyEngineScript.new()
+	add_child(engine2)
+	engine2._throw_chance_override = 1.0
+	snap["presence_level"] = 2
+	var d2: Dictionary = engine2.evaluate(snap.duplicate(), _empty_tags(), _empty_events(), {"personality": "tsundere"})
+	_assert_true(String(d2.get("policy_intent", "")) != "throw_yarn", "mid_no_throw")
+	engine.queue_free()
+	engine2.queue_free()

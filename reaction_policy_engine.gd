@@ -11,6 +11,7 @@ const ACTION_BREAK_HINT := "break_hint"
 const ACTION_RETREAT := "retreat"
 const ACTION_IDLE_COMPANY := "idle"
 const ACTION_TAIL_WAG := "tail_wag"
+const ACTION_POUNCE := "pounce"
 
 const DEFAULT_COOLDOWN := {
 	ACTION_SLEEP_CURL: 120,
@@ -32,7 +33,7 @@ const INTENT_MIN_PRESENCE := {
 	"night_owl_care": 1, "meal_hint": 1, "slacking_caught": 1,
 	"video_companion": 1, "coding_cheer": 1, "user_busy": 1,
 	"chitchat": 2, "weather_smalltalk": 2,
-	"invite_play": 3, "throw_yarn": 3,
+	"invite_play": 2, "throw_yarn": 3,
 }
 
 var _last_trigger_time: Dictionary = {}
@@ -93,6 +94,21 @@ func evaluate(snapshot: Dictionary, tags: Array[String], recent_events: Array[Di
 	if _intent_allowed("user_busy", presence) and _has_recent_event(recent_events, "user_busy", 180):
 		return _decide(now, ACTION_RETREAT, "user_busy", _line_for("user_busy", personality), energy, presence)
 
+	# —— P5c 主动邀请：长时间无互动，猫主动邀请撸猫/玩道具（克制：忽略翻倍冷却）——
+	if _intent_allowed("invite_play", presence) and not _invite_blocked_today():
+		var since_interaction: float = float(snapshot.get("minutes_since_interaction", 9999.0))
+		if since_interaction >= 30.0 and energy >= 30.0 and not _in_quiet_window(snapshot):
+			if randf() < _invite_chance(presence) and _invite_cooldown_ready(now):
+				_last_trigger_time["invite_play"] = now
+				return _direct_decision(ACTION_GREET, "invite_play", _line_for("invite_play", personality))
+
+	# —— 高频专属：扔东西（chaos 高时把毛线球扒拉下桌）——
+	if _intent_allowed("throw_yarn", presence) and energy >= 40.0:
+		var chaos: float = float((snapshot.get("psyche", {}) as Dictionary).get("chaos", 0.0))
+		if chaos >= 60.0 and randf() < _throw_chance() and _invite_cooldown_ready(now):
+			_last_trigger_time["throw_yarn"] = now
+			return _direct_decision(ACTION_POUNCE, "throw_yarn", _line_for("throw_yarn", personality))
+
 	return {
 		"react": false,
 		"action_id": "",
@@ -125,6 +141,64 @@ func _is_meal_time(snapshot: Dictionary) -> bool:
 func _is_first_decision_of_hour(snapshot: Dictionary) -> bool:
 	# 每小时第一次决策：minute < 3（policy_tick 3s，第一轮必中）
 	return int(snapshot.get("minute", 0)) < 3
+
+# —— 主动邀请与扔东西（P5c）——
+const INVITE_BASE_COOLDOWN := 180  # 基础冷却秒；被忽略后翻倍
+var _invite_ignore_count: int = 0
+var _invite_ignore_today := false
+var _invite_ignore_day := -1
+var _invite_chance_override: float = -1.0  # 测试注入（<0 用默认概率）
+var _throw_chance_override: float = -1.0
+
+func _invite_chance(presence: int) -> float:
+	# 每决策周期触发概率：中频 8% 高频 15% 智能按活动
+	if _invite_chance_override >= 0.0:
+		return _invite_chance_override
+	match presence:
+		2:
+			return 0.08
+		3:
+			return 0.15
+		_:
+			return 0.12
+
+func _throw_chance() -> float:
+	return _throw_chance_override if _throw_chance_override >= 0.0 else 0.10
+
+func _invite_cooldown_ready(now: int) -> bool:
+	# invite_play 与 throw_yarn 共用独立冷却（180 × 2^忽略次数）
+	var cooldown := INVITE_BASE_COOLDOWN * (1 << mini(_invite_ignore_count, 3))
+	var last: int = int(_last_trigger_time.get("invite_play", 0))
+	var last_throw: int = int(_last_trigger_time.get("throw_yarn", 0))
+	return now - maxi(last, last_throw) >= cooldown
+
+func register_invite_ignored() -> void:
+	## 邀请后 10 分钟内无互动 → main 调用（克制机制）
+	_invite_day_roll()
+	_invite_ignore_count += 1
+	if _invite_ignore_count >= 3:
+		_invite_ignore_today = true  # 当日不再邀请
+
+func _invite_blocked_today() -> bool:
+	_invite_day_roll()
+	return _invite_ignore_today
+
+func _invite_day_roll() -> void:
+	var today := int(Time.get_date_dict_from_system().day)
+	if today != _invite_ignore_day:
+		_invite_ignore_day = today
+		_invite_ignore_today = false
+		_invite_ignore_count = 0
+
+## 主动邀请/扔东西专用决策：绕过 action_id 冷却表（自有独立冷却），能量调制仅替换动作
+func _direct_decision(action_id: String, intent: String, line: String) -> Dictionary:
+	return {
+		"react": true,
+		"action_id": action_id,
+		"policy_intent": intent,
+		"template_line": line,
+		"cooldown_sec": 0
+	}
 
 func _decide(now: int, action_id: String, intent: String, line: String, energy: float, presence: int = 2) -> Dictionary:
 	# 心理调制：精力低的猫用安静动作代替欢快动作
@@ -259,5 +333,17 @@ func _line_for(intent: String, personality: String) -> String:
 			if personality == "gentle":
 				return "忙里偷闲，和你说说话。"
 			return "喂，偶尔也看看我嘛。"
+		"invite_play":
+			if personality == "playful":
+				return "无聊了……那个毛线球，不玩吗？"
+			if personality == "gentle":
+				return "想和我玩一会儿吗？"
+			return "喂，都多久没理我了！"
+		"throw_yarn":
+			if personality == "playful":
+				return "毛线球好像在看我……下去吧！"
+			if personality == "gentle":
+				return "这个球放这里好久了，我碰一下哦。"
+			return "这毛线球，本喵今天必须给它推下去。"
 		_:
 			return "我在这里陪着你。"

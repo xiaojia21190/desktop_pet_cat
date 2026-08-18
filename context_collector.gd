@@ -21,6 +21,7 @@ var _fg_app := ""
 var _fg_activity := ""
 var _fg_last_update_unix: int = 0
 var _activity_totals: Dictionary = {}  # activity -> 累计秒
+var _last_interaction_unix := 0  # 最近一次用户互动（撸猫/道具/点击猫）
 
 func _ready() -> void:
 	var now := int(Time.get_unix_time_from_system())
@@ -72,8 +73,13 @@ func record_input(input_type: String) -> void:
 		_:
 			pass
 
+func record_interaction() -> void:
+	## 用户主动互动（撸猫/道具/点击猫）——主动邀请意图的数据源
+	_last_interaction_unix = int(Time.get_unix_time_from_system())
+
 func record_item_use(item_type: String) -> void:
 	_item_use_count += 1
+	record_interaction()
 	record_event("item_used", {"item_type": item_type})
 
 func record_state_change(to_state: StringName) -> void:
@@ -121,6 +127,7 @@ func get_snapshot() -> Dictionary:
 		"state_change_count": _state_change_count,
 		"foreground_app": _fg_app,
 		"activity": _fg_activity,
+		"minutes_since_interaction": (float(now - _last_interaction_unix) / 60.0) if _last_interaction_unix > 0 else 9999.0,
 		"activity_seconds": float(Time.get_unix_time_from_system() - _fg_last_update_unix) if not _fg_activity.is_empty() else 0.0,
 		"activity_totals": _activity_totals.duplicate(true)
 	}

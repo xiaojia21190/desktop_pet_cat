@@ -227,6 +227,8 @@ func _process(delta):
 	# 首次引导状态机驱动
 	if first_guide_controller and not first_guide_controller.is_done():
 		first_guide_controller.tick(delta)
+	# P5c：主动邀请忽略检查（每秒一次足够）
+	_check_invite_ignored(delta)
 
 	# 处理悬浮面板边缘检测
 	if hover_panel_component:
@@ -518,10 +520,13 @@ func _setup_first_guide(settings: Dictionary) -> void:
 	if not first_guide_controller.is_done():
 		first_guide_controller.start()
 	first_guide_controller.guide_stage_changed.connect(_on_guide_stage_changed)
-	# 撸猫结束 → 引导互动喂入（cat 内部信号，经 input_component 转发）
+	# 撸猫结束 → 引导互动喂入 + 互动时间戳（主动邀请数据源）
 	if cat and cat.input_component:
 		cat.input_component.petting_ended.connect(
-			func(_sec): first_guide_controller.notify_interaction("pet"))
+			func(_sec):
+			first_guide_controller.notify_interaction("pet")
+			if smart_pet_controller and smart_pet_controller._context_collector:
+				smart_pet_controller._context_collector.record_interaction())
 
 func _on_guide_stage_changed(stage: int, message: String) -> void:
 	# 引导消息走气泡；stage1/2 有 message，完成时静默
@@ -534,6 +539,28 @@ func _on_guide_stage_changed(stage: int, message: String) -> void:
 func first_interaction_done() -> bool:
 	# SaveManager._gather_current_data 经 main provider 读取
 	return first_guide_controller != null and first_guide_controller.is_done()
+
+var _invite_check_timer: float = 0.0
+
+func _check_invite_ignored(delta: float) -> void:
+	# 邀请发出 10 分钟内无互动 → 记一次忽略（冷却翻倍；三次当日停邀）
+	if not smart_pet_controller or not smart_pet_controller._policy_engine:
+		return
+	_invite_check_timer += delta
+	if _invite_check_timer < 60.0:
+		return
+	_invite_check_timer = 0.0
+	var engine = smart_pet_controller._policy_engine
+	var last_invite: int = int(engine._last_trigger_time.get("invite_play", 0))
+	if last_invite <= 0:
+		return
+	var now := int(Time.get_unix_time_from_system())
+	var collector = smart_pet_controller._context_collector
+	var last_interaction: int = collector._last_interaction_unix if collector else 0
+	# 邀请满 10 分钟且期间无新互动 → 忽略
+	if now - last_invite >= 600 and last_interaction < last_invite:
+		engine.register_invite_ignored()
+		engine._last_trigger_time["invite_play"] = 0  # 清标记避免重复记
 
 func _on_cat_state_changed(_from_state: StringName, to_state: StringName) -> void:
 	if smart_pet_controller:
@@ -561,6 +588,10 @@ func _on_keyboard_typing_for_smart(_event: InputEvent) -> void:
 func _on_smart_action_requested(action_id: String, _decision: Dictionary) -> void:
 	if not cat:
 		return
+	# P5c：扔东西——猫把毛线球扒拉出来（在猫爪边生成 yarn 道具）
+	if action_id == "pounce" and String(_decision.get("policy_intent", "")) == "throw_yarn" \
+			and _decision.has("source") == false:
+		spawn_item("yarn", cat.global_position + Vector2(50, 10))
 	var state := _map_smart_action_to_state(action_id)
 	if state.is_empty():
 		var anim_name := _map_smart_action_to_animation(action_id)

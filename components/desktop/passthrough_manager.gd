@@ -8,11 +8,20 @@ const CAT_HIT_RADIUS_MIN := 56.0
 const CAT_HIT_RADIUS_MAX := 240.0
 
 var _cache_hash: int = 0
+var _force_passthrough := false  # 视觉隐藏模式:全穿透(窗口移出屏幕时配套)
+
+func set_force_passthrough(enabled: bool) -> void:
+	_force_passthrough = enabled
+	_cache_hash = 0  # 失效缓存,下一帧立即生效
 
 func update(main_node: Node2D) -> void:
 	if not DisplayServer.has_method("window_set_mouse_passthrough"):
 		return
-	var polygon := _build_capture_polygon(main_node)
+	var polygon: PackedVector2Array
+	if _force_passthrough:
+		polygon = PackedVector2Array()  # 空多边形 = 全穿透
+	else:
+		polygon = _build_capture_polygon(main_node)
 	var hash_input := str(polygon)
 	var new_hash := hash(hash_input)
 	if new_hash == _cache_hash:
@@ -44,6 +53,10 @@ func _should_capture_full_window(main_node: Node2D) -> bool:
 	var input_component = main_node.cat.get_node_or_null("InputComponent")
 	if input_component and bool(input_component.is_dragging):
 		return true
+	# 道具被拖拽中（如逗猫棒）：快速甩动会跑出道具捕获圈导致点击穿透
+	for item in main_node.get_tree().get_nodes_in_group("items"):
+		if item is Node2D and is_instance_valid(item) and bool(item.get("_dragging")):
+			return true
 	return false
 
 func _build_full_window_polygon(main_node: Node2D) -> PackedVector2Array:

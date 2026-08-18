@@ -27,12 +27,18 @@ func _ready() -> void:
 	_session_start_unix = now
 	_last_input_unix = now
 
+const PAUSE_FULL_SEC := 300.0   # 停止输入超 5 分钟视为连续活跃中断
+const PAUSE_DISCOUNT := 0.5     # 45s~5min 的思考间隙按 50% 折算
+
 func update_context(delta: float) -> void:
 	var now := int(Time.get_unix_time_from_system())
 	_idle_seconds = float(now - _last_input_unix)
 	if _idle_seconds <= 45.0:
 		_active_seconds += delta
 		_continuous_active_seconds += delta
+	elif _idle_seconds <= PAUSE_FULL_SEC:
+		# 思考间隙：半速折算，不打断连续活跃
+		_continuous_active_seconds += delta * PAUSE_DISCOUNT
 	else:
 		_continuous_active_seconds = 0.0
 

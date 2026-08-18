@@ -78,14 +78,15 @@ func _test_soft_hard_quiet() -> void:
 	engine.queue_free()
 
 func _test_sliding_window() -> void:
-	# 滑窗累计：45s-5min 停顿按 50% 计入；>5min 清零
+	# 滑窗累计：45s-5min 停顿按 50% 折算（帧级累计）；>5min 清零
 	var collector = ContextCollectorScript.new()
 	add_child(collector)
-	# 活跃 60s → 停 120s（思考）→ 应累计 60 + 120*0.5 = 120
+	# 活跃 60s → 2 分钟思考间隙（120 帧×1s，每帧折算 0.5）→ 60 + 60 = 120
 	collector.record_input("typing")
 	collector.update_context(60.0)
-	collector._last_input_unix = int(Time.get_unix_time_from_system()) - 120  # 模拟停了 2 分钟
-	collector.update_context(1.0)  # 触发一次判定
+	for i in range(120):
+		collector._last_input_unix -= 1  # 时间流逝但不刷新输入
+		collector.update_context(1.0)
 	_assert_true(float(collector.get_snapshot().get("continuous_active_seconds", 0.0)) >= 100.0,
 		"pause_counts_half")
 	# 停 6 分钟 → 清零

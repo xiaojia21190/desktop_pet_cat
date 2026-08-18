@@ -18,6 +18,8 @@ func _run() -> void:
 	_test_sliding_window()
 	_test_cooldown_multiplier()
 	_test_intent_whitelist()
+	_test_llm_presence_persona()
+	_test_dual_track_independent()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -155,3 +157,48 @@ func _empty_tags() -> Array[String]:
 func _empty_events() -> Array[Dictionary]:
 	var arr: Array[Dictionary] = []
 	return arr
+
+
+const LLMAdapterScript = preload("res://llm_adapter.gd")
+
+func _test_llm_presence_persona() -> void:
+	var adapter = LLMAdapterScript.new()
+	add_child(adapter)
+	# 档位人设注入：prompt 含档位描述与 silent_streak
+	var payload := {
+		"persona": {"personality": "tsundere", "presence_level": 3},
+		"psyche": {}, "context": {"hour": 14},
+		"memory_lines": [], "recent_events": [], "tags": [],
+		"silent_streak": 4}
+	var prompt: String = adapter._build_decision_prompt(payload)
+	_assert_true(prompt.contains("chatty"), "persona_has_chatty")
+	_assert_true(prompt.contains("silent for the last 4 cycles"), "silent_streak_injected")
+
+	var payload2 := payload.duplicate(true)
+	payload2["persona"] = {"personality": "tsundere", "presence_level": 0}
+	payload2["silent_streak"] = 0
+	var prompt2: String = adapter._build_decision_prompt(payload2)
+	_assert_true(prompt2.contains("quiet"), "persona_has_quiet")
+	_assert_true(not prompt2.contains("silent for the last"), "no_streak_when_zero")
+
+	# 润色轻请求：独立 prompt 含模板台词
+	var polish: String = adapter._build_polish_prompt({"persona": {"personality": "tsundere"}}, "模板台词")
+	_assert_true(polish.contains("模板台词"), "polish_contains_template")
+	adapter.queue_free()
+
+func _test_dual_track_independent() -> void:
+	# 规则引擎不因 llm_enabled 停摆：controller 在 llm 开启时规则意图仍 emit
+	var ctrl = load("res://smart_pet_controller.gd").new()
+	add_child(ctrl)
+	ctrl.bind_behavior(null)
+	ctrl.configure({"smart_mode": true, "llm_enabled": true, "presence_level": 2,
+		"quiet_hours_start": 23, "quiet_hours_end": 8})
+	var fired: Array[String] = []
+	ctrl.smart_line_generated.connect(func(line, source): fired.append(source))
+	# 软静音内深夜关怀快照（api_key 空 → LLM 轨道直接 fallback，不干扰）
+	ctrl._context_collector._continuous_active_seconds = 2000.0
+	for i in range(60):
+		ctrl._process(0.06)  # 3.6s > policy_tick_interval
+	# 规则轨道 fire 或 LLM fallback（api_key_missing → policy source）都证明轨道活着
+	_assert_true(fired.size() > 0, "rule_track_alive_with_llm_on")
+	ctrl.queue_free()

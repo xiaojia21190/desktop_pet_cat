@@ -18,6 +18,9 @@ var _fallback_line: String = ""
 var _fallback_action: String = ""
 var _pending: bool = false
 var _decision_mode: bool = false
+var _polish_mode: bool = false  # 润色请求：成功直接出 line，失败静默（模板已先行展示）
+
+const POLISH_TIMEOUT_SEC := 5.0
 
 # （决策缓存已移除：全上下文模式每次看最新状态）
 
@@ -28,6 +31,15 @@ const VALID_ACTIONS: Array[String] = [
 ]
 
 const SYSTEM_PROMPT_LINE := "You are a concise desktop pet assistant. Return one short line in Simplified Chinese."
+
+## 档位 → system prompt 人设段（注入决策提示，终结 LLM 系统性沉默）
+const PRESENCE_PERSONA := {
+	0: "You are a very quiet cat. Speak only for truly important moments (long sitting, victories). At most 1 line per hour.",
+	1: "You speak at key moments: meal time, late night care, long sitting. 1-3 lines per hour.",
+	2: "You are a friendly co-worker cat. Naturally chime in every 10-15 minutes. Gentle teasing when the user slacks off is fine.",
+	3: "You are a chatty cat. Almost every decision should show something (action or line). Actively invite interaction.",
+	4: "You adapt to the user's current activity: restrained when they work, playful when they relax. The activity category is provided below.",
+}
 
 const SYSTEM_PROMPT_DECISION := """You are the mind of a desktop cat pet living on the user's screen. You receive the cat's inner state and everything you can perceive about the user. Decide how the cat behaves NOW.
 
@@ -149,6 +161,23 @@ func generate_decision_async(payload: Dictionary, fallback_action: String, fallb
 	# 全上下文决策不做意图缓存：每次都看最新状态，避免"同一意图永远同一句话"
 	_send_request(SYSTEM_PROMPT_DECISION, _build_decision_prompt(payload))
 
+## P5b 润色轻请求：模板台词 → 猫味台词（独立小 prompt，5s 短超时，超时用模板）
+func generate_polish_async(payload: Dictionary, template_line: String) -> void:
+	_decision_mode = false
+	_polish_mode = true
+	_fallback_line = ""
+	_fallback_action = ""
+	_http_request.timeout = POLISH_TIMEOUT_SEC
+	_send_request(SYSTEM_PROMPT_LINE, _build_polish_prompt(payload, template_line))
+
+func _build_polish_prompt(payload: Dictionary, template_line: String) -> String:
+	var persona_raw = payload.get("persona", {})
+	var persona: Dictionary = {}
+	if typeof(persona_raw) == TYPE_DICTIONARY:
+		persona = persona_raw as Dictionary
+	return "Rewrite this line as a cat with personality=%s (tsundere=傲娇, gentle=温柔, playful=活泼). Keep it under 25 chars, Simplified Chinese, keep the meaning, no quotes. Line: %s" % [
+		String(persona.get("personality", "tsundere")), template_line]
+
 func _send_request(system_prompt: String, user_prompt: String) -> void:
 	if not enabled:
 		_emit_fallback("llm_disabled")
@@ -183,6 +212,17 @@ func _send_request(system_prompt: String, user_prompt: String) -> void:
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	_pending = false
+	if _polish_mode:
+		_polish_mode = false
+		_http_request.timeout = timeout_seconds  # 恢复常规超时
+		if result == HTTPRequest.RESULT_SUCCESS and response_code >= 200 and response_code < 300:
+			var polish_parsed = JSON.parse_string(body.get_string_from_utf8())
+			if typeof(polish_parsed) == TYPE_DICTIONARY:
+				var polish_line := _extract_line(polish_parsed as Dictionary)
+				if not polish_line.is_empty():
+					line_ready.emit(polish_line, "llm_polish", {"code": response_code})
+		# 润色失败静默：模板台词已先行展示，无需兜底
+		return
 	if result != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
 		push_warning("LLM 请求失败: result=%d code=%d body=%s" % [result, response_code, body.get_string_from_utf8().left(200)])
 		_emit_fallback("http_error")
@@ -231,6 +271,11 @@ func _parse_decision_response(raw: String) -> void:
 	decision_ready.emit(_fallback_action, raw if not raw.is_empty() else _fallback_line, "llm_partial", {})
 
 func _emit_fallback(reason: String) -> void:
+	if _polish_mode:
+		# 润色请求的任何失败都静默（模板已展示）
+		_polish_mode = false
+		_http_request.timeout = timeout_seconds
+		return
 	var meta := {"reason": reason}
 	if _decision_mode:
 		decision_ready.emit(_fallback_action, _fallback_line, "policy", meta)
@@ -327,9 +372,18 @@ func _build_decision_prompt(payload: Dictionary) -> String:
 	if not fg_app.is_empty():
 		activity_note = "user is using %s (%s)" % [fg_app, activity if not activity.is_empty() else "unknown"]
 
+	# P5b：档位人设 + 沉默反压注入
+	var presence := clampi(int(persona.get("presence_level", 2)), 0, 4)
+	var streak := int(payload.get("silent_streak", 0))
+	var streak_note := ""
+	if streak >= 2:
+		streak_note = "You have stayed silent for the last %d cycles. If there is anything at all worth reacting to, speak now." % streak
+
 	return """== Cat inner state ==
 mood=%.0f/100, energy=%.0f/100, affection=%.0f/100, chaos=%.0f/100
-personality=%s, reminder_intensity=%s
+personality=%s
+presence_persona=%s
+%s
 
 == What the cat perceives about the user ==
 time=hour %d, %s
@@ -355,7 +409,8 @@ Decide NOW as this cat.""" % [
 		float(psyche.get("affection", 30.0)),
 		float(psyche.get("chaos", 20.0)),
 		String(persona.get("personality", "tsundere")),
-		String(persona.get("reminder_intensity", "medium")),
+		String(PRESENCE_PERSONA.get(presence, PRESENCE_PERSONA[2])),
+		streak_note,
 		int(context.get("hour", 12)),
 		activity_note,
 		int(float(context.get("continuous_active_seconds", 0.0)) / 60.0),

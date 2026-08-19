@@ -3,6 +3,7 @@ extends Node
 ## P6 每日任务/隐式签到测试
 
 const CollectorScript = preload("res://context_collector.gd")
+const QuestServiceScript = preload("res://components/engagement/daily_quest_service.gd")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -13,8 +14,32 @@ func _ready() -> void:
 
 func _run() -> void:
 	_test_event_recorded_signal()
+	_test_checkin()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
+
+func _test_checkin() -> void:
+	# 隐式签到：load_from_save 触发结算——首日 streak=1；连续 +1；断签归 1；同日不重复计
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	svc.load_from_save({})
+	_assert_equal(svc.streak_days, 1, "first_day_streak_1")
+	_assert_equal(svc.today_checked_in, true, "checked_in_today")
+	# 同日重复 load 不重复计
+	var saved: Dictionary = svc.get_save_data()
+	svc.load_from_save(saved)
+	_assert_equal(svc.streak_days, 1, "same_day_no_double")
+	# 连续：昨日 last_checkin → +1
+	var yesterday_key: String = svc._shift_date_key(-1)
+	svc.load_from_save({"streak_days": 3, "last_checkin_key": yesterday_key, "today_key": yesterday_key})
+	_assert_equal(svc.streak_days, 4, "consecutive_plus_one")
+	# 断签（5 天前）→ 归 1
+	svc.load_from_save({"streak_days": 7, "last_checkin_key": svc._shift_date_key(-5), "today_key": svc._shift_date_key(-5)})
+	_assert_equal(svc.streak_days, 1, "broken_streak_resets")
+	# 奖励公式 min(10 + streak*2, 30)：streak=1 → 12；streak=15 → 30 封顶
+	_assert_equal(svc._checkin_reward(1), 12, "reward_day1")
+	_assert_equal(svc._checkin_reward(15), 30, "reward_capped")
+	svc.queue_free()
 
 func _test_event_recorded_signal() -> void:
 	# record_event 尾部应发 event_recorded(type, payload) 信号（P6 任务系统数据源）

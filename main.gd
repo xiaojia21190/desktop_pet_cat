@@ -107,6 +107,10 @@ func _ready():
 	if panel_scene:
 		settings_panel = panel_scene.instantiate()
 		settings_panel.visible = false
+		# P8 修复：任务服务先于面板挂载——面板 apply_settings 触发控件信号→改即存→
+		# _gather_current_data 读 main.daily_quests_save_data()，若服务未挂载会返回 {}
+		# 造成启动早期一次空保存覆盖任务/签到/成就档
+		_setup_daily_quests(data)
 		add_child(settings_panel)
 		settings_panel.apply_settings(settings)
 		# P7：猫大小滑条初值（cat 区块键，settings 无此键需单独喂）
@@ -542,24 +546,33 @@ func first_interaction_done() -> bool:
 
 func _setup_daily_quests(data: Dictionary) -> void:
 	# P6：挂载服务 + 读档 + 事件订阅 + 完成信号接线
-	if daily_quest_service:
-		return
-	daily_quest_service = DAILY_QUEST_SCRIPT.new()
-	daily_quest_service.name = "DailyQuestService"
-	add_child(daily_quest_service)
-	daily_quest_service.load_from_save(data.get("daily_quests", {}))
-	daily_quest_service.checkin_done.connect(_on_checkin_done)
-	daily_quest_service.quest_completed.connect(_on_quest_completed)
-	# P8：周任务/成就信号 + bond 等级喂入（bond_lv5 成就数据源）
-	daily_quest_service.weekly_quest_completed.connect(_on_weekly_quest_completed)
-	daily_quest_service.achievement_unlocked.connect(_on_achievement_unlocked)
-	if cat and cat.bond_system:
-		cat.bond_system.bond_changed.connect(
-			func(_bond, level): daily_quest_service.notify_bond_level(level))
+	if not daily_quest_service:
+		daily_quest_service = DAILY_QUEST_SCRIPT.new()
+		daily_quest_service.name = "DailyQuestService"
+		add_child(daily_quest_service)
+		daily_quest_service.load_from_save(data.get("daily_quests", {}))
+		daily_quest_service.checkin_done.connect(_on_checkin_done)
+		daily_quest_service.quest_completed.connect(_on_quest_completed)
+		# P8：周任务/成就信号 + bond 等级喂入（bond_lv5 成就数据源）
+		daily_quest_service.weekly_quest_completed.connect(_on_weekly_quest_completed)
+		daily_quest_service.achievement_unlocked.connect(_on_achievement_unlocked)
 	# 事件流总订阅：collector 是 main 与 smart_pet_controller 两个来源的汇点
-	if smart_pet_controller and smart_pet_controller._context_collector:
-		smart_pet_controller._context_collector.event_recorded.connect(
-			func(event_type, payload): daily_quest_service.notify_event(event_type, payload))
+	# （服务可早于 smart 挂载，smart 就绪后补连）
+	if smart_pet_controller and smart_pet_controller._context_collector \
+			and not smart_pet_controller._context_collector.event_recorded.is_connected(_on_quest_event):
+		smart_pet_controller._context_collector.event_recorded.connect(_on_quest_event)
+	# P8：bond 等级喂入（bond_lv5 成就数据源；cat 在 _ready 更早已存在）
+	if cat and cat.bond_system \
+			and not cat.bond_system.bond_changed.is_connected(_on_bond_level_for_quests):
+		cat.bond_system.bond_changed.connect(_on_bond_level_for_quests)
+
+func _on_quest_event(event_type: String, payload: Dictionary) -> void:
+	if daily_quest_service:
+		daily_quest_service.notify_event(event_type, payload)
+
+func _on_bond_level_for_quests(_bond: float, level: int) -> void:
+	if daily_quest_service:
+		daily_quest_service.notify_bond_level(level)
 
 func _on_checkin_done(streak: int, reward: float) -> void:
 	# 隐式签到：首日播一句；奖励直发（无需庆祝动作）

@@ -411,7 +411,7 @@
         "walk": {
           "path": "res://assets/actions/orange_tabby/walk.png",
           "row": 0,
-          "frames": 8,
+          "frames": 12,
           "columns": 8,
           "frame_width": 128,
           "frame_height": 128
@@ -419,7 +419,7 @@
         "trot": {
           "path": "res://assets/actions/orange_tabby/trot.png",
           "row": 0,
-          "frames": 6,
+          "frames": 12,
           "columns": 6,
           "frame_width": 128,
           "frame_height": 128
@@ -427,7 +427,7 @@
         "run": {
           "path": "res://assets/actions/orange_tabby/run.png",
           "row": 0,
-          "frames": 6,
+          "frames": 12,
           "columns": 6,
           "frame_width": 128,
           "frame_height": 128
@@ -597,7 +597,7 @@
         "chasing": {
           "path": "res://assets/actions/orange_tabby/chasing.png",
           "row": 0,
-          "frames": 6,
+          "frames": 12,
           "columns": 6,
           "frame_width": 128,
           "frame_height": 128
@@ -613,7 +613,7 @@
         "eat": {
           "path": "res://assets/actions/orange_tabby/eat.png",
           "row": 0,
-          "frames": 7,
+          "frames": 11,
           "columns": 7,
           "frame_width": 128,
           "frame_height": 128

@@ -108,7 +108,8 @@ def update_manifest() -> None:
         if not png.exists():
             continue
         actual = Image.open(png).width // FRAME_SIZE
-        if actual != target_frames(key):
+        # 有效新图判定：达到一次性动作 10 帧下限（API 偶尔多给 1 帧也算成功）
+        if actual < 10:
             continue  # 旧图/失败保留，不更新
         if entry.get("frames") != actual:
             entry["frames"] = actual

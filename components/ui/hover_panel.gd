@@ -13,7 +13,8 @@ signal save_requested
 const UiThemeScript = preload("res://components/ui/ui_theme.gd")
 
 const BTN_SIZE := 32.0
-const DRAWER_GAP := 10.0
+const DRAWER_GAP := 10.0  # VBox separation 参数为 int，传入会被窄化——视觉无差，忽略
+@warning_ignore("narrowing_conversion")
 const AUTO_CLOSE_SEC := 30.0
 
 var is_out: bool = false  # 抽屉展开状态（穿透管理器判定用，保持旧名）

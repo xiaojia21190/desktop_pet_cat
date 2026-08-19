@@ -288,9 +288,9 @@ func _update_timed_hide_remaining() -> void:
 	timed_hide_remaining_label.text = "剩余时间: " + _format_duration(remaining)
 
 func _format_duration(seconds: int) -> String:
+	@warning_ignore("integer_division")
 	var minutes := seconds / 60
 	var secs := seconds % 60
-	@warning_ignore("integer_division")
 	return "%d:%02d" % [minutes, secs]
 
 # —— 页构建：猫性格 ——

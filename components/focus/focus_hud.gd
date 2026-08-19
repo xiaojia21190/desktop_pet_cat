@@ -2,6 +2,9 @@ class_name FocusHud
 extends CanvasLayer
 
 ## 专注会话 HUD：三数值条 + 时间 + 目标卡 + 提示文案 + 结果面板。纯视图，数值由外部喂入。
+## P7 奶油风：UiTheme 代码绘制
+
+const UiThemeScript = preload("res://components/ui/ui_theme.gd")
 
 const HUD_WIDTH := 430.0
 const HUD_HEIGHT := 260.0
@@ -66,15 +69,7 @@ func _build() -> void:
 	hud_panel.custom_minimum_size = Vector2(HUD_WIDTH, HUD_HEIGHT)
 	hud_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud_panel.visible = false
-	var aurora_tex := load("res://assets/aurora/panel_dark.png")
-	if aurora_tex:
-		var sb := StyleBoxTexture.new()
-		sb.texture = aurora_tex
-		sb.texture_margin_left = 20
-		sb.texture_margin_top = 20
-		sb.texture_margin_right = 20
-		sb.texture_margin_bottom = 20
-		hud_panel.add_theme_stylebox_override("panel", sb)
+	hud_panel.add_theme_stylebox_override("panel", UiThemeScript.panel_style())
 	add_child(hud_panel)
 
 	var hud_box := VBoxContainer.new()

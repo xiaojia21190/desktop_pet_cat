@@ -1,6 +1,5 @@
 extends Node2D
 @onready var cat = $Cat
-@onready var typing_effect_overlay = $TypingEffectOverlay
 const FOCUS_SESSION_MODE_SCRIPT := preload("res://focus_session_mode.gd")
 const SMART_PET_CONTROLLER_SCRIPT := preload("res://smart_pet_controller.gd")
 const QUICK_ACTION_MENU_SCRIPT := preload("res://quick_action_menu.gd")
@@ -38,8 +37,8 @@ var quick_action_menu
 var _start_minimized := false  # --minimized 启动:视觉隐藏仅托盘常驻(开机自启用)
 
 var _cached_screen_size: Vector2 = Vector2(1920, 1080)
-const SETTINGS_PANEL_WIDTH := 560.0
-const SETTINGS_PANEL_HEIGHT := 900.0
+const SETTINGS_PANEL_WIDTH := 720.0  # P7 侧边页签面板尺寸
+const SETTINGS_PANEL_HEIGHT := 560.0
 const FORCE_START_AT_BOTTOM_RIGHT := false
 
 const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
@@ -100,12 +99,18 @@ func _ready():
 	hover_panel_component.setup(_cached_screen_size)
 	hover_panel_component.items_requested.connect(_on_items_btn_pressed)
 	hover_panel_component.settings_requested.connect(_on_settings_pressed)
+	# P7 抽屉新增两入口：专注（复用托盘 handler）与存档（面板跳关于页）
+	hover_panel_component.focus_requested.connect(_on_tray_toggle_focus_session)
+	hover_panel_component.save_requested.connect(_on_drawer_save_pressed)
 
 	var panel_scene = load("res://settings_panel.tscn")
 	if panel_scene:
 		settings_panel = panel_scene.instantiate()
 		settings_panel.visible = false
 		add_child(settings_panel)
+		settings_panel.apply_settings(settings)
+		# P7：猫大小滑条初值（cat 区块键，settings 无此键需单独喂）
+		settings_panel.set_cat_scale(float(data.get("cat", {}).get("scale_factor", 1.0)))
 		# Panel 挂在 Node2D 下锚点失效（父级无尺寸）→ 代码定位屏幕居中
 		_center_settings_panel()
 
@@ -224,13 +229,7 @@ func _apply_window_style() -> void:
 
 func _on_screen_size_changed():
 	_cached_screen_size = get_viewport_rect().size
-	if hover_panel_component and hover_panel_component.panel:
-		var _panel_width = hover_panel_component.panel.size.x
-		var panel_height = hover_panel_component.panel.size.y
-		hover_panel_component.panel.position.y = (_cached_screen_size.y - panel_height) / 2
-		if not hover_panel_component.is_out:
-			hover_panel_component.panel.position.x = _cached_screen_size.x
-			hover_panel_component._target_x = _cached_screen_size.x
+	# P7 抽屉自带尺寸感知重排（update 内检测尺寸变化），无需外部搬位置
 	if smart_line_bubble and cat:
 		smart_line_bubble.reposition(cat.global_position, _cached_screen_size)
 	_center_settings_panel()
@@ -378,31 +377,11 @@ func _on_typing_attack_started():
 	is_shaking = true
 	shake_timer = 0.0
 	original_position = position
-	_start_typing_effects()
 	_record_smart_event("typing_burst")
 	if smart_pet_controller:
 		smart_pet_controller.record_typing()
 	if focus_session_mode:
 		focus_session_mode.on_typing_attack()
-
-func _start_typing_effects() -> void:
-	if not typing_effect_overlay or not cat:
-		return
-
-	var duration := _get_typing_attack_duration()
-	typing_effect_overlay.start_effect(duration, cat)
-
-func _get_typing_attack_duration() -> float:
-	var default_duration := 1.5
-	if not cat:
-		return default_duration
-
-	var state_machine = cat.state_machine
-	if state_machine and state_machine.states.has(&"TypingAttack"):
-		var typing_state = state_machine.states[&"TypingAttack"]
-		if "attack_duration" in typing_state:
-			return typing_state.attack_duration
-	return default_duration
 
 func _build_popup_menu():
 	popup_menu = PopupMenu.new()
@@ -486,6 +465,13 @@ func _on_items_btn_pressed():
 func _on_settings_pressed():
 	if settings_panel:
 		settings_panel.visible = not settings_panel.visible
+		_update_mouse_passthrough_region()
+
+func _on_drawer_save_pressed():
+	# P7 抽屉「存档」：打开面板并跳「关于」页（存档管理区块）
+	if settings_panel:
+		settings_panel.visible = true
+		settings_panel.switch_tab(5)
 		_update_mouse_passthrough_region()
 
 func spawn_item(item_type: String, pos: Vector2):

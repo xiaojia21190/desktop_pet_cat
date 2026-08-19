@@ -35,6 +35,12 @@ func _build_menu() -> void:
 		return
 
 	_menu = NativeMenu.create_menu()
+	# P7：专注会话入口提前到首位（高频入口）
+	_focus_index = NativeMenu.add_item(
+		_menu,
+		_focus_label(),
+		Callable(self, "_on_toggle_focus_session")
+	)
 	_menu_show_index = NativeMenu.add_item(
 		_menu,
 		_visibility_label(true),
@@ -44,11 +50,6 @@ func _build_menu() -> void:
 		_menu,
 		"设置",
 		Callable(self, "_on_open_settings")
-	)
-	_focus_index = NativeMenu.add_item(
-		_menu,
-		_focus_label(),
-		Callable(self, "_on_toggle_focus_session")
 	)
 	NativeMenu.add_separator(_menu)
 	NativeMenu.add_item(

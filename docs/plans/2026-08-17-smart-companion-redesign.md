@@ -356,3 +356,35 @@ quick_action_menu/bubble/settings_panel/hover_panel 对外信号与函数签名�
 ### P10 后世界
 
 吃不再被截断、转向不再折线、起步不再窜出、待机更从容——8 帧素材的表达力被榨满。素材重生成（12-16 帧/动作）是下一个肉眼可见的质变点。
+
+## P11 完成记录（2026-08-19）「橘猫高帧数素材重生成（部分交付）」
+
+**背景**：P10 榨满 8 帧素材天花板后，帧数翻倍是动画流畅度的素材层质变。设计文档：`docs/superpowers/specs/2026-08-19-p11-asset-regen-design.md`。
+
+### 交付（4 提交）
+
+| 改动 | 说明 |
+|---|---|
+| tools/p11_regen_actions.py | 重生成封装：帧数注入（monkeypatch ACTIONS）/旧图自动备份（orange_tabby_p10_backup/）/单动作 2 次重试/质量走查（帧数+包围盒漂移）/失败清单/manifest 按实际图宽更新 |
+| 5 个高帧数动作 | walk/trot/run/chasing 12 帧 + eat 11 帧（API 多给 1 帧有效）——恰好覆盖最影响观感的移动链与吃饭链 |
+| manifest + tres | orange 5 条 frames 更新（12/12/12/12/11）；gen_tres 重建 6 品种；tune_anim_speeds 重落帧率曲线（walk 12帧@10fps、eat 11帧曲线 1.6/0.7.../1.6） |
+| 首两验流程 | walk/eat 新旧对比图 + vision 分析双双「明显优于旧版可直接采用」；用户终审通过后放量 |
+
+### 额度情况（部分交付原因）
+
+23 个动作因 key 额度耗尽保留旧图（5 key 每个免费 40 次已用完，`_p11_failed.txt` 记录清单）。用户选择先交付已有 5 个。**补跑方式**：充值/换新 key 后 `PIXELLAB_SECRETS="<新key>" python tools/p11_regen_actions.py --rest` 一条命令续（失败动作自动重试，成功的跳过），随后 `--update-manifest` + gen_tres + tune 三连。
+
+### 执行中修正
+
+1. `update_manifest` 过滤条件 `actual != target` 误拦「API 多给 1 帧的有效新图」（eat 11≠10 被跳过）——改为 `actual < 10` 下限判定
+2. Python stdout 重定向全缓冲导致后台日志 0 字节——进度改按产物目录统计
+
+### 验证
+
+- **15 套测试全绿**：389 断言零回归（manifest/tres 数据变更兼容）
+- MCP 真机：启动零 ERROR，新 tres 正常加载
+- 视觉分析留档：.claude/p11_compare_walk.png、p11_compare_eat.png（不入库）
+
+### P11 后世界
+
+猫走路、跑步、追逐、吃饭四个最高频动作翻倍帧数——配合 P10 的播放锁与移动平滑，移动与进食链观感质变。剩余 23 动作等额度补充后一条命令续跑；其他品种沿用本流程。

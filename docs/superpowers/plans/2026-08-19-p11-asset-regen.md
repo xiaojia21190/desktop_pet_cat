@@ -41,7 +41,7 @@
 **Files:**
 - Create: `tools/p11_regen_actions.py`
 
-- [ ] **Step 1: 写 tools/p11_regen_actions.py**
+- [x] **Step 1: 写 tools/p11_regen_actions.py**
 
 ```python
 #!/usr/bin/env python3
@@ -176,12 +176,12 @@ if __name__ == "__main__":
 
 （注意 `BACKUP_DIR` 行的写法：直接 `plg.ROOT / "assets" / "actions" / (CAT + "_p10_backup")`——上面三元是笔误演示，执行时写干净版：备份放 `assets/actions/orange_tabby_p10_backup/` 与品种目录平级，**避免被 manifest 的 action_path_template 扫到**。）
 
-- [ ] **Step 2: 语法自检**
+- [x] **Step 2: 语法自检**
 
 Run: `python -c "import ast; ast.parse(open('tools/p11_regen_actions.py', encoding='utf-8').read())" && echo OK`
 Expected: OK
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tools/p11_regen_actions.py
@@ -194,13 +194,13 @@ git commit -m "feat: P11素材重生成封装脚本"
 
 **Files:** 生成产物 `assets/actions/orange_tabby/walk.png` `eat.png`（不入库前的验证阶段）
 
-- [ ] **Step 1: 注入 key 池并跑首两动作**
+- [x] **Step 1: 注入 key 池并跑首两动作**
 
 Run: `PIXELLAB_SECRETS="<key1>,<key2>,<key3>,<key4>,<key5>" python tools/p11_regen_actions.py --first-two`
 （key 由用户提供，命令行注入不落盘；预计 2 次生成调用 + 轮询）
 Expected: `完成 walk`、`完成 eat`，质量行无「漂移嫌疑」
 
-- [ ] **Step 2: 拼新旧对比图**
+- [x] **Step 2: 拼新旧对比图**
 
 ```bash
 python - << 'EOF'
@@ -225,11 +225,11 @@ for key in ["walk", "eat"]:
 EOF
 ```
 
-- [ ] **Step 3: 视觉分析对比图（vision MCP）**
+- [x] **Step 3: 视觉分析对比图（vision MCP）**
 
 对 `.claude/p11_compare_{walk,eat}.png` 各跑一次 vision_analyze：问「上行是新生成 12/10 帧、下行是旧 8/7 帧——新生成的动作连贯性/角色一致性/像素风是否明显更好？有无肢体崩坏、残影、角色漂移？」
 
-- [ ] **Step 4: 用户终审**
+- [x] **Step 4: 用户终审**
 
 把分析结论呈现给用户：满意 → Task 3；不满意 → `--retry walk` 重抽（≤2 轮）或调 prompt 重抽；仍不行该动作保持旧图（从清单剔除）。
 
@@ -237,13 +237,13 @@ EOF
 
 ### Task 3: 批量生成其余 26 动作
 
-- [ ] **Step 1: 跑批量**
+- [x] **Step 1: 跑批量**
 
 Run: `PIXELLAB_SECRETS="<keys>" python tools/p11_regen_actions.py --rest`
 （26 次生成 + 轮询，预计 15-40 分钟；额度不足自动切 key）
 Expected: 逐个「完成」；失败动作进 `_p11_failed.txt`
 
-- [ ] **Step 2: 汇总生成报告**
+- [x] **Step 2: 汇总生成报告**
 
 ```bash
 python - << 'EOF'
@@ -267,7 +267,7 @@ print(f"达标 {ok} 个；旧图保留 {len(stale)} 个: {stale}")
 EOF
 ```
 
-- [ ] **Step 3: Commit 素材与备份**
+- [x] **Step 3: Commit 素材与备份**
 
 ```bash
 git add assets/actions/orange_tabby/ assets/actions/orange_tabby_p10_backup/
@@ -285,7 +285,7 @@ git commit -m "feat: 橘猫28动作高帧数素材重生成"
 - Modify: `resources/animations/orange_tabby.tres`（gen 重建）
 - Create: 脚本化更新（并入 p11_regen_actions.py 或独立小脚本）
 
-- [ ] **Step 1: manifest frames 更新脚本（追加到 p11_regen_actions.py）**
+- [x] **Step 1: manifest frames 更新脚本（追加到 p11_regen_actions.py）**
 
 ```python
 def update_manifest() -> None:
@@ -306,22 +306,22 @@ def update_manifest() -> None:
 
 （`main()` 里加 `--update-manifest` 参数调用它。注意：实际图仍是旧帧数的动作**不更新**——Step 2 会按图宽校验过滤。改进：循环里先读图宽确认 `Image.open(path).width//128 == want` 才写。）
 
-- [ ] **Step 2: 跑 manifest 更新并校验**
+- [x] **Step 2: 跑 manifest 更新并校验**
 
 Run: `python tools/p11_regen_actions.py --update-manifest`
 Expected: `manifest 更新 N 条`（N = 达标动作数）；抽查 `resources/sprite_manifest.json` orange walk frames=12
 
-- [ ] **Step 3: tres 重建**
+- [x] **Step 3: tres 重建**
 
 Run: `"/d/Godot_v4.7-stable_win64.exe/Godot_v4.7-stable_win64_console.exe" --headless --path . --script tools/gen_tres_headless.gd 2>&1 | grep -E "已生成|完成"`
 Expected: `已生成: ...orange_tabby.tres (N 个动画)`、`完成: 6/6`
 
-- [ ] **Step 4: 帧率与曲线重落**
+- [x] **Step 4: 帧率与曲线重落**
 
 Run: `python tools/tune_anim_speeds.py && grep -A1 '"name": &"walk"' resources/animations/orange_tabby.tres | head -2`
 Expected: walk speed 10.0；eat duration 曲线 [1.6, 0.7...1.6]
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add resources/sprite_manifest.json resources/animations/orange_tabby.tres tools/p11_regen_actions.py
@@ -332,7 +332,7 @@ git commit -m "feat: 橘猫高帧数manifest与tres重建"
 
 ### Task 5: 全量回归 + MCP 真机验收 + 文档收尾
 
-- [ ] **Step 1: 15 套全量测试**
+- [x] **Step 1: 15 套全量测试**
 
 ```bash
 for t in test_behavior_system test_focus_session_mode test_sprite_manifest_loader test_objective_system test_activity_classifier test_foreground_app_monitor test_focus_charge_engine test_smart_modules test_bond_system test_presence_level test_first_guide test_daily_quests test_ui_theme test_offline_settlement test_anim_flow; do
@@ -342,15 +342,15 @@ done
 ```
 Expected: 全绿（test_sprite_manifest_loader 若锁旧 frames 值，按新值更新断言——数据变更非回归）
 
-- [ ] **Step 2: MCP 真机动画验收**
+- [x] **Step 2: MCP 真机动画验收**
 
 - `run_project` 观察 60 秒：待机/走动/行为链动画明显更连贯
 - 快捷菜单投食 → chasing → eat 全链（新 10 帧吃动画）
 - `stop_project`
 
-- [ ] **Step 3: 勾选本计划 + 主文档 P11 完成记录**（含生成报告：成功率/跳过清单/对比图路径）
+- [x] **Step 3: 勾选本计划 + 主文档 P11 完成记录**（含生成报告：成功率/跳过清单/对比图路径）
 
-- [ ] **Step 4: Commit 收尾**
+- [x] **Step 4: Commit 收尾**
 
 ```bash
 git add docs/plans/2026-08-17-smart-companion-redesign.md docs/superpowers/plans/2026-08-19-p11-asset-regen.md

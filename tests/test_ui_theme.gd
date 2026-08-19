@@ -15,6 +15,7 @@ func _run() -> void:
 	_test_palette_tokens()
 	_test_stylebox_factories()
 	_test_label_tint()
+	_test_settings_tabs()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -47,6 +48,22 @@ func _test_label_tint() -> void:
 	UiThemeScript.tint_label(label, "title")
 	_assert_equal(label.get_theme_font_size("font_size"), UiThemeScript.FONT_TITLE, "tint_title_size")
 	label.queue_free()
+
+const SettingsPanelScript = preload("res://settings_panel.gd")
+
+func _test_settings_tabs() -> void:
+	# 骨架：6 页签构建、切换、对外接口存在
+	var panel = SettingsPanelScript.new()
+	add_child(panel)
+	var tabs: Array = panel.get_tab_names()
+	_assert_equal(tabs.size(), 6, "six_tabs")
+	_assert_true(tabs.has("外观") and tabs.has("关于"), "tabs_named")
+	panel.switch_tab(2)
+	_assert_equal(panel.current_tab_index, 2, "switch_tab_works")
+	_assert_true(panel.has_method("apply_settings"), "has_apply")
+	_assert_true(panel.has_method("collect_settings"), "has_collect")
+	_assert_true(panel.has_method("refresh_bond_ui"), "has_refresh_bond")
+	panel.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

@@ -340,9 +340,6 @@ func refresh_quest_ui() -> void:
 func refresh_breed_locks(_bond_level: int) -> void:
 	pass
 
-func set_timed_hide_option(_index: int) -> void:
-	pass
-
 func _on_timed_hide_update_timer() -> void:
 	if not visible:
 		return

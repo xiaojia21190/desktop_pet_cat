@@ -77,7 +77,7 @@ func _build_ui() -> void:
 
 func _round_style(hover: bool) -> StyleBoxFlat:
 	var sb := UiThemeScript.btn_style(hover)
-	sb.set_corner_radius_all(int(BTN_SIZE * 0.5))
+	sb.set_corner_radius_all(roundi(BTN_SIZE * 0.5))
 	sb.border_color = UiThemeScript.PINK if hover else UiThemeScript.PRIMARY
 	sb.set_border_width_all(2)
 	sb.content_margin_left = 0

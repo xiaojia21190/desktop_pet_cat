@@ -290,6 +290,7 @@ func _update_timed_hide_remaining() -> void:
 func _format_duration(seconds: int) -> String:
 	var minutes := seconds / 60
 	var secs := seconds % 60
+	@warning_ignore("integer_division")
 	return "%d:%02d" % [minutes, secs]
 
 # —— 页构建：猫性格 ——

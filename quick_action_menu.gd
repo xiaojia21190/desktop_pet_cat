@@ -97,9 +97,9 @@ func show_at(pos: Vector2) -> void:
 	for i in _buttons.size():
 		var t: float = float(i) / float(maxi(_buttons.size() - 1, 1))
 		var angle: float = ANGLE_FROM + (ANGLE_TO - ANGLE_FROM) * t
-		var offset := Vector2(cos(angle), sin(angle)) * RADIUS
+		var radial_offset := Vector2(cos(angle), sin(angle)) * RADIUS
 		var btn: Button = _buttons[i]
-		btn.position = pos + offset - Vector2(BTN_SIZE, BTN_SIZE) * 0.5
+		btn.position = pos + radial_offset - Vector2(BTN_SIZE, BTN_SIZE) * 0.5
 	_kill_tween()
 	_panel.scale = Vector2(0.4, 0.4)
 	_panel.modulate = Color(1, 1, 1, 0)

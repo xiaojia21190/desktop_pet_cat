@@ -8,6 +8,7 @@ extends Node
 signal quest_completed(quest_id: String, reward_bond: float)
 signal checkin_done(streak_days: int, reward_bond: float)
 signal weekly_quest_completed(quest_id: String, reward_bond: float)
+signal achievement_unlocked(achievement_id: String, title_text: String)
 
 const AchDefsScript = preload("res://components/engagement/achievement_defs.gd")
 
@@ -42,6 +43,10 @@ var _completed: Dictionary = {}   # quest_id -> true（当日已完成）
 var _current_week := ""           # P8 当前周标识（周一日期键）
 var _week_counts: Dictionary = {}      # P8 每日任务id -> 本周次数
 var _week_quests_done: Dictionary = {} # P8 周任务id -> true（本周已发）
+var _lifetime_totals: Dictionary = {}  # P8 终身累计（成就判定源）
+var _unlocked: Dictionary = {}         # P8 已解锁成就 id -> true
+var _notified_bond_level := 0          # P8 外部喂入的最高 bond 等级
+var _equipped_title := ""              # P8 佩戴中称号（Task 5 提供佩戴 API）
 
 ## 注意：_ready 不签到——签到结算只在 load_from_save 驱动。
 ## 若 _ready 先 roll，挂载即用空状态签到（streak=1、today_key=今天），
@@ -73,6 +78,16 @@ func load_from_save(data: Dictionary) -> void:
 	if typeof(saved_weekly_done_raw) == TYPE_ARRAY:
 		for w in saved_weekly_done_raw:
 			_week_quests_done[String(w)] = true
+	# P8 成就状态恢复
+	var saved_totals_raw = data.get("lifetime_totals", {})
+	if typeof(saved_totals_raw) == TYPE_DICTIONARY:
+		for k in saved_totals_raw:
+			_lifetime_totals[String(k)] = int(saved_totals_raw[k])
+	var saved_unlocked_raw = data.get("unlocked", [])
+	if typeof(saved_unlocked_raw) == TYPE_ARRAY:
+		for u in saved_unlocked_raw:
+			_unlocked[String(u)] = true
+	_equipped_title = String(data.get("equipped_title", ""))
 	_roll_week_if_needed()
 	if saved_today == _date_key():
 		# 同日重启：恢复状态不重复签到
@@ -96,6 +111,9 @@ func _roll_day() -> void:
 	else:
 		streak_days = 1
 	_last_checkin_key = key
+	# P8：连续签到直接作为成就判定值
+	_lifetime_totals["checkin_days"] = streak_days
+	_scan_achievements()
 	checkin_done.emit(streak_days, _checkin_reward(streak_days))
 
 func _checkin_reward(streak: int) -> float:
@@ -158,10 +176,27 @@ func _complete(quest_id: String, reward: float, _source_event: String = "") -> v
 	quest_completed.emit(quest_id, reward)
 
 func _count_weekly(quest_id: String, source_event: String = "") -> void:
-	## P8 周计数（无论当日任务是否已完成都累计——周任务数据源）
+	## P8 周计数 + 终身累计（无论当日任务是否已完成都累计——周任务/成就数据源）
 	_roll_week_if_needed()
 	_week_counts[quest_id] = int(_week_counts.get(quest_id, 0)) + 1
+	# —— 终身累计（成就判定源）——
+	match quest_id:
+		"focus_session":
+			_lifetime_totals["focus_session"] = int(_lifetime_totals.get("focus_session", 0)) + 1
+		"interact_once":
+			_lifetime_totals["interact_total"] = int(_lifetime_totals.get("interact_total", 0)) + 1
+			if source_event in ["petting_started", "cat_clicked"]:
+				_lifetime_totals["pet_count"] = int(_lifetime_totals.get("pet_count", 0)) + 1
+	# 单周全勤：四个每日任务本周各≥1
+	var all_weekly := true
+	for qid in QUEST_DEFS:
+		if int(_week_counts.get(String(qid), 0)) < 1:
+			all_weekly = false
+			break
+	if all_weekly:
+		_lifetime_totals["week_all"] = maxi(int(_lifetime_totals.get("week_all", 0)), 1)
 	_check_weekly_quests()
+	_scan_achievements()
 
 func _check_weekly_quests() -> void:
 	for wid in AchDefsScript.WEEKLY_QUESTS:
@@ -173,6 +208,27 @@ func _check_weekly_quests() -> void:
 			_week_quests_done[wid] = true
 			weekly_quest_completed.emit(String(wid), float(w["reward"]))
 
+func _scan_achievements() -> void:
+	## P8 成就扫描：遍历定义表比对累计值（8 条规模无需索引优化）
+	for aid in AchDefsScript.ACHIEVEMENTS:
+		if _unlocked.has(aid):
+			continue
+		var a: Dictionary = AchDefsScript.ACHIEVEMENTS[aid]
+		var stat := String(a["stat"])
+		var value := 0
+		if stat == "bond_level":
+			value = _notified_bond_level
+		else:
+			value = int(_lifetime_totals.get(stat, 0))
+		if value >= int(a["need"]):
+			_unlocked[aid] = true
+			achievement_unlocked.emit(String(aid), String(a["title"]))
+
+func notify_bond_level(level: int) -> void:
+	## P8 main 在 bond_system.bond_changed 时调用（bond_lv5 成就数据源）
+	_notified_bond_level = maxi(_notified_bond_level, level)
+	_scan_achievements()
+
 func get_save_data() -> Dictionary:
 	var completed: Array = []
 	for q in _completed.keys():
@@ -180,6 +236,9 @@ func get_save_data() -> Dictionary:
 	var weekly_done: Array = []
 	for w in _week_quests_done.keys():
 		weekly_done.append(w)
+	var unlocked_arr: Array = []
+	for u in _unlocked.keys():
+		unlocked_arr.append(u)
 	return {
 		"today_key": _today_key,
 		"completed": completed,
@@ -188,6 +247,9 @@ func get_save_data() -> Dictionary:
 		"week_key": _current_week,
 		"week_counts": _week_counts.duplicate(true),
 		"weekly_done": weekly_done,
+		"lifetime_totals": _lifetime_totals.duplicate(true),
+		"unlocked": unlocked_arr,
+		"equipped_title": _equipped_title,
 	}
 
 func get_today_summary() -> Dictionary:

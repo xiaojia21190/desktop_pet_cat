@@ -23,6 +23,8 @@ func _run() -> void:
 	_test_quest_bond_gain()
 	_test_achievement_defs()
 	_test_weekly_counts()
+	_test_achievements()
+	_test_bond_level_achievement()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -274,6 +276,56 @@ func _test_weekly_counts() -> void:
 	# 达标后继续互动不重复发
 	svc.notify_event("item_used", {})
 	_assert_equal(fired.size(), 1, "weekly_no_double")
+	svc.queue_free()
+
+func _test_achievements() -> void:
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	# 先连信号再 load——签到结算在 load_from_save 内跑（streak=7 的解锁信号在 load 时发射）
+	var unlocked: Array = []
+	svc.achievement_unlocked.connect(func(aid, title): unlocked.append([aid, title]))
+	svc.load_from_save({"streak_days": 6, "last_checkin_key": svc._shift_date_key(-1), "today_key": svc._shift_date_key(-1)})
+	# streak=7 签到 → checkin_7 解锁
+	_assert_true(unlocked.size() >= 1, "checkin7_unlocked")
+	var found := false
+	for u in unlocked:
+		if String(u[0]) == "checkin_7":
+			found = true
+	_assert_true(found, "checkin7_id")
+	# 重复事件不重复解锁
+	unlocked.clear()
+	svc.notify_event("cat_clicked", {})
+	var again := false
+	for u in unlocked:
+		if String(u[0]) == "checkin_7":
+			again = true
+	_assert_true(not again, "no_double_unlock")
+	svc.queue_free()
+
+	# focus_10 边界：预置 9 次再完成 1 次 → 解锁
+	var svc2 = QuestServiceScript.new()
+	add_child(svc2)
+	svc2.load_from_save({})
+	var unlocked2: Array = []
+	svc2.achievement_unlocked.connect(func(aid, title): unlocked2.append(aid))
+	svc2._lifetime_totals["focus_session"] = 9
+	svc2.notify_event("focus_milestone", {})
+	var f10 := false
+	for u in unlocked2:
+		if String(u) == "focus_10":
+			f10 = true
+	_assert_true(f10, "focus10_at_boundary")
+	svc2.queue_free()
+
+func _test_bond_level_achievement() -> void:
+	# bond_lv5：notify_bond_level(5) 解锁
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	svc.load_from_save({})
+	var unlocked: Array = []
+	svc.achievement_unlocked.connect(func(aid, title): unlocked.append(aid))
+	svc.notify_bond_level(5)
+	_assert_true(unlocked.has("bond_lv5"), "bondlv5_unlocked")
 	svc.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:

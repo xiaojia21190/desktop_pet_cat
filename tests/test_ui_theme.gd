@@ -17,6 +17,7 @@ func _run() -> void:
 	_test_label_tint()
 	_test_settings_tabs()
 	_test_settings_roundtrip()
+	_test_radial_menu()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -88,6 +89,21 @@ func _test_settings_roundtrip() -> void:
 	_assert_equal(String(out.get("cat_type", "")), "calico", "rt_cat_type")
 	_assert_true(bool(out.get("llm_enabled", false)), "rt_llm")
 	panel.queue_free()
+
+const QuickMenuScript = preload("res://quick_action_menu.gd")
+
+func _test_radial_menu() -> void:
+	var menu = QuickMenuScript.new()
+	add_child(menu)
+	await get_tree().process_frame
+	var actions: Array = menu.get_action_ids()
+	_assert_equal(actions.size(), 6, "six_actions")
+	_assert_true(not actions.has("settings"), "settings_removed")
+	var fired: Array = []
+	menu.action_selected.connect(func(a): fired.append(a))
+	menu._emit_action("pet")
+	_assert_equal(String(fired[0] if fired.size() > 0 else ""), "pet", "signal_carries_action")
+	menu.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

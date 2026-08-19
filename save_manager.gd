@@ -48,7 +48,13 @@ func _get_default_data() -> Dictionary:
 			"perception_default_rules": true,
 			"focus_duration_index": 1
 		},
-		"behavior": {}
+		"behavior": {},
+		"daily_quests": {
+			"today_key": "",
+			"completed": [],
+			"streak_days": 0,
+			"last_checkin_key": ""
+		}
 	}
 
 func _build_snapshot_data() -> Dictionary:
@@ -93,6 +99,13 @@ func _write_config(data: Dictionary) -> int:
 	config.set_value("settings", "personality", settings.get("personality", "tsundere"))
 	config.set_value("settings", "presence_level", int(settings.get("presence_level", 2)))
 	config.set_value("settings", "first_interaction_done", bool(settings.get("first_interaction_done", false)))
+
+	# P6：每日任务区块
+	var dq = data.get("daily_quests", {})
+	config.set_value("daily_quests", "today_key", String(dq.get("today_key", "")))
+	config.set_value("daily_quests", "completed", dq.get("completed", []))
+	config.set_value("daily_quests", "streak_days", int(dq.get("streak_days", 0)))
+	config.set_value("daily_quests", "last_checkin_key", String(dq.get("last_checkin_key", "")))
 
 	config.set_value("meta", "saved_at", meta.get("saved_at", 0))
 	config.set_value("meta", "version", meta.get("version", SAVE_VERSION))
@@ -166,6 +179,14 @@ func load_data() -> Dictionary:
 		for key in config.get_section_keys("behavior"):
 			behavior_data[key] = config.get_value("behavior", key)
 	data["behavior"] = behavior_data
+
+	# P6：每日任务区块（独立 section，缺省走默认值）
+	var dq_data: Dictionary = data.get("daily_quests", {})
+	dq_data["today_key"] = String(config.get_value("daily_quests", "today_key", dq_data.get("today_key", "")))
+	dq_data["completed"] = config.get_value("daily_quests", "completed", dq_data.get("completed", []))
+	dq_data["streak_days"] = int(config.get_value("daily_quests", "streak_days", dq_data.get("streak_days", 0)))
+	dq_data["last_checkin_key"] = String(config.get_value("daily_quests", "last_checkin_key", dq_data.get("last_checkin_key", "")))
+	data["daily_quests"] = dq_data
 
 	return data
 
@@ -253,6 +274,10 @@ func _gather_current_data() -> Dictionary:
 		var smart_settings = smart_controller.get_settings_snapshot()
 		if smart_settings is Dictionary:
 			settings.merge(smart_settings, true)
+
+	# P6：每日任务状态（main 持有 service，has_method 同 get_timed_hide_save_data 模式）
+	if main and main.has_method("daily_quests_save_data"):
+		data["daily_quests"] = main.daily_quests_save_data()
 
 	data["cat"] = cat_data
 	data["settings"] = settings

@@ -19,6 +19,7 @@ func _run() -> void:
 	_test_window_quests()
 	_test_save_and_roll()
 	_test_summary()
+	_test_save_manager_section()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -206,6 +207,21 @@ func _test_summary() -> void:
 	_assert_equal(String(interact.get("title", "")), "摸摸我吧", "summary_carries_title")
 	_assert_true(int(summary.get("streak_days", 0)) >= 1, "summary_has_streak")
 	svc.queue_free()
+
+func _test_save_manager_section() -> void:
+	# daily_quests 区块默认值 + 写档（写真实 user:// 路径——测试环境 SAVE_PATH 可写）
+	var sm = preload("res://save_manager.gd").new()
+	add_child(sm)
+	var defaults: Dictionary = sm._get_default_data()
+	var dq: Dictionary = defaults.get("daily_quests", {})
+	_assert_equal(int(dq.get("streak_days", -1)), 0, "default_streak_0")
+	_assert_equal(String(dq.get("today_key", "x")), "", "default_today_empty")
+	# _write_config 真实落盘（验证 ConfigFile 序列化 Array 不崩）
+	var data := defaults.duplicate(true)
+	data["daily_quests"] = {"today_key": "20260819", "completed": ["interact_once"], "streak_days": 3, "last_checkin_key": "20260819"}
+	var err: int = sm._write_config(data)
+	_assert_equal(err, 0, "write_config_ok")
+	sm.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

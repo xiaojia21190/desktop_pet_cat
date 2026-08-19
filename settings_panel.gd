@@ -464,11 +464,187 @@ func _get_bond_level() -> int:
 		return main.cat.bond_system.get_level()
 	return 1
 
+# —— 页构建：任务·亲密度（P5/P6 区块承接）——
+var _bond_level_label: Label
+var _bond_progress_bar: ProgressBar
+var _quest_rows: Array = []
+var _quest_streak_label: Label
+
 func _build_page_progress() -> void:
-	pass
+	var page: VBoxContainer = _pages["任务·亲密度"]
+	_bond_level_label = Label.new()
+	UiThemeScript.tint_label(_bond_level_label, "body")
+	page.add_child(_bond_level_label)
+	_bond_progress_bar = ProgressBar.new()
+	_bond_progress_bar.min_value = 0.0
+	_bond_progress_bar.max_value = 100.0
+	_bond_progress_bar.show_percentage = false
+	_bond_progress_bar.custom_minimum_size = Vector2(0, 14)
+	_bond_progress_bar.add_theme_stylebox_override("background", UiThemeScript.slider_track_style())
+	_bond_progress_bar.add_theme_stylebox_override("fill", UiThemeScript.slider_fill_style())
+	page.add_child(_bond_progress_bar)
+
+	var quest_title := Label.new()
+	quest_title.text = "今日任务"
+	UiThemeScript.tint_label(quest_title, "section")
+	page.add_child(quest_title)
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.daily_quest_service:
+		for qid in main.daily_quest_service.QUEST_DEFS:
+			var row := Label.new()
+			UiThemeScript.tint_label(row, "body")
+			page.add_child(row)
+			_quest_rows.append({"label": row, "quest_id": String(qid)})
+	_quest_streak_label = Label.new()
+	UiThemeScript.tint_label(_quest_streak_label, "body")
+	_quest_streak_label.add_theme_color_override("font_color", UiThemeScript.PRIMARY)
+	page.add_child(_quest_streak_label)
+
+func refresh_bond_ui() -> void:
+	if not _bond_level_label:
+		return
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if not main or not main.cat or not main.cat.bond_system:
+		return
+	var bs = main.cat.bond_system
+	var info: Dictionary = bs.get_level_info()
+	var next: Dictionary = bs.get_next_level_info()
+	_bond_level_label.text = "亲密度 Lv.%d「%s」" % [bs.get_level(), String(info.get("title", ""))]
+	if next.is_empty():
+		_bond_progress_bar.value = 100.0
+	else:
+		_bond_progress_bar.value = bs.get_progress() * 100.0
+		var unlock_breed := String(next.get("unlock_breed", ""))
+		var unlock_anim := String(next.get("unlock_anim", ""))
+		if not unlock_breed.is_empty():
+			_bond_level_label.text += "　下一级解锁：品种"
+		elif not unlock_anim.is_empty():
+			_bond_level_label.text += "　下一级解锁：新动作"
+
+func refresh_quest_ui() -> void:
+	if _quest_rows.is_empty():
+		return
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if not main or not main.daily_quest_service:
+		return
+	var summary: Dictionary = main.daily_quest_service.get_today_summary()
+	for row in _quest_rows:
+		var quest_id: String = row["quest_id"]
+		var title := ""
+		var done := false
+		for q in summary.get("quests", []):
+			if String(q.get("id", "")) == quest_id:
+				title = String(q.get("title", ""))
+				done = bool(q.get("completed", false))
+		row["label"].text = ("✓ " if done else "○ ") + title
+	_quest_streak_label.text = "陪伴 · 连续签到 %d 天" % int(summary.get("streak_days", 0))
+
+# —— 页构建：关于（存档管理承接 save_manager_panel 四功能）——
+var _save_time_label: Label
+var _export_dialog: FileDialog
+var _import_dialog: FileDialog
 
 func _build_page_about() -> void:
-	pass
+	var page: VBoxContainer = _pages["关于"]
+	var version := Label.new()
+	version.text = "桌宠猫 · 智能生活伴侣 v1.7（P7 奶油风）"
+	UiThemeScript.tint_label(version, "body")
+	page.add_child(version)
+	var credits := Label.new()
+	credits.text = "原创猫素材：本地生成\n历史 UI 素材：VerzatileDev (CC BY 4.0)"
+	credits.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UiThemeScript.tint_label(credits, "caption")
+	page.add_child(credits)
+
+	_section_label(page, "存档管理")
+	_save_time_label = Label.new()
+	UiThemeScript.tint_label(_save_time_label, "caption")
+	page.add_child(_save_time_label)
+	var row := HBoxContainer.new()
+	page.add_child(row)
+	var export_btn := Button.new()
+	export_btn.text = "导出"
+	row.add_child(export_btn)
+	var import_btn := Button.new()
+	import_btn.text = "导入"
+	row.add_child(import_btn)
+	var reset_btn := Button.new()
+	reset_btn.text = "重置存档"
+	reset_btn.add_theme_color_override("font_color", UiThemeScript.DANGER)
+	row.add_child(reset_btn)
+	_style_btn_row([export_btn, import_btn, reset_btn])
+
+	_export_dialog = FileDialog.new()
+	_export_dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
+	_export_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	_export_dialog.filters = PackedStringArray(["*.catpet ; 桌宠猫存档"])
+	add_child(_export_dialog)
+	_export_dialog.file_selected.connect(_on_export_selected)
+	_import_dialog = FileDialog.new()
+	_import_dialog.file_mode = FileDialog.FILE_MODE_OPEN_FILE
+	_import_dialog.access = FileDialog.ACCESS_FILESYSTEM
+	_import_dialog.filters = PackedStringArray(["*.catpet ; 桌宠猫存档"])
+	add_child(_import_dialog)
+	_import_dialog.file_selected.connect(_on_import_selected)
+	export_btn.pressed.connect(func(): _export_dialog.popup_centered_ratio())
+	import_btn.pressed.connect(func(): _import_dialog.popup_centered_ratio())
+	reset_btn.pressed.connect(_on_reset_pressed)
+
+func _style_btn_row(buttons: Array) -> void:
+	for btn in buttons:
+		btn.add_theme_stylebox_override("normal", UiThemeScript.btn_style())
+		btn.add_theme_stylebox_override("hover", UiThemeScript.btn_style(true))
+		btn.add_theme_color_override("font_color", UiThemeScript.TEXT)
+
+func _on_reset_pressed() -> void:
+	var confirm := ConfirmationDialog.new()
+	confirm.dialog_text = "确定要重置存档吗？这将清除所有数据并恢复默认。"
+	add_child(confirm)
+	confirm.confirmed.connect(func():
+		SaveManager.reset_data()
+		confirm.queue_free())
+	confirm.close_requested.connect(func(): confirm.queue_free())
+	confirm.popup_centered()
+
+func _on_export_selected(path: String) -> void:
+	if SaveManager.export_to_file(path):
+		_status_label.text = "✓ 导出成功"
+	else:
+		_status_label.text = "✗ 导出失败"
+	_refresh_save_info()
+
+func _on_import_selected(path: String) -> void:
+	if SaveManager.import_from_file(path):
+		var data: Dictionary = SaveManager.load_data()
+		SaveManager.apply_settings(data)
+		apply_settings(data)
+		_status_label.text = "✓ 导入成功，已应用"
+	else:
+		_status_label.text = "✗ 导入失败"
+	_refresh_save_info()
+
+func _refresh_save_info() -> void:
+	if not _save_time_label:
+		return
+	var data: Dictionary = SaveManager.load_data()
+	var meta: Dictionary = data.get("meta", {})
+	var saved_at := int(meta.get("saved_at", 0))
+	if saved_at > 0:
+		var dt := Time.get_datetime_dict_from_unix_time(saved_at)
+		_save_time_label.text = "上次保存：%04d-%02d-%02d %02d:%02d" % [
+			dt.year, dt.month, dt.day, dt.hour, dt.minute]
+	else:
+		_save_time_label.text = "暂无存档"
+	var cat_type := String(data.get("cat", {}).get("cat_type", "orange_tabby"))
+	_save_time_label.text += "　品种：" + cat_type
+
+func _on_visibility_changed() -> void:
+	if visible:
+		_on_timed_hide_update_timer()
+		refresh_breed_locks(_get_bond_level())
+		refresh_bond_ui()
+		refresh_quest_ui()
+		_refresh_save_info()
 
 # —— 对外接口占位（Task 3-5 逐个补实现）——
 func apply_settings(settings: Dictionary) -> void:
@@ -544,19 +720,10 @@ func _personality_to_index(value: String) -> int:
 func set_timed_hide_option(index: int) -> void:
 	timed_hide_option.select(index)
 
-func refresh_bond_ui() -> void:
-	pass
-
-func refresh_quest_ui() -> void:
-	pass
-
 func _on_timed_hide_update_timer() -> void:
 	if not visible:
 		return
-
-func _on_visibility_changed() -> void:
-	if visible:
-		_on_timed_hide_update_timer()
+	_update_timed_hide_remaining()
 
 func _on_close_pressed() -> void:
 	visible = false

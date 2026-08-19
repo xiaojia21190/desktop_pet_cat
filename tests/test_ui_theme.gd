@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_stylebox_factories()
 	_test_label_tint()
 	_test_settings_tabs()
+	_test_settings_roundtrip()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -63,6 +64,29 @@ func _test_settings_tabs() -> void:
 	_assert_true(panel.has_method("apply_settings"), "has_apply")
 	_assert_true(panel.has_method("collect_settings"), "has_collect")
 	_assert_true(panel.has_method("refresh_bond_ui"), "has_refresh_bond")
+	panel.queue_free()
+
+func _test_settings_roundtrip() -> void:
+	# 新结构下 apply→collect 关键 12 键 roundtrip
+	var panel = SettingsPanelScript.new()
+	add_child(panel)
+	var src := {
+		"opacity": 0.8, "always_on_top": false, "timed_hide_option": 2,
+		"sound_enabled": false, "bgm_enabled": true, "volume": 0.5,
+		"intensity": 2, "smart_mode": false, "perception_enabled": true,
+		"presence_level": 3, "quiet_hours_start": 22, "quiet_hours_end": 7,
+		"personality": "gentle", "cat_type": "calico", "llm_enabled": true,
+	}
+	panel.apply_settings(src)
+	var out: Dictionary = panel.collect_settings()
+	_assert_true(is_equal_approx(float(out.get("opacity", 0.0)), 0.8), "rt_opacity")
+	_assert_true(bool(out.get("always_on_top", true)) == false, "rt_on_top")
+	_assert_equal(int(out.get("timed_hide_option", -1)), 2, "rt_timed_hide")
+	_assert_equal(int(out.get("presence_level", -1)), 3, "rt_presence")
+	_assert_equal(int(out.get("quiet_hours_start", -1)), 22, "rt_quiet_start")
+	_assert_equal(String(out.get("personality", "")), "gentle", "rt_personality")
+	_assert_equal(String(out.get("cat_type", "")), "calico", "rt_cat_type")
+	_assert_true(bool(out.get("llm_enabled", false)), "rt_llm")
 	panel.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:

@@ -1,0 +1,84 @@
+extends Node
+
+## P10 动画流畅度测试
+
+const AnimCompScript = preload("res://components/cat_animation_component.gd")
+
+var _passed: int = 0
+var _failed: int = 0
+var _failures: Array[String] = []
+
+func _ready() -> void:
+	call_deferred("_run")
+
+func _run() -> void:
+	_test_oneshot_table()
+	_test_play_lock()
+	_test_frame_curve()
+	_print_summary()
+	get_tree().quit(0 if _failed == 0 else 1)
+
+func _test_oneshot_table() -> void:
+	# 语义表：互动关键动作在一次性集合；循环动作不在
+	_assert_true(AnimCompScript.ONESHOT_ACTIONS.has("eat"), "eat_oneshot")
+	_assert_true(AnimCompScript.ONESHOT_ACTIONS.has("pounce_attack"), "pounce_oneshot_despite_tres_loop")
+	_assert_true(AnimCompScript.ONESHOT_ACTIONS.has("greet"), "greet_oneshot")
+	_assert_true(not AnimCompScript.ONESHOT_ACTIONS.has("idle_stand"), "idle_not_oneshot")
+	_assert_true(not AnimCompScript.ONESHOT_ACTIONS.has("walk"), "walk_not_oneshot")
+
+func _make_anim_comp() -> Node:
+	# 构造带真实 SpriteFrames 的组件（加载 orange_tabby tres）
+	var comp = AnimCompScript.new()
+	add_child(comp)
+	var sprite := AnimatedSprite2D.new()
+	sprite.name = "AnimatedSprite2D"
+	add_child(sprite)
+	comp.animated_sprite = sprite
+	var sf := load("res://resources/animations/orange_tabby.tres") as SpriteFrames
+	if sf:
+		sprite.sprite_frames = sf
+	return comp
+
+func _test_play_lock() -> void:
+	var comp = _make_anim_comp()
+	# 一次性动作播放 → 锁 true
+	comp.play("eat")
+	_assert_true(comp.is_action_locked(), "eat_locks")
+	# 手动触发 animation_finished → 解锁
+	comp._on_animation_finished()
+	_assert_true(not comp.is_action_locked(), "finished_unlocks")
+	# 循环动作不锁
+	comp.play("idle_stand")
+	_assert_true(not comp.is_action_locked(), "loop_no_lock")
+	comp.queue_free()
+
+func _test_frame_curve() -> void:
+	# 帧时长曲线：由 tools/tune_anim_speeds.py 写入 tres（Godot 4.7 无运行时 set_frame_duration）
+	# 此处验证一次性动作至少播放时长为正、循环动画 duration 均匀
+	var comp = _make_anim_comp()
+	comp.play("eat")
+	var sf: SpriteFrames = comp.animated_sprite.sprite_frames
+	var frames := sf.get_frame_count("eat")
+	_assert_true(frames >= 3, "eat_has_frames")
+	var total := 0.0
+	for i in frames:
+		total += sf.get_frame_duration("eat", i)
+	_assert_true(total > 0.0, "eat_positive_duration")
+	comp.play("walk")
+	var wfirst: float = sf.get_frame_duration("walk", 0)
+	_assert_true(is_equal_approx(wfirst, 1.0), "loop_stays_uniform")
+	comp.queue_free()
+
+func _assert_true(cond: bool, name: String) -> void:
+	if cond:
+		_passed += 1
+	else:
+		_failed += 1
+		_failures.append(name)
+
+func _print_summary() -> void:
+	print("========== anim_flow tests ==========")
+	print("passed: %d" % _passed)
+	print("failed: %d" % _failed)
+	for f in _failures:
+		print("  FAIL: " + f)

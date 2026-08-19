@@ -21,6 +21,7 @@ func _run() -> void:
 	_test_summary()
 	_test_save_manager_section()
 	_test_quest_bond_gain()
+	_test_achievement_defs()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -235,6 +236,21 @@ func _test_quest_bond_gain() -> void:
 	_assert_true(is_equal_approx(g2, 10.0), "no_decay_on_quest")
 	_assert_true(is_equal_approx(bond.bond, 25.0), "bond_total_25")
 	bond.queue_free()
+
+const AchDefsScript = preload("res://components/engagement/achievement_defs.gd")
+
+func _test_achievement_defs() -> void:
+	# 定义表完整性：8 成就含必需字段；3 周任务含 target
+	var defs: Dictionary = AchDefsScript.ACHIEVEMENTS
+	_assert_equal(defs.size(), 8, "eight_achievements")
+	for id in defs:
+		var d: Dictionary = defs[id]
+		_assert_true(d.has("name") and d.has("need") and d.has("stat") and d.has("reward"), "def_complete_" + String(id))
+	_assert_equal(String(defs["focus_10"]["title"]), "专注搭档", "focus10_title")
+	_assert_true(is_equal_approx(float(defs["checkin_30"]["reward"]), 150.0), "checkin30_reward")
+	var weekly: Dictionary = AchDefsScript.WEEKLY_QUESTS
+	_assert_equal(weekly.size(), 3, "three_weekly")
+	_assert_equal(int(weekly["week_focus"]["target"]), 3, "weekfocus_target")
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

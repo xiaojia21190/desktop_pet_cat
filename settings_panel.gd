@@ -292,11 +292,177 @@ func _format_duration(seconds: int) -> String:
 	var secs := seconds % 60
 	return "%d:%02d" % [minutes, secs]
 
+# —— 页构建：猫性格 ——
 func _build_page_personality() -> void:
-	pass
+	var page: VBoxContainer = _pages["猫性格"]
+	_section_label(page, "品种")
+	cat_breed_option = _make_option(page)
+	for i in CAT_BREED_IDS.size():
+		cat_breed_option.add_item(CAT_BREED_NAMES[i])
+	cat_breed_option.item_selected.connect(_on_cat_breed_selected)
 
+	_section_label(page, "性格")
+	personality_option = _make_option(page)
+	personality_option.add_item("傲娇")
+	personality_option.add_item("温柔")
+	personality_option.add_item("活泼")
+	personality_option.item_selected.connect(_on_personality_selected)
+
+	_section_label(page, "活跃度")
+	intensity_option = _make_option(page)
+	intensity_option.add_item("安静")
+	intensity_option.add_item("正常")
+	intensity_option.add_item("活跃")
+	intensity_option.item_selected.connect(_on_intensity_selected)
+
+# —— 页构建：智能 ——
 func _build_page_smart() -> void:
-	pass
+	var page: VBoxContainer = _pages["智能"]
+	smart_mode_check = _make_check(page, "智能模式（SMART）")
+	smart_mode_check.toggled.connect(_on_smart_mode_toggled)
+	perception_check = _make_check(page, "感知前台应用")
+	perception_check.toggled.connect(_on_perception_toggled)
+	perception_default_rules_check = _make_check(page, "使用默认分类规则")
+	perception_default_rules_check.toggled.connect(_on_rules_toggled)
+
+	_section_label(page, "存在感")
+	presence_level_option = _make_option(page)
+	for opt in ["安静（≤1句/小时）", "低频（关键时刻）", "中频（工位同事）", "高频（话痨猫）", "智能（按活动自适应）"]:
+		presence_level_option.add_item(opt)
+	presence_level_option.item_selected.connect(_on_presence_level_selected)
+
+	_section_label(page, "静音时段")
+	var row := HBoxContainer.new()
+	page.add_child(row)
+	quiet_start_spin = _make_spin(row)
+	var sep := Label.new()
+	sep.text = " 至 次日 "
+	UiThemeScript.tint_label(sep, "body")
+	row.add_child(sep)
+	quiet_end_spin = _make_spin(row)
+	quiet_start_spin.value_changed.connect(_on_quiet_hours_changed)
+	quiet_end_spin.value_changed.connect(_on_quiet_hours_changed)
+
+	_section_label(page, "专注会话时长")
+	focus_duration_option = _make_option(page)
+	for opt in ["15 分钟", "30 分钟", "60 分钟"]:
+		focus_duration_option.add_item(opt)
+	focus_duration_option.item_selected.connect(_on_focus_duration_selected)
+
+	_section_label(page, "LLM 大模型")
+	llm_enabled_check = _make_check(page, "启用 LLM（无 Key 时用模板台词）")
+	llm_enabled_check.toggled.connect(_on_llm_enabled_toggled)
+	llm_endpoint_input = _make_line(page, "API 端点")
+	llm_endpoint_input.text_changed.connect(_on_llm_field_changed)
+	llm_model_input = _make_line(page, "模型名")
+	llm_model_input.text_changed.connect(_on_llm_field_changed)
+	llm_api_key_input = _make_line(page, "API Key")
+	llm_api_key_input.secret = true
+	llm_api_key_input.text_changed.connect(_on_llm_field_changed)
+	llm_api_env_input = _make_line(page, "环境变量名（优先读取）")
+	llm_api_env_input.text_changed.connect(_on_llm_field_changed)
+
+func _make_spin(parent: Container) -> SpinBox:
+	var spin := SpinBox.new()
+	spin.min_value = 0
+	spin.max_value = 23
+	spin.step = 1
+	spin.custom_minimum_size = Vector2(72, 32)
+	parent.add_child(spin)
+	return spin
+
+func _make_line(parent: Container, placeholder: String) -> LineEdit:
+	var line := LineEdit.new()
+	line.placeholder_text = placeholder
+	line.custom_minimum_size = Vector2(0, 36)
+	line.add_theme_stylebox_override("normal", UiThemeScript.line_style())
+	line.add_theme_stylebox_override("focus", UiThemeScript.line_style(true))
+	parent.add_child(line)
+	return line
+
+# —— 性格/智能 handler ——
+func _on_smart_mode_toggled(_enabled: bool) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_perception_toggled(_enabled: bool) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_rules_toggled(_enabled: bool) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_presence_level_selected(_index: int) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_quiet_hours_changed(_value: float) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_personality_selected(_index: int) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_intensity_selected(_index: int) -> void:
+	SaveManager.save_data()
+
+func _on_focus_duration_selected(_index: int) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_llm_enabled_toggled(_enabled: bool) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _on_llm_field_changed(_value: String) -> void:
+	_apply_smart_settings()
+	SaveManager.save_data()
+
+func _apply_smart_settings() -> void:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.smart_pet_controller and main.smart_pet_controller.has_method("configure"):
+		main.smart_pet_controller.configure(collect_settings())
+
+# —— 品种锁（P5 逻辑照搬）——
+const BREED_LOCK_LEVELS: Dictionary = {"calico": 3, "british_blue": 4, "tuxedo": 5}
+
+func refresh_breed_locks(bond_level: int) -> void:
+	for i in CAT_BREED_IDS.size():
+		var breed_id := CAT_BREED_IDS[i]
+		var need: int = int(BREED_LOCK_LEVELS.get(breed_id, 1))
+		var unlocked: bool = bond_level >= need
+		var label := CAT_BREED_NAMES[i]
+		if not unlocked:
+			cat_breed_option.set_item_text(i, "%s 🔒Lv%d" % [label, need])
+		else:
+			cat_breed_option.set_item_text(i, label)
+
+func _on_cat_breed_selected(index: int) -> void:
+	var breed_id := CAT_BREED_IDS[clampi(index, 0, CAT_BREED_IDS.size() - 1)]
+	var bond_level := _get_bond_level()
+	var need: int = int(BREED_LOCK_LEVELS.get(breed_id, 1))
+	if bond_level < need:
+		# 未解锁品种拦截：回退当前品种
+		var main = get_tree().get_root().get_node_or_null("Main")
+		var current := String(main.cat.current_cat_type) if main and main.cat else "orange_tabby"
+		cat_breed_option.select(maxi(CAT_BREED_IDS.find(current), 0))
+		return
+	_apply_cat_breed()
+	SaveManager.save_data()
+
+func _apply_cat_breed() -> void:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.cat and main.cat.animation_component:
+		var breed_id := CAT_BREED_IDS[clampi(cat_breed_option.selected, 0, CAT_BREED_IDS.size() - 1)]
+		main.cat.animation_component.switch_cat_type(breed_id)
+
+func _get_bond_level() -> int:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.cat and main.cat.bond_system:
+		return main.cat.bond_system.get_level()
+	return 1
 
 func _build_page_progress() -> void:
 	pass
@@ -316,6 +482,22 @@ func apply_settings(settings: Dictionary) -> void:
 	volume_slider.set_value_no_signal(float(settings.get("volume", 1.0)))
 	if settings.has("cat_scale"):
 		cat_scale_slider.set_value_no_signal(float(settings["cat_scale"]))
+	var breed_index: int = CAT_BREED_IDS.find(String(settings.get("cat_type", "orange_tabby")))
+	cat_breed_option.select(maxi(breed_index, 0))
+	personality_option.select(_personality_to_index(String(settings.get("personality", "tsundere"))))
+	intensity_option.select(int(settings.get("intensity", 1)))
+	smart_mode_check.button_pressed = bool(settings.get("smart_mode", true))
+	perception_check.button_pressed = bool(settings.get("perception_enabled", false))
+	perception_default_rules_check.button_pressed = bool(settings.get("perception_default_rules", true))
+	presence_level_option.select(clampi(int(settings.get("presence_level", 2)), 0, 4))
+	quiet_start_spin.set_value_no_signal(float(settings.get("quiet_hours_start", 23)))
+	quiet_end_spin.set_value_no_signal(float(settings.get("quiet_hours_end", 8)))
+	focus_duration_option.select(clampi(int(settings.get("focus_duration_index", 1)), 0, 2))
+	llm_enabled_check.button_pressed = bool(settings.get("llm_enabled", false))
+	llm_endpoint_input.text = String(settings.get("llm_endpoint", DEFAULT_LLM_ENDPOINT))
+	llm_model_input.text = String(settings.get("llm_model", "gpt-4o-mini"))
+	llm_api_key_input.text = String(settings.get("llm_api_key", ""))
+	llm_api_env_input.text = String(settings.get("llm_api_key_env", "OPENAI_API_KEY"))
 
 func collect_settings() -> Dictionary:
 	var settings: Dictionary = {}
@@ -326,7 +508,38 @@ func collect_settings() -> Dictionary:
 	settings["bgm_enabled"] = bgm_check.button_pressed
 	settings["volume"] = volume_slider.value
 	settings["cat_scale"] = cat_scale_slider.value
+	settings["intensity"] = intensity_option.selected
+	settings["smart_mode"] = smart_mode_check.button_pressed
+	settings["perception_enabled"] = perception_check.button_pressed
+	settings["perception_default_rules"] = perception_default_rules_check.button_pressed
+	settings["focus_duration_index"] = focus_duration_option.selected
+	settings["cat_type"] = CAT_BREED_IDS[clampi(cat_breed_option.selected, 0, CAT_BREED_IDS.size() - 1)]
+	settings["llm_enabled"] = llm_enabled_check.button_pressed
+	settings["llm_endpoint"] = llm_endpoint_input.text.strip_edges()
+	settings["llm_model"] = llm_model_input.text.strip_edges()
+	settings["llm_api_key"] = llm_api_key_input.text.strip_edges()
+	settings["llm_api_key_env"] = llm_api_env_input.text.strip_edges()
+	match personality_option.selected:
+		1:
+			settings["personality"] = "gentle"
+		2:
+			settings["personality"] = "playful"
+		_:
+			settings["personality"] = "tsundere"
+	settings["presence_level"] = clampi(presence_level_option.selected, 0, 4)
+	settings["quiet_hours_start"] = int(round(quiet_start_spin.value))
+	settings["quiet_hours_end"] = int(round(quiet_end_spin.value))
+	settings["data_collection_level"] = "minimal"
 	return settings
+
+func _personality_to_index(value: String) -> int:
+	match value:
+		"gentle":
+			return 1
+		"playful":
+			return 2
+		_:
+			return 0
 
 func set_timed_hide_option(index: int) -> void:
 	timed_hide_option.select(index)
@@ -335,9 +548,6 @@ func refresh_bond_ui() -> void:
 	pass
 
 func refresh_quest_ui() -> void:
-	pass
-
-func refresh_breed_locks(_bond_level: int) -> void:
 	pass
 
 func _on_timed_hide_update_timer() -> void:

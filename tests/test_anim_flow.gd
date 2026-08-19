@@ -17,6 +17,7 @@ func _run() -> void:
 	_test_frame_curve()
 	_test_state_lock()
 	_test_move_smooth()
+	_test_timing_table()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -131,6 +132,21 @@ func _test_move_smooth() -> void:
 	# 速度渐变：满速 300/60=5px；ramp 首帧 ≈5*0.055≈0.28px，远小于 4.5
 	_assert_true(moved.length() < 4.5, "chase_ramps_up")
 	cat_node.queue_free()
+
+const TimingScript = preload("res://components/animation_timing.gd")
+
+func _test_timing_table() -> void:
+	# 节奏表：min_duration ≥ 播完一遍（frames/speed）；已知动作有表项
+	var t: float = TimingScript.min_duration("eat", 8, 7.0)
+	_assert_true(t >= 8.0 / 7.0 - 0.001, "eat_min_ge_loop")
+	var p: float = TimingScript.min_duration("pounce", 8, 10.0)
+	_assert_true(p >= 8.0 / 10.0 - 0.001, "pounce_min_ge_loop")
+	# 未知动作回退公式
+	var u: float = TimingScript.min_duration("whatever", 6, 6.0)
+	_assert_true(is_equal_approx(u, 1.0), "unknown_falls_back")
+	# eat 有仪式感倍率
+	var e1: float = TimingScript.min_duration("eat", 8, 7.0)
+	_assert_true(e1 > 8.0 / 7.0 + 0.5, "eat_has_ceremony_mult")
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

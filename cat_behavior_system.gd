@@ -4,6 +4,9 @@ class_name CatBehaviorSystem
 # 猫咪行为系统 - 高级版
 # 包含：情绪系统、记忆系统、学习系统、状态链系统
 
+# P10：节奏表（preload 避免 headless 全局类名注册滞后）
+const AnimationTiming = preload("res://components/animation_timing.gd")
+
 # ============================================
 # 一、情绪系统
 # ============================================
@@ -407,7 +410,16 @@ func update_chain(delta: float) -> String:
 		return ""
 
 	var chain = STATE_CHAINS[current_chain]
-	var duration = chain.durations[chain_index]
+	var duration: float = float(chain.durations[chain_index])
+	# P10：步进时长不低于对应动画播完一遍（节奏表）——杜绝调度比动画短把动作截断
+	var chain_anim: String = AnimationConfig.get_animation_for_state(String(chain.states[chain_index]))
+	var anim_cfg := AnimationConfig.get_animation_config(chain_anim)
+	if not anim_cfg.is_empty():
+		var floor_t: float = AnimationTiming.min_duration(
+			String(anim_cfg.get("name", chain_anim)),
+			int(anim_cfg.get("frames", 8)),
+			float(anim_cfg.get("speed", 6.0)))
+		duration = maxf(duration, floor_t)
 
 	# -1 表示无限持续
 	if duration > 0:

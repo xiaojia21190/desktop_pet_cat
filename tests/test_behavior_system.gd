@@ -249,9 +249,18 @@ func test_chain_completion():
 	behavior_system.start_chain("pounce_sequence")
 
 	# update_chain 每次调用只推进一个步骤（引擎逐帧调用），需逐步喂足时长
+	# P10：链步时长有节奏表下限（≥动画播完一遍）——按同口径快进
+	var TimingScript = preload("res://components/animation_timing.gd")
 	var chain = CatBehaviorSystem.STATE_CHAINS["pounce_sequence"]
 	for i in range(chain.states.size()):
 		var duration: float = chain.durations[i]
+		var chain_anim: String = AnimationConfig.get_animation_for_state(String(chain.states[i]))
+		var anim_cfg := AnimationConfig.get_animation_config(chain_anim)
+		if not anim_cfg.is_empty():
+			duration = maxf(duration, TimingScript.min_duration(
+				String(anim_cfg.get("name", chain_anim)),
+				int(anim_cfg.get("frames", 8)),
+				float(anim_cfg.get("speed", 6.0))))
 		if duration > 0:
 			behavior_system.update_chain(duration + 0.1)
 

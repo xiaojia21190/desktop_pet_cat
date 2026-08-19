@@ -652,6 +652,7 @@ func _apply_offline_settlement(meta: Dictionary, settings: Dictionary) -> bool:
 	var tier := int(result.get("welcome_tier", 0))
 	var line := String(result.get("line", ""))
 	if tier >= 1 and not line.is_empty():
+		print("[Offline] tier=", tier, " ", line)
 		if cat and smart_line_bubble:
 			smart_line_bubble.show_line(line, cat.global_position, _cached_screen_size)
 		if cat and cat.has_method("play_animation"):

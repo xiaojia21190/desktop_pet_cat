@@ -151,12 +151,146 @@ func switch_tab(index: int) -> void:
 		btn.add_theme_stylebox_override("normal", UiThemeScript.tab_style(i == current_tab_index))
 		btn.add_theme_color_override("font_color", UiThemeScript.TEXT if i == current_tab_index else UiThemeScript.TEXT_DIM)
 
-# —— 页构建占位（Task 3-5 实现）——
+# —— 页构建：外观 ——
 func _build_page_appearance() -> void:
-	pass
+	var page: VBoxContainer = _pages["外观"]
 
+	_section_label(page, "透明度")
+	opacity_slider = _make_slider(page, 0.2, 1.0, 0.05)
+	opacity_slider.value_changed.connect(_on_opacity_changed)
+
+	_section_label(page, "猫咪大小")
+	cat_scale_slider = _make_slider(page, 0.6, 2.0, 0.1)
+
+	always_on_top_check = _make_check(page, "窗口置顶")
+	always_on_top_check.toggled.connect(_on_always_on_top_toggled)
+	auto_start_check = _make_check(page, "开机自启")
+	auto_start_check.toggled.connect(_on_auto_start_toggled)
+
+	_section_label(page, "定时隐藏")
+	timed_hide_option = OptionButton.new()
+	for opt in ["关闭", "15分钟", "30分钟", "1小时", "2小时"]:
+		timed_hide_option.add_item(opt)
+	timed_hide_option.add_theme_stylebox_override("normal", UiThemeScript.btn_style())
+	timed_hide_option.add_theme_stylebox_override("hover", UiThemeScript.btn_style(true))
+	timed_hide_option.add_theme_color_override("font_color", UiThemeScript.TEXT)
+	timed_hide_option.item_selected.connect(_on_timed_hide_selected)
+	page.add_child(timed_hide_option)
+	timed_hide_remaining_label = Label.new()
+	timed_hide_remaining_label.visible = false
+	UiThemeScript.tint_label(timed_hide_remaining_label, "caption")
+	page.add_child(timed_hide_remaining_label)
+
+# —— 页构建：声音 ——
 func _build_page_sound() -> void:
-	pass
+	var page: VBoxContainer = _pages["声音"]
+	sound_check = _make_check(page, "音效")
+	sound_check.toggled.connect(_on_sound_toggled)
+	bgm_check = _make_check(page, "背景音乐")
+	bgm_check.toggled.connect(_on_bgm_toggled)
+	_section_label(page, "音量")
+	volume_slider = _make_slider(page, 0.0, 1.0, 0.05)
+	volume_slider.value_changed.connect(_on_volume_changed)
+
+# —— 共享构建 helper ——
+func _section_label(parent: Container, text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	UiThemeScript.tint_label(label, "section")
+	parent.add_child(label)
+	return label
+
+func _make_slider(parent: Container, min_v: float, max_v: float, step: float) -> HSlider:
+	var slider := HSlider.new()
+	slider.min_value = min_v
+	slider.max_value = max_v
+	slider.step = step
+	slider.custom_minimum_size = Vector2(0, 28)
+	slider.add_theme_stylebox_override("slider", UiThemeScript.slider_track_style())
+	slider.add_theme_stylebox_override("grabber_area", UiThemeScript.slider_fill_style())
+	slider.add_theme_stylebox_override("grabber_area_highlight", UiThemeScript.slider_fill_style())
+	parent.add_child(slider)
+	return slider
+
+func _make_check(parent: Container, text: String) -> CheckBox:
+	var check := CheckBox.new()
+	check.text = text
+	check.add_theme_stylebox_override("normal", UiThemeScript.check_style(false))
+	check.add_theme_stylebox_override("checked", UiThemeScript.check_style(true))
+	check.add_theme_stylebox_override("hover", UiThemeScript.check_style(false))
+	check.add_theme_color_override("font_color", UiThemeScript.TEXT)
+	parent.add_child(check)
+	return check
+
+func _make_option(parent: Container) -> OptionButton:
+	var option := OptionButton.new()
+	option.add_theme_stylebox_override("normal", UiThemeScript.btn_style())
+	option.add_theme_stylebox_override("hover", UiThemeScript.btn_style(true))
+	option.add_theme_color_override("font_color", UiThemeScript.TEXT)
+	parent.add_child(option)
+	return option
+
+# —— 外观/声音 handler（改即存）——
+func _on_opacity_changed(value: float) -> void:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main is CanvasItem:
+		var color: Color = main.modulate
+		color.a = value
+		main.modulate = color
+	SaveManager.save_data()
+
+func _on_always_on_top_toggled(enabled: bool) -> void:
+	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_ALWAYS_ON_TOP, enabled)
+	SaveManager.save_data()
+
+func _on_auto_start_toggled(enabled: bool) -> void:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if main and main.has_method("set_auto_start"):
+		main.set_auto_start(enabled)
+	SaveManager.save_data()
+
+func _on_timed_hide_selected(index: int) -> void:
+	SaveManager.set_timed_hide_option(index)
+	SaveManager.save_data()
+	_update_timed_hide_remaining()
+
+func _on_sound_toggled(enabled: bool) -> void:
+	if AudioManager:
+		AudioManager.sound_enabled = enabled
+	SaveManager.save_data()
+
+func _on_bgm_toggled(enabled: bool) -> void:
+	if AudioManager:
+		AudioManager.bgm_enabled = enabled
+	SaveManager.save_data()
+
+func _on_volume_changed(value: float) -> void:
+	if AudioManager:
+		AudioManager.set_volume(value)
+	SaveManager.save_data()
+
+func set_cat_scale(value: float) -> void:
+	if cat_scale_slider:
+		cat_scale_slider.set_value_no_signal(value)
+
+func _update_timed_hide_remaining() -> void:
+	if not timed_hide_remaining_label:
+		return
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if not main or not main.has_method("get_timed_hide_remaining_seconds"):
+		timed_hide_remaining_label.visible = false
+		return
+	var remaining = int(main.get_timed_hide_remaining_seconds())
+	if remaining <= 0:
+		timed_hide_remaining_label.visible = false
+		return
+	timed_hide_remaining_label.visible = true
+	timed_hide_remaining_label.text = "剩余时间: " + _format_duration(remaining)
+
+func _format_duration(seconds: int) -> String:
+	var minutes := seconds / 60
+	var secs := seconds % 60
+	return "%d:%02d" % [minutes, secs]
 
 func _build_page_personality() -> void:
 	pass
@@ -171,11 +305,31 @@ func _build_page_about() -> void:
 	pass
 
 # —— 对外接口占位（Task 3-5 逐个补实现）——
-func apply_settings(_settings: Dictionary) -> void:
-	pass
+func apply_settings(settings: Dictionary) -> void:
+	if settings.has("opacity"):
+		opacity_slider.set_value_no_signal(float(settings["opacity"]))
+	always_on_top_check.button_pressed = bool(settings.get("always_on_top", true))
+	auto_start_check.button_pressed = bool(settings.get("auto_start", false))
+	timed_hide_option.select(int(settings.get("timed_hide_option", 0)))
+	sound_check.button_pressed = bool(settings.get("sound_enabled", true))
+	bgm_check.button_pressed = bool(settings.get("bgm_enabled", true))
+	volume_slider.set_value_no_signal(float(settings.get("volume", 1.0)))
+	if settings.has("cat_scale"):
+		cat_scale_slider.set_value_no_signal(float(settings["cat_scale"]))
 
 func collect_settings() -> Dictionary:
-	return {}
+	var settings: Dictionary = {}
+	settings["opacity"] = opacity_slider.value
+	settings["always_on_top"] = always_on_top_check.button_pressed
+	settings["timed_hide_option"] = timed_hide_option.selected
+	settings["sound_enabled"] = sound_check.button_pressed
+	settings["bgm_enabled"] = bgm_check.button_pressed
+	settings["volume"] = volume_slider.value
+	settings["cat_scale"] = cat_scale_slider.value
+	return settings
+
+func set_timed_hide_option(index: int) -> void:
+	timed_hide_option.select(index)
 
 func refresh_bond_ui() -> void:
 	pass

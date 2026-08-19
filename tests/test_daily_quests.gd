@@ -17,6 +17,8 @@ func _run() -> void:
 	_test_checkin()
 	_test_event_quests()
 	_test_window_quests()
+	_test_save_and_roll()
+	_test_summary()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -153,6 +155,57 @@ func _test_window_quests() -> void:
 	svc6.poll_snapshot({"idle_seconds": 600.0})
 	_assert_true(not svc6.is_completed("stand_up"), "other_intent_no_window")
 	svc6.queue_free()
+
+func _test_save_and_roll() -> void:
+	# roundtrip：completed 状态与 streak 恢复
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	svc.load_from_save({})
+	svc.notify_event("item_used", {})
+	var saved: Dictionary = svc.get_save_data()
+	var svc2 = QuestServiceScript.new()
+	add_child(svc2)
+	svc2.load_from_save(saved)
+	_assert_true(svc2.is_completed("interact_once"), "roundtrip_completed")
+	_assert_equal(svc2.streak_days, svc.streak_days, "roundtrip_streak")
+
+	# 跨天：伪造昨日档 → load 后任务清空重新计数
+	var stale: Dictionary = saved.duplicate(true)
+	stale["today_key"] = svc._shift_date_key(-1)
+	stale["last_checkin_key"] = svc._shift_date_key(-1)
+	var svc3 = QuestServiceScript.new()
+	add_child(svc3)
+	svc3.load_from_save(stale)
+	_assert_true(not svc3.is_completed("interact_once"), "cross_day_resets_quests")
+	_assert_equal(svc3.streak_days, svc.streak_days + 1, "cross_day_streak_plus")
+
+	# 异常兜底：空档/缺字段/类型错乱不崩
+	var svc4 = QuestServiceScript.new()
+	add_child(svc4)
+	svc4.load_from_save({"streak_days": "abc", "completed": "not_array"})
+	_assert_equal(svc4.streak_days, 1, "garbage_fallback_streak1")
+	svc.queue_free()
+	svc2.queue_free()
+	svc3.queue_free()
+	svc4.queue_free()
+
+func _test_summary() -> void:
+	# 面板数据：get_today_summary 返回任务列表与签到天数
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	svc.load_from_save({})
+	svc.notify_event("item_used", {})
+	var summary: Dictionary = svc.get_today_summary()
+	var quests: Array = summary.get("quests", [])
+	_assert_equal(quests.size(), 4, "summary_has_4_quests")
+	var interact: Dictionary = {}
+	for q in quests:
+		if String(q.get("id", "")) == "interact_once":
+			interact = q
+	_assert_equal(bool(interact.get("completed", false)), true, "summary_marks_completed")
+	_assert_equal(String(interact.get("title", "")), "摸摸我吧", "summary_carries_title")
+	_assert_true(int(summary.get("streak_days", 0)) >= 1, "summary_has_streak")
+	svc.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

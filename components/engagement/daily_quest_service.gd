@@ -49,11 +49,15 @@ func load_from_save(data: Dictionary) -> void:
 	today_checked_in = false
 	_today_key = ""
 	_completed = {}
-	var saved_streak := int(data.get("streak_days", 0))
+	var saved_streak := 0
+	var raw_streak = data.get("streak_days", 0)
+	if typeof(raw_streak) == TYPE_INT or typeof(raw_streak) == TYPE_FLOAT:
+		saved_streak = int(raw_streak)
 	var saved_today := String(data.get("today_key", ""))
-	var saved_completed: Array = data.get("completed", [])
-	for q in saved_completed:
-		_completed[String(q)] = true
+	var saved_completed_raw = data.get("completed", [])
+	if typeof(saved_completed_raw) == TYPE_ARRAY:
+		for q in saved_completed_raw:
+			_completed[String(q)] = true
 	if saved_today == _date_key():
 		# 同日重启：恢复状态不重复签到
 		streak_days = saved_streak
@@ -143,6 +147,17 @@ func get_save_data() -> Dictionary:
 		"streak_days": streak_days,
 		"last_checkin_key": _last_checkin_key,
 	}
+
+func get_today_summary() -> Dictionary:
+	## 面板渲染数据：任务列表（按定义顺序）+ 签到天数
+	var quests: Array = []
+	for qid in QUEST_DEFS:
+		quests.append({
+			"id": qid,
+			"title": String(QUEST_DEFS[qid]["title"]),
+			"completed": is_completed(qid),
+		})
+	return {"quests": quests, "streak_days": streak_days}
 
 func _date_key() -> String:
 	var d := Time.get_date_dict_from_system()

@@ -15,6 +15,7 @@ func _run() -> void:
 	_test_oneshot_table()
 	_test_play_lock()
 	_test_frame_curve()
+	_test_state_lock()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -69,12 +70,47 @@ func _test_frame_curve() -> void:
 	_assert_true(is_equal_approx(wfirst, 1.0), "loop_stays_uniform")
 	comp.queue_free()
 
+const StateMachineScript = preload("res://components/state_machine.gd")
+const StateScript = preload("res://components/state.gd")
+
+func _test_state_lock() -> void:
+	# 状态机锁排队：动画锁定期 transition_to 不切换、缓存 pending；
+	# urgent 立即切；解锁信号后 pending 自动执行
+	var sm := StateMachineScript.new()
+	add_child(sm)
+	var s1 := StateScript.new(); s1.name = "One"
+	var s2 := StateScript.new(); s2.name = "Two"
+	sm.add_child(s1); sm.add_child(s2)
+	sm.current_state = s1
+	s1.process_mode = Node.PROCESS_MODE_INHERIT
+	# 伪造动画锁：注入 locked provider
+	sm.anim_lock_provider = func() -> bool: return true
+	sm.transition_to(&"Two")
+	_assert_equal(String(sm.get_current_state_name()), "One", "locked_no_switch")
+	# urgent 豁免
+	sm.transition_to(&"Two", {"urgent": true})
+	_assert_equal(String(sm.get_current_state_name()), "Two", "urgent_switches")
+	# pending 自动执行：先回 One、锁、排 Two、解锁
+	sm.transition_to(&"One", {"urgent": true})
+	sm.transition_to(&"Two")  # 被锁 → pending
+	sm.anim_lock_provider = func() -> bool: return false
+	sm.notify_anim_unlocked()
+	_assert_equal(String(sm.get_current_state_name()), "Two", "pending_executes")
+	sm.queue_free()
+
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:
 		_passed += 1
 	else:
 		_failed += 1
 		_failures.append(name)
+
+func _assert_equal(actual, expected, name: String) -> void:
+	if actual == expected:
+		_passed += 1
+	else:
+		_failed += 1
+		_failures.append("%s (expected=%s actual=%s)" % [name, str(expected), str(actual)])
 
 func _print_summary() -> void:
 	print("========== anim_flow tests ==========")

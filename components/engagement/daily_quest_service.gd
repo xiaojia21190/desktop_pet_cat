@@ -229,6 +229,50 @@ func notify_bond_level(level: int) -> void:
 	_notified_bond_level = maxi(_notified_bond_level, level)
 	_scan_achievements()
 
+func equip_title(title_text: String) -> bool:
+	## P8 佩戴/卸下称号：空串卸下；须为已解锁成就的称号
+	if title_text == "":
+		_equipped_title = ""
+		return true
+	for aid in _unlocked:
+		if String(AchDefsScript.ACHIEVEMENTS.get(aid, {}).get("title", "")) == title_text:
+			_equipped_title = title_text
+			return true
+	return false
+
+func get_weekly_summary() -> Dictionary:
+	## P8 面板渲染：本周任务进度
+	var quests: Array = []
+	for wid in AchDefsScript.WEEKLY_QUESTS:
+		var w: Dictionary = AchDefsScript.WEEKLY_QUESTS[wid]
+		var count := int(_week_counts.get(String(w["quest_id"]), 0))
+		quests.append({
+			"id": String(wid),
+			"title": String(w["title"]),
+			"count": count,
+			"target": int(w["target"]),
+			"done": bool(_week_quests_done.get(wid, false)) or count >= int(w["target"]),
+		})
+	return {"quests": quests}
+
+func get_achievements_summary() -> Dictionary:
+	## P8 面板渲染：成就徽章墙 + 佩戴称号
+	var achievements: Array = []
+	for aid in AchDefsScript.ACHIEVEMENTS:
+		var a: Dictionary = AchDefsScript.ACHIEVEMENTS[aid]
+		var stat := String(a["stat"])
+		var value := _notified_bond_level if stat == "bond_level" else int(_lifetime_totals.get(stat, 0))
+		achievements.append({
+			"id": String(aid),
+			"name": String(a["name"]),
+			"unlocked": bool(_unlocked.has(aid)),
+			"progress": clampf(float(value) / float(maxi(int(a["need"]), 1)), 0.0, 1.0),
+			"cur": value,
+			"need": int(a["need"]),
+			"title": String(a["title"]),
+		})
+	return {"achievements": achievements, "equipped_title": _equipped_title}
+
 func get_save_data() -> Dictionary:
 	var completed: Array = []
 	for q in _completed.keys():

@@ -26,6 +26,8 @@ func _run() -> void:
 	_test_achievements()
 	_test_bond_level_achievement()
 	_test_p8_save_section()
+	_test_title_equip()
+	_test_summaries()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -350,6 +352,35 @@ func _test_p8_save_section() -> void:
 	var err: int = sm._write_config(data)
 	_assert_equal(err, 0, "write_p8_ok")
 	sm.queue_free()
+
+func _test_title_equip() -> void:
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	svc.load_from_save({})
+	# 未解锁不可佩戴
+	_assert_true(not svc.equip_title("专注搭档"), "locked_title_rejected")
+	# 解锁后可佩戴/卸下
+	svc._unlocked["focus_10"] = true
+	_assert_true(svc.equip_title("专注搭档"), "unlocked_title_ok")
+	_assert_equal(svc._equipped_title, "专注搭档", "equipped_stored")
+	_assert_true(svc.equip_title(""), "unequip_ok")
+	_assert_equal(svc._equipped_title, "", "unequipped")
+	# 不存在的称号拒绝
+	_assert_true(not svc.equip_title("宇宙霸主"), "unknown_title_rejected")
+	svc.queue_free()
+
+func _test_summaries() -> void:
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	svc.load_from_save({})
+	var ws: Dictionary = svc.get_weekly_summary()
+	_assert_equal(ws.get("quests", []).size(), 3, "weekly_summary_3")
+	var as_: Dictionary = svc.get_achievements_summary()
+	_assert_equal(as_.get("achievements", []).size(), 8, "ach_summary_8")
+	var first: Dictionary = as_["achievements"][0]
+	_assert_true(first.has("unlocked") and first.has("progress"), "ach_fields")
+	_assert_true(as_.has("equipped_title"), "summary_has_title")
+	svc.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

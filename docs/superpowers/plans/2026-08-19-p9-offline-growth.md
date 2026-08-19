@@ -39,7 +39,7 @@
 - Create: `components/engagement/offline_settlement.gd`
 - Create: `tests/test_offline_settlement.gd` + `tests/test_offline_settlement.tscn`
 
-- [ ] **Step 1: 写失败测试 tests/test_offline_settlement.gd**
+- [x] **Step 1: 写失败测试 tests/test_offline_settlement.gd**
 
 ```gdscript
 extends Node
@@ -128,7 +128,7 @@ func _print_summary() -> void:
 		print("  FAIL: " + f)
 ```
 
-- [ ] **Step 2: 创建 tests/test_offline_settlement.tscn**
+- [x] **Step 2: 创建 tests/test_offline_settlement.tscn**
 
 ```text
 [gd_scene load_steps=2 format=3]
@@ -139,12 +139,12 @@ func _print_summary() -> void:
 script = ExtResource("1")
 ```
 
-- [ ] **Step 3: 跑测试确认失败**
+- [x] **Step 3: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_offline_settlement.tscn`
 Expected: FAIL（offline_settlement.gd 不存在，Parse Error）
 
-- [ ] **Step 4: 实现 components/engagement/offline_settlement.gd**
+- [x] **Step 4: 实现 components/engagement/offline_settlement.gd**
 
 ```gdscript
 class_name OfflineSettlement
@@ -207,12 +207,12 @@ static func settle(elapsed_sec: int, energy_now: float, personality: String) -> 
 
 注意：`int(elapsed_sec / HOUR_SEC)` 是整数除法——贴一行 `@warning_ignore("integer_division")` 在该 `var hours` 上一行（P7 教训：注解必须紧贴目标语句）。
 
-- [ ] **Step 5: 跑测试通过**
+- [x] **Step 5: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_offline_settlement.tscn`
 Expected: `passed: 14  failed: 0`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add components/engagement/offline_settlement.gd tests/test_offline_settlement.gd tests/test_offline_settlement.tscn tests/test_offline_settlement.gd.uid 2>/dev/null || git add components/engagement/offline_settlement.gd tests/test_offline_settlement.gd tests/test_offline_settlement.tscn
@@ -226,7 +226,7 @@ git commit -m "feat: 离线正向结算纯函数与测试"
 **Files:**
 - Modify: `main.gd`
 
-- [ ] **Step 1: `_ready` 中 session_resume 前插入结算**
+- [x] **Step 1: `_ready` 中 session_resume 前插入结算**
 
 `main.gd:127` `_setup_quick_action_menu()` 之后、`_record_smart_event("session_resume")` 之前插入：
 
@@ -272,12 +272,12 @@ func _apply_offline_settlement(meta: Dictionary, settings: Dictionary) -> bool:
 	return false
 ```
 
-- [ ] **Step 2: headless 冒烟**
+- [x] **Step 2: headless 冒烟**
 
 Run: `timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | grep -E "启动成功|SCRIPT ERROR|Parse" | head -4`
 Expected: `桌面宠物猫启动成功`，无 SCRIPT ERROR（短离线/首次启动走 skip_resume=false，session_resume 仍发）
 
-- [ ] **Step 3: 回归两套**
+- [x] **Step 3: 回归两套**
 
 ```bash
 timeout 90 "$GODOT" --headless --path . res://tests/test_offline_settlement.tscn && \
@@ -285,7 +285,7 @@ timeout 90 "$GODOT" --headless --path . res://tests/test_presence_level.tscn
 ```
 Expected: 双绿（presence 含 welcome_back 用例，短离线路径未改）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add main.gd
@@ -296,7 +296,7 @@ git commit -m "feat: 启动离线结算补能与分档迎接"
 
 ### Task 3: 全量回归 + MCP 端到端 + 文档收尾
 
-- [ ] **Step 1: 14 套全量测试**
+- [x] **Step 1: 14 套全量测试**
 
 ```bash
 for t in test_behavior_system test_focus_session_mode test_sprite_manifest_loader test_objective_system test_activity_classifier test_foreground_app_monitor test_focus_charge_engine test_smart_modules test_bond_system test_presence_level test_first_guide test_daily_quests test_ui_theme test_offline_settlement; do
@@ -306,18 +306,18 @@ done
 ```
 Expected: 全绿；offline_settlement ≈14；总计 ≈362
 
-- [ ] **Step 2: MCP 端到端**
+- [x] **Step 2: MCP 端到端**
 
 - 备份 `Desktop Pet Cat/save_data.cfg`
 - 把 `saved_at` 改成当前 unix - 7200（2 小时前）→ `run_project` → 气泡应是档 1 台词（傲娇默认「哼，可算回来了。」），无 SCRIPT ERROR
 - `stop_project`；把 `saved_at` 改成当前 unix - 30 → 启动无新仪式（短离线），`[SMART/policy] 哼，终于想起我了。` 类 welcome_back 仍可出现
 - 还原备份
 
-- [ ] **Step 3: 勾选本计划 + 主文档追加 P9 完成记录**
+- [x] **Step 3: 勾选本计划 + 主文档追加 P9 完成记录**
 
 `docs/plans/2026-08-17-smart-companion-redesign.md` 末尾追加 P9 完成记录（对齐 P8 格式）。
 
-- [ ] **Step 4: Commit 收尾**
+- [x] **Step 4: Commit 收尾**
 
 ```bash
 git add docs/plans/2026-08-17-smart-companion-redesign.md docs/superpowers/plans/2026-08-19-p9-offline-growth.md

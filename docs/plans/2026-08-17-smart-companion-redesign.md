@@ -304,3 +304,24 @@ quick_action_menu/bubble/settings_panel/hover_panel 对外信号与函数签名�
 ### P8 后世界
 
 任务系统三层完整：每日（P6）给节奏、每周给目标、成就给记忆；称号是猫给你的身份。成就从 P8 起算（旧档历史不回补——诚实简单）。剩余方向：离线成长、新道具类型、画像动态任务、明暗双主题。
+
+## P9 完成记录（2026-08-19）「离线正向成长」
+
+**背景**：P5 边界「不做离线成长」针对惩罚性衰减。本设计做正向结算：你不在时猫在睡觉。设计文档：`docs/superpowers/specs/2026-08-19-p9-offline-growth-design.md`。
+
+### 交付（3 提交）
+
+| 改动 | 说明 |
+|---|---|
+| OfflineSettlement | 纯静态函数 settle(elapsed, energy, personality) → {energy_gain, welcome_tier, line}；<5 分钟零结算；每满小时 +8 精力封顶 100；三档（1h/1天/3天）× 三性格台词 |
+| main 接线 | 猫/气泡/SMART 就绪后、session_resume 前一次性结算；welcome_tier≥1 跳过 session_resume（不与 SMART welcome_back 叠句） |
+| 日志 | `[Offline] tier=N 台词` 便于验收 |
+
+### 验证
+
+- **14 套测试全绿**：348 既有 + **test_offline_settlement 16** = 364 断言（smart_modules 首跑 43 复跑 44，历史偶发）
+- **MCP 端到端**：saved_at 改 2 小时前 → `[Offline] tier=1 哼，可算回来了。`，无 welcome_back；saved_at 改 30 秒前 → 无 Offline 日志，`[SMART/policy] 哼，终于想起我了。` welcome_back 仍走
+
+### P9 后世界
+
+关电脑去睡觉，回来猫精神饱满还会按离开多久用性格化台词接你。剩余方向：新道具类型、画像动态任务、明暗双主题。

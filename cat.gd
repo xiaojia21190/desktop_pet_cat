@@ -115,6 +115,11 @@ func _connect_signals() -> void:
 	# 状态机信号
 	if state_machine:
 		state_machine.state_changed.connect(_on_state_changed)
+		# P10：动画锁查询注入 + 一次性动作播完后执行排队切换
+		if animation_component:
+			state_machine.anim_lock_provider = animation_component.is_action_locked
+			animation_component.animation_finished.connect(
+				func(_a): state_machine.notify_anim_unlocked())
 
 	# 键盘监听器
 	var keyboard_listener := get_node_or_null("/root/Main/KeyboardListener")
@@ -513,7 +518,8 @@ func _on_state_changed(from_state: StringName, to_state: StringName) -> void:
 
 func _on_typing_detected(_key_event: InputEvent) -> void:
 	if randf() < 0.3:
-		state_machine.transition_to(CatStates.TYPING_ATTACK)
+		# P10：打字攻击 urgent——用户输入即时反馈，豁免动画锁
+		state_machine.transition_to(CatStates.TYPING_ATTACK, {"urgent": true})
 
 func _on_bond_changed(_bond: float, _level: int) -> void:
 	# bond 变化时同步到行为存档(事件驱动,避免每帧写)

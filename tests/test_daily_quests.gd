@@ -22,6 +22,7 @@ func _run() -> void:
 	_test_save_manager_section()
 	_test_quest_bond_gain()
 	_test_achievement_defs()
+	_test_weekly_counts()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -251,6 +252,29 @@ func _test_achievement_defs() -> void:
 	var weekly: Dictionary = AchDefsScript.WEEKLY_QUESTS
 	_assert_equal(weekly.size(), 3, "three_weekly")
 	_assert_equal(int(weekly["week_focus"]["target"]), 3, "weekfocus_target")
+
+func _test_weekly_counts() -> void:
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	svc.load_from_save({})
+	# 周计数：interact_once 完成 3 次（不同事件源）——当日只发 1 次但周计数累计
+	svc.notify_event("item_used", {})
+	svc.notify_event("petting_started", {})
+	svc.notify_event("cat_clicked", {})
+	var wc: Dictionary = svc.get_save_data().get("week_counts", {})
+	_assert_equal(int(wc.get("interact_once", 0)), 3, "week_counts_accumulate_past_daily")
+	# 周任务达标：week_interact target=7 → 再来 4 次
+	var fired: Array = []
+	svc.weekly_quest_completed.connect(func(qid, reward): fired.append([qid, reward]))
+	for i in range(4):
+		svc.notify_event("item_used", {})
+	_assert_equal(fired.size(), 1, "weekly_fires_at_target")
+	_assert_equal(String(fired[0][0]), "week_interact", "weekly_id_correct")
+	_assert_true(is_equal_approx(float(fired[0][1]), 25.0), "weekly_reward_25")
+	# 达标后继续互动不重复发
+	svc.notify_event("item_used", {})
+	_assert_equal(fired.size(), 1, "weekly_no_double")
+	svc.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

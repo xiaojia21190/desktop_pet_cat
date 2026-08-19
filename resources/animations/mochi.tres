@@ -238,33 +238,33 @@ region = Rect2(1152, 0, 128, 128)
 [resource]
 animations = [{
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_cymlx")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_xtxos")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_bvde4")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_btc3c")
 }],
 "loop": 0,
 "name": &"greet",
-"speed": 8.0
+"speed": 9.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_2xd35")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_eqx4h")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_aw7gu")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_57qea")
 }],
 "loop": 0,
@@ -286,7 +286,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_active",
-"speed": 7.0
+"speed": 6.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -297,7 +297,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_sit",
-"speed": 5.0
+"speed": 4.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -314,30 +314,30 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_stand",
-"speed": 5.0
+"speed": 4.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_6g1a8")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_7heii")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_lr82t")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_rxgem")
 }],
 "loop": 0,
 "name": &"jump",
-"speed": 8.0
+"speed": 9.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_ywv4u")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_ctcas")
 }],
 "loop": 1,
@@ -345,18 +345,18 @@ animations = [{
 "speed": 6.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_42d40")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_rb1un")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_jj1he")
 }],
 "loop": 0,
 "name": &"land",
-"speed": 8.0
+"speed": 9.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -391,7 +391,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"run",
-"speed": 11.0
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -426,7 +426,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"trot",
-"speed": 9.0
+"speed": 11.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -461,5 +461,5 @@ animations = [{
 }],
 "loop": 1,
 "name": &"walk",
-"speed": 8.0
+"speed": 10.0
 }]

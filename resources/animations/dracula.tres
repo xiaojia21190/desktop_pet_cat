@@ -174,27 +174,27 @@ region = Rect2(640, 0, 128, 128)
 [resource]
 animations = [{
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_osuvj")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_qp8fm")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_mfw6j")
 }],
 "loop": 0,
 "name": &"greet",
-"speed": 8.0
+"speed": 9.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_nree7")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_7jmvr")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_whvnd")
 }],
 "loop": 0,
@@ -213,7 +213,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_active",
-"speed": 7.0
+"speed": 6.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -224,7 +224,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_sit",
-"speed": 5.0
+"speed": 4.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -238,30 +238,30 @@ animations = [{
 }],
 "loop": 1,
 "name": &"idle_stand",
-"speed": 5.0
+"speed": 4.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_slwwg")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_v7qvm")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_rrtd3")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_ujv4e")
 }],
 "loop": 0,
 "name": &"jump",
-"speed": 8.0
+"speed": 9.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_iny4h")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_pklhb")
 }],
 "loop": 1,
@@ -269,18 +269,18 @@ animations = [{
 "speed": 6.0
 }, {
 "frames": [{
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_3fnlh")
 }, {
-"duration": 1.0,
+"duration": 0.7,
 "texture": SubResource("AtlasTexture_o4iax")
 }, {
-"duration": 1.0,
+"duration": 1.6,
 "texture": SubResource("AtlasTexture_tqm36")
 }],
 "loop": 0,
 "name": &"land",
-"speed": 8.0
+"speed": 9.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -303,7 +303,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"run",
-"speed": 11.0
+"speed": 12.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -326,7 +326,7 @@ animations = [{
 }],
 "loop": 1,
 "name": &"trot",
-"speed": 9.0
+"speed": 11.0
 }, {
 "frames": [{
 "duration": 1.0,
@@ -349,5 +349,5 @@ animations = [{
 }],
 "loop": 1,
 "name": &"walk",
-"speed": 8.0
+"speed": 10.0
 }]

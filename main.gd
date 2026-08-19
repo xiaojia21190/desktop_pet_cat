@@ -46,6 +46,9 @@ const ITEM_WAND_SCENE = preload("res://item_wand.tscn")
 const ITEM_FOOD_SCENE = preload("res://item_food.tscn")
 const FIRST_GUIDE_SCRIPT := preload("res://components/engagement/first_guide_controller.gd")
 var first_guide_controller  # 首次引导状态机（P5c）
+const DAILY_QUEST_SCRIPT := preload("res://components/engagement/daily_quest_service.gd")
+var daily_quest_service  # P6：每日任务/隐式签到
+var _quest_poll_timer: float = 0.0  # 分钟级快照轮询
 @warning_ignore("shadowed_global_identifier")
 const CatStates = preload("res://cat_states.gd")
 
@@ -111,6 +114,7 @@ func _ready():
 	smart_line_bubble = SmartLineBubble.new()
 	add_child(smart_line_bubble)
 	_setup_first_guide(settings)
+	_setup_daily_quests(data)
 	_setup_quick_action_menu()
 	_record_smart_event("session_resume")
 	_setup_tray()
@@ -238,6 +242,7 @@ func _process(delta):
 		first_guide_controller.tick(delta)
 	# P5c：主动邀请忽略检查（每秒一次足够）
 	_check_invite_ignored(delta)
+	_poll_daily_quests(delta)
 
 	# 处理悬浮面板边缘检测
 	if hover_panel_component:
@@ -549,6 +554,70 @@ func first_interaction_done() -> bool:
 	# SaveManager._gather_current_data 经 main provider 读取
 	return first_guide_controller != null and first_guide_controller.is_done()
 
+func _setup_daily_quests(data: Dictionary) -> void:
+	# P6：挂载服务 + 读档 + 事件订阅 + 完成信号接线
+	if daily_quest_service:
+		return
+	daily_quest_service = DAILY_QUEST_SCRIPT.new()
+	daily_quest_service.name = "DailyQuestService"
+	add_child(daily_quest_service)
+	daily_quest_service.load_from_save(data.get("daily_quests", {}))
+	daily_quest_service.checkin_done.connect(_on_checkin_done)
+	daily_quest_service.quest_completed.connect(_on_quest_completed)
+	# 事件流总订阅：collector 是 main 与 smart_pet_controller 两个来源的汇点
+	if smart_pet_controller and smart_pet_controller._context_collector:
+		smart_pet_controller._context_collector.event_recorded.connect(
+			func(event_type, payload): daily_quest_service.notify_event(event_type, payload))
+
+func _on_checkin_done(streak: int, reward: float) -> void:
+	# 隐式签到：首日播一句；奖励直发（无需庆祝动作）
+	if cat and smart_line_bubble and streak == 1:
+		smart_line_bubble.show_line("今天也要好好相处哦", cat.global_position, _cached_screen_size)
+	_grant_quest_bond(reward)
+
+func _on_quest_completed(quest_id: String, reward: float) -> void:
+	# 任务完成：台词气泡 + bond 发放（tail_wag 基础动作，greet 是 Lv2 解锁）
+	var line := _quest_line(quest_id)
+	if cat and smart_line_bubble:
+		smart_line_bubble.show_line(line, cat.global_position, _cached_screen_size)
+	if cat and cat.has_method("play_animation"):
+		cat.play_animation("tail_wag")
+	_grant_quest_bond(reward)
+
+func _grant_quest_bond(reward: float) -> void:
+	if cat and cat.bond_system:
+		cat.bond_system.add_bond("quest_reward", reward)
+
+func _quest_line(quest_id: String) -> String:
+	# 任务完成台词（傲娇基底；性格化润色留给 LLM 轨道）
+	match quest_id:
+		"focus_session":
+			return "一起专注的感觉还不赖嘛。"
+		"stand_up":
+			return "站起来晃晃，对身体好。"
+		"meal_on_time":
+			return "吃饱了才有力气陪我玩。"
+		"interact_once":
+			return "哼，勉强算你有良心。"
+	return "做得不错。"
+
+func daily_quests_save_data() -> Dictionary:
+	# SaveManager._gather_current_data 经 main provider 读取
+	if daily_quest_service:
+		return daily_quest_service.get_save_data()
+	return {}
+
+func _poll_daily_quests(delta: float) -> void:
+	# P6：窗口类任务每分钟轮询快照闲置（与 _check_invite_ignored 同聚合模式）
+	if not daily_quest_service or not smart_pet_controller:
+		return
+	_quest_poll_timer += delta
+	if _quest_poll_timer < 60.0:
+		return
+	_quest_poll_timer = 0.0
+	daily_quest_service.poll_snapshot(smart_pet_controller._context_collector.get_snapshot())
+	daily_quest_service._roll_day()  # 运行中跨天：刷新任务与签到
+
 var _invite_check_timer: float = 0.0
 
 func _check_invite_ignored(delta: float) -> void:
@@ -775,6 +844,8 @@ func _setup_quick_action_menu() -> void:
 func _on_cat_left_clicked(_part: String, pos: Vector2) -> void:
 	if quick_action_menu and quick_action_menu.visible:
 		return
+	# P6：点击猫算互动（任务事件源；顺带入事件流供画像）
+	_record_smart_event("cat_clicked", {"pos": pos})
 	if quick_action_menu:
 		quick_action_menu.show_at(pos)
 		_update_mouse_passthrough_region()

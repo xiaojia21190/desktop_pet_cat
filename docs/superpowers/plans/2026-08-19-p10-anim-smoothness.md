@@ -47,7 +47,7 @@
 - Modify: `components/cat_animation_component.gd`
 - Create: `tests/test_anim_flow.gd` + `tests/test_anim_flow.tscn`
 
-- [ ] **Step 1: 写失败测试 tests/test_anim_flow.gd**
+- [x] **Step 1: 写失败测试 tests/test_anim_flow.gd**
 
 ```gdscript
 extends Node
@@ -136,7 +136,7 @@ func _print_summary() -> void:
 		print("  FAIL: " + f)
 ```
 
-- [ ] **Step 2: 创建 tests/test_anim_flow.tscn**
+- [x] **Step 2: 创建 tests/test_anim_flow.tscn**
 
 ```text
 [gd_scene load_steps=2 format=3]
@@ -147,12 +147,12 @@ func _print_summary() -> void:
 script = ExtResource("1")
 ```
 
-- [ ] **Step 3: 跑测试确认失败**
+- [x] **Step 3: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_anim_flow.tscn`
 Expected: FAIL（ONESHOT_ACTIONS/is_action_locked 不存在）
 
-- [ ] **Step 4: 实现——cat_animation_component.gd 改动**
+- [x] **Step 4: 实现——cat_animation_component.gd 改动**
 
 在 `const SPRITE_FRAMES_DIR` 后加：
 
@@ -231,17 +231,17 @@ func _on_animation_finished() -> void:
 
 （`switch_cat_type` 里 `_apply_sprite_frames` 切换后 `_locked = false` 重置——品种切换是天然 urgent 场景。）
 
-- [ ] **Step 5: 跑测试通过**
+- [x] **Step 5: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_anim_flow.tscn`
 Expected: `passed: 10  failed: 0`
 
-- [ ] **Step 6: 回归 behavior（动画相关既有断言）**
+- [x] **Step 6: 回归 behavior（动画相关既有断言）**
 
 Run: `timeout 90 "$GODOT" --headless --path . res://tests/test_behavior_system.tscn`
 Expected: 通过 34 失败 0
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add components/cat_animation_component.gd tests/test_anim_flow.gd tests/test_anim_flow.tscn tests/test_anim_flow.gd.uid 2>/dev/null || git add components/cat_animation_component.gd tests/test_anim_flow.gd tests/test_anim_flow.tscn
@@ -256,7 +256,7 @@ git commit -m "feat: 一次性动作播放锁与帧时长曲线"
 - Modify: `components/state_machine.gd`
 - Modify: `tests/test_anim_flow.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_state_lock()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_state_lock()`）**
 
 ```gdscript
 func _test_state_lock() -> void:
@@ -288,12 +288,12 @@ const StateMachineScript = preload("res://components/state_machine.gd")
 const StateScript = preload("res://components/state.gd")
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_anim_flow.tscn`
 Expected: FAIL（anim_lock_provider/notify_anim_unlocked 不存在）
 
-- [ ] **Step 3: 实现 state_machine.gd**
+- [x] **Step 3: 实现 state_machine.gd**
 
 成员与 `transition_to` 替换：
 
@@ -342,12 +342,12 @@ func notify_anim_unlocked() -> void:
 		transition_to(st, msg)
 ```
 
-- [ ] **Step 4: 跑测试通过**
+- [x] **Step 4: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_anim_flow.tscn`
 Expected: `passed: 14  failed: 0`（10 + 4）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/state_machine.gd tests/test_anim_flow.gd
@@ -361,7 +361,7 @@ git commit -m "feat: 状态机动画锁排队与urgent豁免"
 **Files:**
 - Modify: `cat.gd`
 
-- [ ] **Step 1: cat.gd 三处接线**
+- [x] **Step 1: cat.gd 三处接线**
 
 1. 状态机初始化后（`state_machine` 就绪处，cat.gd 找 `_setup` 或 `_ready` 中 state_machine 创建后）：
 
@@ -381,7 +381,7 @@ git commit -m "feat: 状态机动画锁排队与urgent豁免"
 
 **执行时核实**：grep `transition_to` in cat.gd + cat_input_component.gd，拖拽与点击若不直接切状态（而是状态内部轮询），则 urgent 只需给 typing_attack；以实际调用点为准，逐一加 msg。
 
-- [ ] **Step 2: headless 冒烟 + behavior 回归**
+- [x] **Step 2: headless 冒烟 + behavior 回归**
 
 ```bash
 timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | grep -E "启动成功|SCRIPT ERROR" | head -3 && \
@@ -389,7 +389,7 @@ timeout 90 "$GODOT" --headless --path . res://tests/test_behavior_system.tscn 2>
 ```
 Expected: 启动成功；behavior 34/0
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add cat.gd
@@ -404,7 +404,7 @@ git commit -m "feat: 猫接线动画锁与urgent链路"
 - Modify: `states/cat_walking_state.gd`、`states/cat_chasing_state.gd`、`states/cat_eating_state.gd`（phase 1）
 - Modify: `tests/test_anim_flow.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_move_smooth()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_move_smooth()`）**
 
 ```gdscript
 const ChasingStateScript = preload("res://states/cat_chasing_state.gd")
@@ -437,7 +437,7 @@ func _test_move_smooth() -> void:
 
 （`state_machine` 属性为 State 基类字段，直接赋 Node 需要它有 transition_to——测试不触发切换所以安全；若 State 基类 `_ready` 强依赖 owner，改用 `chase.set_script` 前置后手动赋值绕过。执行时如 _ready 报错，把 chase 的注册流程照 test_behavior_system 里已有的状态机构造方式搬。）
 
-- [ ] **Step 2: 跑测试确认失败 → 实现三状态平滑**
+- [x] **Step 2: 跑测试确认失败 → 实现三状态平滑**
 
 cat_chasing_state.gd 替换移动段：
 
@@ -468,7 +468,7 @@ func physics_update(delta: float) -> void:
 
 cat_walking_state.gd 同模式（`_move_dir` 初始取 enter 时方向、lerp 0.15、ramp 0.3）；cat_eating_state.gd phase 1 同模式（保留 interact_distance 判定不变）。
 
-- [ ] **Step 3: 跑测试通过 + Commit**
+- [x] **Step 3: 跑测试通过 + Commit**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_anim_flow.tscn`
 Expected: `passed: 16  failed: 0`
@@ -487,7 +487,7 @@ git commit -m "feat: 移动方向lerp与速度渐变平滑"
 - Modify: `cat_behavior_system.gd`（链步进时长读表）
 - Modify: `tests/test_anim_flow.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_timing_table()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_timing_table()`）**
 
 ```gdscript
 const TimingScript = preload("res://components/animation_timing.gd")
@@ -503,7 +503,7 @@ func _test_timing_table() -> void:
 	_assert_true(is_equal_approx(u, 6.0 / 6.0), "unknown_falls_back")
 ```
 
-- [ ] **Step 2: 实现 components/animation_timing.gd**
+- [x] **Step 2: 实现 components/animation_timing.gd**
 
 ```gdscript
 class_name AnimationTiming
@@ -532,7 +532,7 @@ static func min_duration(anim_name: String, frames: int, speed: float) -> float:
 	return base * mult
 ```
 
-- [ ] **Step 3: 链调度对齐——cat_behavior_system.gd**
+- [x] **Step 3: 链调度对齐——cat_behavior_system.gd**
 
 `STATE_CHAINS` 各链 durations 中与动画绑定的步进改用节奏表下限（`update_chain` 里 `chain_timer >= duration` 判定前加下限保护）：
 
@@ -550,7 +550,7 @@ static func min_duration(anim_name: String, frames: int, speed: float) -> float:
 
 （加在 `var duration = chain.durations[chain_index]` 之后；`duration` 声明改为 `var duration: float = float(chain.durations[chain_index])`。）
 
-- [ ] **Step 4: 跑测试 + behavior 回归 + Commit**
+- [x] **Step 4: 跑测试 + behavior 回归 + Commit**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_anim_flow.tscn && timeout 90 "$GODOT" --headless --path . res://tests/test_behavior_system.tscn 2>&1 | grep -E "通过|失败"`
 Expected: anim 19/0；behavior 34/0
@@ -568,7 +568,7 @@ git commit -m "feat: 动作节奏表与链调度时长下限"
 - Modify: `resources/animations/orange_tabby.tres` `calico.tres` `british_blue.tres` `tuxedo.tres`（mochi/dracula 仅 6 动作，同样跑脚本顺带调）
 - Create: `tools/tune_anim_speeds.py`（一次性脚本，入库留档）
 
-- [ ] **Step 1: 写调优脚本 tools/tune_anim_speeds.py**
+- [x] **Step 1: 写调优脚本 tools/tune_anim_speeds.py**
 
 ```python
 # P10 帧率批量调优：按动作类别映射新 speed（对 5 品种 tres 全部动画）
@@ -607,12 +607,12 @@ for path in glob.glob("resources/animations/*.tres"):
 
 （执行时先 `grep -n '"speed"' resources/animations/orange_tabby.tres | head -3` 确认 name/speed 相邻格式；若不相邻，改为解析块再写回。）
 
-- [ ] **Step 2: 跑脚本并抽查**
+- [x] **Step 2: 跑脚本并抽查**
 
 Run: `python tools/tune_anim_speeds.py`
 Expected: 每文件 updated ≥20；`grep -A1 '"name": &"walk"' resources/animations/orange_tabby.tres` 显示 speed 10.0
 
-- [ ] **Step 3: 回归 sprite manifest 测试（读 tres 的断言）+ Commit**
+- [x] **Step 3: 回归 sprite manifest 测试（读 tres 的断言）+ Commit**
 
 Run: `timeout 90 "$GODOT" --headless --path . res://tests/test_sprite_manifest_loader.tscn 2>&1 | grep -E "passed|failed"`
 Expected: 19/0（若该测试锁定了 speed 值，按新值更新断言——属数据变更非回归）
@@ -626,7 +626,7 @@ git commit -m "chore: 五品种动画帧率批量调优"
 
 ### Task 7: 全量回归 + MCP 真机验收 + 文档收尾
 
-- [ ] **Step 1: 15 套全量测试**
+- [x] **Step 1: 15 套全量测试**
 
 ```bash
 for t in test_behavior_system test_focus_session_mode test_sprite_manifest_loader test_objective_system test_activity_classifier test_foreground_app_monitor test_focus_charge_engine test_smart_modules test_bond_system test_presence_level test_first_guide test_daily_quests test_ui_theme test_offline_settlement test_anim_flow; do
@@ -636,7 +636,7 @@ done
 ```
 Expected: 全绿（364 + anim_flow ~19）
 
-- [ ] **Step 2: MCP 真机验收（动画专项）**
+- [x] **Step 2: MCP 真机验收（动画专项）**
 
 - `run_project` 启动，观察 90 秒：行为链动画无中途截断（eat/lick/pounce 全程播完）
 - 快捷菜单投食 → chasing（转向平滑无折线、起步渐快）→ 到达 → eat **完整播完**（不被 idle 打断）→ lick_groom → idle
@@ -646,9 +646,9 @@ Expected: 全绿（364 + anim_flow ~19）
 - 打字（模拟 typing_attack）→ 立即打断
 - `stop_project`
 
-- [ ] **Step 3: 勾选本计划 + 主文档追加 P10 完成记录**
+- [x] **Step 3: 勾选本计划 + 主文档追加 P10 完成记录**
 
-- [ ] **Step 4: Commit 收尾**
+- [x] **Step 4: Commit 收尾**
 
 ```bash
 git add docs/plans/2026-08-17-smart-companion-redesign.md docs/superpowers/plans/2026-08-19-p10-anim-smoothness.md

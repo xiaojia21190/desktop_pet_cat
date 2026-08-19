@@ -325,3 +325,34 @@ quick_action_menu/bubble/settings_panel/hover_panel 对外信号与函数签名�
 ### P9 后世界
 
 关电脑去睡觉，回来猫精神饱满还会按离开多久用性格化台词接你。剩余方向：新道具类型、画像动态任务、明暗双主题。
+
+## P10 完成记录（2026-08-19）「动画流畅度代码层重做」
+
+**背景**：用户反馈动画不流畅（四问题全中：帧少帧率低/切换跳变/互动被打断/移动卡顿节奏单调）。设计文档：`docs/superpowers/specs/2026-08-19-p10-anim-smoothness-design.md`。策略：先代码层修满 8 帧素材天花板，素材重生成（12-16 帧）留下一期。
+
+### 交付（7 提交）
+
+| 改动 | 说明 |
+|---|---|
+| ONESHOT 语义表 + 播放锁 | cat_animation_component：一次性动作 23 个语义核定（tres loop 值不可信——pounce_attack 被错标 loop=1）；播放中 is_action_locked=true，animation_finished 解锁；品种切换天然重置 |
+| 状态机锁排队 | transition_to 遇锁缓存 pending，notify_anim_unlocked 后自动执行；msg.urgent 豁免（打字攻击已接，拖拽/点击猫不切状态无需） |
+| 移动平滑 | walking/chasing/eating 三处：方向 lerp 0.15 + 起步速度 ramp 0.3s——转向无折线、起步不突兀 |
+| 节奏表 | animation_timing.gd：一次性动作调度时长下限（≥播完一遍 ×动作倍率，eat×1.6 有仪式感）；链调度 update_chain 对齐 |
+| 帧率+帧曲线落盘 | tools/tune_anim_speeds.py：6 品种 tres 批量调优（待机 4fps 更耐看/移动 10-12/互动+1~2）+ 一次性动作帧 duration 曲线（首尾 1.6 中间 0.7） |
+
+### 执行中修正（计划外）
+
+1. **Godot 4.7 无运行时 set_frame_duration**（计划 API 假设错误，探针当场抓获）——帧曲线改由 Python 脚本直接落盘 tres，运行时零开销（反而更优）
+2. **状态机测试夹具**：动态 add_child 状态不触发 _ready 重扫——手动注册（照 _ready 逻辑）
+3. **headless 全局类名注册滞后**：AnimationTiming 用 preload 引入（class_name 注册在 headless 首跑不可靠）
+4. **chain_completed 旧断言按裸 durations 快进**：节奏表抬高下限后快进不足——测试按同口径（节奏表时长）快进，属设计内行为变更
+
+### 验证
+
+- **15 套测试全绿**：389 断言（新增 test_anim_flow 20：语义表/播放锁/状态机排队urgent/移动平滑/节奏表）
+- MCP 真机 75 秒：启动零 ERROR、行为链正常轮转；帧曲线落盘抽查 eat=[1.6,0.7×5,1.6]、walk 均匀+speed10
+- 交互链路（投食追逐/逗猫棒扑咬完整播放）逻辑由播放锁+测试覆盖，观感待用户日常使用确认
+
+### P10 后世界
+
+吃不再被截断、转向不再折线、起步不再窜出、待机更从容——8 帧素材的表达力被榨满。素材重生成（12-16 帧/动作）是下一个肉眼可见的质变点。

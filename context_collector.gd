@@ -3,6 +3,8 @@ extends Node
 
 ## 采集最小上下文信息（不记录原始文本与按键内容）
 
+signal event_recorded(event_type: String, payload: Dictionary)
+
 const MAX_EVENT_HISTORY := 240
 
 var _events: Array[Dictionary] = []
@@ -62,6 +64,7 @@ func record_event(event_type: String, payload: Dictionary = {}) -> void:
 	_events.append(event_payload)
 	if _events.size() > MAX_EVENT_HISTORY:
 		_events.pop_front()
+	event_recorded.emit(event_type, event_payload)
 
 func record_input(input_type: String) -> void:
 	_last_input_unix = int(Time.get_unix_time_from_system())

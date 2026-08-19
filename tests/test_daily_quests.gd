@@ -25,6 +25,7 @@ func _run() -> void:
 	_test_weekly_counts()
 	_test_achievements()
 	_test_bond_level_achievement()
+	_test_p8_save_section()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -327,6 +328,28 @@ func _test_bond_level_achievement() -> void:
 	svc.notify_bond_level(5)
 	_assert_true(unlocked.has("bond_lv5"), "bondlv5_unlocked")
 	svc.queue_free()
+
+func _test_p8_save_section() -> void:
+	# P8 键并入 daily_quests 默认值 + 写档不崩
+	var sm = preload("res://save_manager.gd").new()
+	add_child(sm)
+	var defaults: Dictionary = sm._get_default_data()
+	var dq: Dictionary = defaults.get("daily_quests", {})
+	_assert_equal(String(dq.get("week_key", "x")), "", "default_weekkey_empty")
+	var wc = dq.get("week_counts", null)
+	_assert_true(typeof(wc) == TYPE_DICTIONARY, "default_weekcounts_dict")
+	_assert_equal(String(dq.get("equipped_title", "x")), "", "default_title_empty")
+	_assert_true(typeof(dq.get("unlocked", null)) == TYPE_ARRAY, "default_unlocked_array")
+	# 写档 roundtrip（真实落盘验证序列化）
+	var data := defaults.duplicate(true)
+	data["daily_quests"] = {
+		"today_key": "20260819", "completed": [], "streak_days": 3, "last_checkin_key": "20260819",
+		"week_key": "20260817", "week_counts": {"focus_session": 2}, "weekly_done": ["week_focus"],
+		"lifetime_totals": {"focus_session": 3}, "unlocked": ["checkin_7"], "equipped_title": "一周之约",
+	}
+	var err: int = sm._write_config(data)
+	_assert_equal(err, 0, "write_p8_ok")
+	sm.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

@@ -53,7 +53,13 @@ func _get_default_data() -> Dictionary:
 			"today_key": "",
 			"completed": [],
 			"streak_days": 0,
-			"last_checkin_key": ""
+			"last_checkin_key": "",
+			"week_key": "",
+			"week_counts": {},
+			"weekly_done": [],
+			"lifetime_totals": {},
+			"unlocked": [],
+			"equipped_title": ""
 		}
 	}
 
@@ -106,6 +112,13 @@ func _write_config(data: Dictionary) -> int:
 	config.set_value("daily_quests", "completed", dq.get("completed", []))
 	config.set_value("daily_quests", "streak_days", int(dq.get("streak_days", 0)))
 	config.set_value("daily_quests", "last_checkin_key", String(dq.get("last_checkin_key", "")))
+	# P8：周计数与成就（并入同一区块）
+	config.set_value("daily_quests", "week_key", String(dq.get("week_key", "")))
+	config.set_value("daily_quests", "week_counts", dq.get("week_counts", {}))
+	config.set_value("daily_quests", "weekly_done", dq.get("weekly_done", []))
+	config.set_value("daily_quests", "lifetime_totals", dq.get("lifetime_totals", {}))
+	config.set_value("daily_quests", "unlocked", dq.get("unlocked", []))
+	config.set_value("daily_quests", "equipped_title", String(dq.get("equipped_title", "")))
 
 	config.set_value("meta", "saved_at", meta.get("saved_at", 0))
 	config.set_value("meta", "version", meta.get("version", SAVE_VERSION))
@@ -186,6 +199,13 @@ func load_data() -> Dictionary:
 	dq_data["completed"] = config.get_value("daily_quests", "completed", dq_data.get("completed", []))
 	dq_data["streak_days"] = int(config.get_value("daily_quests", "streak_days", dq_data.get("streak_days", 0)))
 	dq_data["last_checkin_key"] = String(config.get_value("daily_quests", "last_checkin_key", dq_data.get("last_checkin_key", "")))
+	# P8：周计数与成就读取（旧档缺键走默认）
+	dq_data["week_key"] = String(config.get_value("daily_quests", "week_key", dq_data.get("week_key", "")))
+	dq_data["week_counts"] = config.get_value("daily_quests", "week_counts", dq_data.get("week_counts", {}))
+	dq_data["weekly_done"] = config.get_value("daily_quests", "weekly_done", dq_data.get("weekly_done", []))
+	dq_data["lifetime_totals"] = config.get_value("daily_quests", "lifetime_totals", dq_data.get("lifetime_totals", {}))
+	dq_data["unlocked"] = config.get_value("daily_quests", "unlocked", dq_data.get("unlocked", []))
+	dq_data["equipped_title"] = String(config.get_value("daily_quests", "equipped_title", dq_data.get("equipped_title", "")))
 	data["daily_quests"] = dq_data
 
 	return data

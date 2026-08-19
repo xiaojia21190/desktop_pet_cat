@@ -45,7 +45,7 @@
 - Create: `components/engagement/achievement_defs.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_achievement_defs()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_achievement_defs()`）**
 
 ```gdscript
 const AchDefsScript = preload("res://components/engagement/achievement_defs.gd")
@@ -64,12 +64,12 @@ func _test_achievement_defs() -> void:
 	_assert_equal(int(weekly["week_focus"]["target"]), 3, "weekfocus_target")
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（achievement_defs.gd 不存在）
 
-- [ ] **Step 3: 实现 components/engagement/achievement_defs.gd**
+- [x] **Step 3: 实现 components/engagement/achievement_defs.gd**
 
 ```gdscript
 class_name AchievementDefs
@@ -98,7 +98,7 @@ const ACHIEVEMENTS := {
 }
 ```
 
-- [ ] **Step 4: 跑测试通过并提交**
+- [x] **Step 4: 跑测试通过并提交**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 54  failed: 0`（42 + 12）
@@ -116,7 +116,7 @@ git commit -m "feat: 成就与周任务定义表"
 - Modify: `components/engagement/daily_quest_service.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_weekly_counts()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_weekly_counts()`）**
 
 ```gdscript
 func _test_weekly_counts() -> void:
@@ -144,12 +144,12 @@ func _test_weekly_counts() -> void:
 	svc.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（week_counts/weekly_quest_completed 不存在）
 
-- [ ] **Step 3: 实现周计数与早退改造**
+- [x] **Step 3: 实现周计数与早退改造**
 
 daily_quest_service.gd 头部追加（signal 区下；注意变量名用 `_current_week` 避免与 `_week_key()` 函数重名）：
 
@@ -271,7 +271,7 @@ func _check_weekly_quests(_quest_id: String) -> void:
 
 `poll_snapshot` 内两处 `_complete` 调用补第三参（source 传空——窗口类任务无细分源）。
 
-- [ ] **Step 4: 跑测试通过并提交**
+- [x] **Step 4: 跑测试通过并提交**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 61  failed: 0`（54 + 7）
@@ -289,7 +289,7 @@ git commit -m "feat: 周任务计数与达标信号"
 - Modify: `components/engagement/daily_quest_service.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_achievements()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_achievements()`）**
 
 ```gdscript
 func _test_achievements() -> void:
@@ -345,12 +345,12 @@ func _test_bond_level_achievement() -> void:
 
 （`_test_bond_level_achievement` 也加入 `_run()`。）
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（achievement_unlocked/_lifetime_totals/notify_bond_level 不存在）
 
-- [ ] **Step 3: 实现累计与扫描**
+- [x] **Step 3: 实现累计与扫描**
 
 daily_quest_service.gd 追加：
 
@@ -442,7 +442,7 @@ func get_achievements_save_data() -> Dictionary:
 
 （`_equipped_title` 变量 Task 5 实现；本任务先声明 `var _equipped_title := ""` 并在 `load_from_save` 恢复 `data.get("equipped_title", "")`，佩戴 API 留 Task 5。）
 
-- [ ] **Step 4: 跑测试通过并提交**
+- [x] **Step 4: 跑测试通过并提交**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 70  failed: 0`（61 + 9）
@@ -461,7 +461,7 @@ git commit -m "feat: 终身累计与成就解锁扫描"
 - Modify: `main.gd`（daily_quests_save_data 扩展 + 新 achievements_save_data）
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_achievements_save_section()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_achievements_save_section()`）**
 
 ```gdscript
 func _test_achievements_save_section() -> void:
@@ -478,7 +478,7 @@ func _test_achievements_save_section() -> void:
 	sm.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败 → 实现四点**
+- [x] **Step 2: 跑测试确认失败 → 实现四点**
 
 save_manager.gd：
 1. `_get_default_data` daily_quests 字典加 `"week_key": ""` / `"week_counts": {}` / `"weekly_done": []`，同级加：
@@ -536,7 +536,7 @@ func daily_quests_save_data() -> Dictionary:
 
 main.gd `_setup_daily_quests` 读档注入不变（`data.get("daily_quests", {})` 已含新键）；`load_from_save` 里新增的恢复逻辑读同名键即可。
 
-- [ ] **Step 3: 跑测试通过并提交**
+- [x] **Step 3: 跑测试通过并提交**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 74  failed: 0`（70 + 4，含 Step 1 改后断言数）
@@ -554,7 +554,7 @@ git commit -m "feat: 周计数成就存档并入每日任务区块"
 - Modify: `components/engagement/daily_quest_service.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_title_equip()` 与 `_test_summaries()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_title_equip()` 与 `_test_summaries()`）**
 
 ```gdscript
 func _test_title_equip() -> void:
@@ -588,7 +588,7 @@ func _test_summaries() -> void:
 	svc.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败 → 实现**
+- [x] **Step 2: 跑测试确认失败 → 实现**
 
 ```gdscript
 func equip_title(title_text: String) -> bool:
@@ -636,7 +636,7 @@ func get_achievements_summary() -> Dictionary:
 
 `load_from_save` 恢复 equipped_title（已有占位行改为真恢复）。
 
-- [ ] **Step 3: 跑测试通过并提交**
+- [x] **Step 3: 跑测试通过并提交**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 84  failed: 0`（74 + 10）
@@ -653,7 +653,7 @@ git commit -m "feat: 称号佩戴与周度成就摘要接口"
 **Files:**
 - Modify: `main.gd`
 
-- [ ] **Step 1: 三信号接线（`_setup_daily_quests` 内 quest_completed 连接后加）**
+- [x] **Step 1: 三信号接线（`_setup_daily_quests` 内 quest_completed 连接后加）**
 
 ```gdscript
 	daily_quest_service.weekly_quest_completed.connect(_on_weekly_quest_completed)
@@ -664,7 +664,7 @@ git commit -m "feat: 称号佩戴与周度成就摘要接口"
 			func(_bond, level): daily_quest_service.notify_bond_level(level))
 ```
 
-- [ ] **Step 2: 两 handler（`_on_quest_completed` 后加）**
+- [x] **Step 2: 两 handler（`_on_quest_completed` 后加）**
 
 ```gdscript
 func _on_weekly_quest_completed(quest_id: String, reward: float) -> void:
@@ -694,7 +694,7 @@ func _on_achievement_unlocked(achievement_id: String, title_text: String) -> voi
 		settings_panel.refresh_quest_ui()
 ```
 
-- [ ] **Step 3: 冒烟 + 回归 + 提交**
+- [x] **Step 3: 冒烟 + 回归 + 提交**
 
 ```bash
 timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | grep -E "启动成功|SCRIPT ERROR|Parse" | head -3 && \
@@ -711,7 +711,7 @@ Expected: 启动成功；`failed: 0`
 **Files:**
 - Modify: `settings_panel.gd`
 
-- [ ] **Step 1: `_build_page_progress` 尾部追加两区（_quest_streak_label 之后）**
+- [x] **Step 1: `_build_page_progress` 尾部追加两区（_quest_streak_label 之后）**
 
 ```gdscript
 	# —— P8 本周任务区 ——
@@ -750,7 +750,7 @@ Expected: 启动成功；`failed: 0`
 
 （文件头加 `const AchievementDefsScript = preload("res://components/engagement/achievement_defs.gd")`；成员变量区加 `var _weekly_rows: Array = []` / `var _badges: Array = []` / `var _title_option: OptionButton`。）
 
-- [ ] **Step 2: `refresh_quest_ui` 尾部追加两区刷新 + 称号选择器重建**
+- [x] **Step 2: `refresh_quest_ui` 尾部追加两区刷新 + 称号选择器重建**
 
 ```gdscript
 	# —— P8 本周任务 ——
@@ -813,7 +813,7 @@ func _apply_title_to_header(title_text: String) -> void:
 
 （**前置改动**：`_build_layout` 中 `var title := Label.new()` 改为成员变量——文件头声明 `var _header_title_label: Label`，构建处 `_header_title_label = Label.new(); _header_title_label.text = "🐾 设置"; ...`，本函数直接刷它。）
 
-- [ ] **Step 3: 冒烟 + 回归 + 提交**
+- [x] **Step 3: 冒烟 + 回归 + 提交**
 
 ```bash
 timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | grep -E "启动成功|SCRIPT ERROR|Parse" | head -3 && \
@@ -828,7 +828,7 @@ Expected: 启动成功；两套测试绿
 
 ### Task 8: 全量回归 + MCP 端到端 + 文档收尾
 
-- [ ] **Step 1: 13 套全量测试（14 套合一——daily_quests 已含新断言）**
+- [x] **Step 1: 13 套全量测试（14 套合一——daily_quests 已含新断言）**
 
 ```bash
 for t in test_behavior_system test_focus_session_mode test_sprite_manifest_loader test_objective_system test_activity_classifier test_foreground_app_monitor test_focus_charge_engine test_smart_modules test_bond_system test_presence_level test_first_guide test_daily_quests test_ui_theme; do
@@ -838,18 +838,18 @@ done
 ```
 Expected: 全绿；test_daily_quests ≈ 84 断言；总计 ≈ 357
 
-- [ ] **Step 2: MCP 端到端**
+- [x] **Step 2: MCP 端到端**
 
 - 伪造存档预置：手动编辑 `Desktop Pet Cat/save_data.cfg` 的 daily_quests 区块加 `streak_days=6` + `last_checkin_key=昨日` → 启动 → 签到 streak=7 → `🏆 解锁成就「一周之约」` 气泡出现
 - 设置面板 → 任务·亲密度页 → 本周任务 3 行渲染、成就徽章墙 8 格（1 个点亮）、称号下拉可选「一周之约」→ 佩戴 → 面板标题变「🐾 设置 · 一周之约」
 - 投食 → interact 计数 +1（面板重开可见）
 - 还原存档
 
-- [ ] **Step 3: 更新主计划文档 + 勾选本计划**
+- [x] **Step 3: 更新主计划文档 + 勾选本计划**
 
 `docs/plans/2026-08-17-smart-companion-redesign.md` 追加 P8 完成记录；本文件勾选。
 
-- [ ] **Step 4: Commit 收尾**
+- [x] **Step 4: Commit 收尾**
 
 ```bash
 git add docs/plans/2026-08-17-smart-companion-redesign.md docs/superpowers/plans/2026-08-19-p8-weekly-achievements.md

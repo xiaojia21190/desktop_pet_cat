@@ -271,3 +271,36 @@ quick_action_menu/bubble/settings_panel/hover_panel 对外信号与函数签名�
 ### P7 后世界
 
 整个 UI 一套奶油风：面板翻页不翻滚、菜单是猫头顶的一圈圆钮、入口收拢到右缘一颗猫爪、气泡说奶油话。改主题一处改全局——UiTheme 是未来一切 UI 的唯一样式来源。
+
+## P8 完成记录（2026-08-19）「周任务与成就」
+
+**背景**：用户从剩余方向清单选定周任务/成就系统。设计文档：`docs/superpowers/specs/2026-08-19-p8-weekly-achievements-design.md`。
+
+### 交付（9 提交）
+
+| 改动 | 说明 |
+|---|---|
+| achievement_defs.gd | 纯常量定义表：8 成就（里程碑型：专注×10/50、撸猫×100、周全勤、签到 7/30 天、互动×50、bond Lv5）+ 3 周任务（专注×3/起身×5/互动×7） |
+| 周计数 | `_count_weekly` 挂在 `_complete` 拦截之前——当日任务全完成后仍继续累计；`_week_key()` 手写周一日期键算法（unix 秒，无日历库依赖）；跨周自动清零 |
+| notify_event 早退改造 | 原 `all_done` 早退拦掉全部事件——改为只拦完成判定不拦周计数喂入（week_interact ×7 类周任务必需） |
+| 终身累计 + 成就扫描 | focus/interact/pet（source_event 细分撸猫）/checkin_days/bond_level 五路判定源；每次完成内联扫描，unlocked 数组防重复 |
+| 存档 | 全部并入 daily_quests 单区块（较设计文档的独立 achievements section 简化，少一处四点贯通）；6 新键四点贯通 |
+| 称号系统 | equip_title 佩戴/卸下（未解锁拒绝）；佩戴显示在面板标题「🐾 设置 · 专注搭档」 |
+| 面板三区 | 任务·亲密度页扩：本周任务 3 行进度 + 成就徽章墙 2×4（点亮/灰显/tooltip 进度）+ 称号佩戴下拉 |
+| main 接线 | weekly_quest_completed / achievement_unlocked 两信号气泡（🏆 前缀）+ bond_changed 等级转发 |
+
+### 执行中发现并修复（计划外）
+
+1. **测试时序**（TDD 当场抓获）：签到结算在 load_from_save 内跑完，测试在 load 后才连信号——解锁信号被丢弃误报失败。先连信号再 load
+2. **启动空保存覆盖档（真机 bug，P6 埋下 P8 暴露）**：main 面板 apply_settings 触发改即存 → `_gather_current_data` 读 `daily_quests_save_data()` 时任务服务尚未挂载返回 `{}` → 启动早期一次空保存覆盖任务/签到/成就档。修复：`_setup_daily_quests` 提前到面板创建前 + 事件订阅/bond 喂入改幂等（is_connected 判定）支持二次补连
+
+### 验证
+
+- **13 套测试全绿**：348 断言（test_daily_quests 42→**80**，P8 新增 38）
+- presence 首跑偶发 31/1（历史 flake），复跑两次稳定 32/0
+- **MCP 端到端真机**：伪造 streak=6 昨日档 → 启动签到 streak=7 → **checkin_7 成就解锁落档**（unlocked 数组、lifetime_totals 均正确写入）——签到→扫描→存档全链路验证；修复后无空覆盖
+- 探针验证日期算法三键一致（昨日/今日/周一）
+
+### P8 后世界
+
+任务系统三层完整：每日（P6）给节奏、每周给目标、成就给记忆；称号是猫给你的身份。成就从 P8 起算（旧档历史不回补——诚实简单）。剩余方向：离线成长、新道具类型、画像动态任务、明暗双主题。

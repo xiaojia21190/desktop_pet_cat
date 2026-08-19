@@ -43,7 +43,7 @@
 - Modify: `tests/test_behavior_system.gd`
 - Create: `tests/test_behavior_system.tscn`
 
-- [ ] **Step 1: 创建测试场景文件**
+- [x] **Step 1: 创建测试场景文件**
 
 `tests/test_behavior_system.tscn`（与 test_focus_session_mode.tscn 同构）：
 
@@ -56,7 +56,7 @@
 script = ExtResource("1")
 ```
 
-- [ ] **Step 2: 给测试加退出逻辑**
+- [x] **Step 2: 给测试加退出逻辑**
 
 `tests/test_behavior_system.gd` 的 `_ready()` 末尾（原第 21 行 `_print_results()` 之后）改为：
 
@@ -72,12 +72,12 @@ func _ready():
 	get_tree().quit(1 if tests_failed > 0 else 0)
 ```
 
-- [ ] **Step 3: 运行验证**
+- [x] **Step 3: 运行验证**
 
 Run: `"$GODOT" --headless --path . res://tests/test_behavior_system.tscn`
 Expected: 输出 `通过: N 失败: 0`（N≈18）后**进程退出**，不再挂起
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/test_behavior_system.gd tests/test_behavior_system.tscn
@@ -94,7 +94,7 @@ git commit -m "test: 行为系统测试支持 headless 退出"
 - Modify: `cat_behavior_system.gd`
 - Test: `tests/test_behavior_system.gd`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `tests/test_behavior_system.gd` 的 `_run_all_tests()` 情绪系统测试块（`test_emotion_clamping()` 调用后）加两行调用：
 
@@ -120,12 +120,12 @@ func test_chaos_clamping():
 	_assert_equal(behavior_system.chaos, 0.0, "chaos_clamp_min")
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `"$GODOT" --headless --path . res://tests/test_behavior_system.tscn`
 Expected: FAIL——`chaos` 属性不存在（脚本解析报错或运行时报错）
 
-- [ ] **Step 3: 实现 chaos 维度**
+- [x] **Step 3: 实现 chaos 维度**
 
 `cat_behavior_system.gd` 第 21-24 行情绪属性块加一行：
 
@@ -153,12 +153,12 @@ signal chaos_changed(new_chaos: float, old_chaos: float)
 `load_save_data()`（第 549 行）加 `chaos = data.get("chaos", 20.0)`。
 **注意：`update()`（第 482 行）不加 chaos 衰减——chaos 由事件驱动（专注会话/猫状态），不随时间自然变化。**
 
-- [ ] **Step 4: 运行验证通过**
+- [x] **Step 4: 运行验证通过**
 
 Run: `"$GODOT" --headless --path . res://tests/test_behavior_system.tscn`
 Expected: `失败: 0`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add cat_behavior_system.gd tests/test_behavior_system.gd
@@ -176,7 +176,7 @@ git commit -m "feat: 行为系统新增 chaos 心理维度"
 - Modify: `focus_session_mode.gd`（删被移代码，改为委托调用）
 - Create: `tests/test_objective_system.gd` + `tests/test_objective_system.tscn`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `tests/test_objective_system.gd`：
 
@@ -249,12 +249,12 @@ func _print_summary() -> void:
 
 `tests/test_objective_system.tscn`（同 Task 1 结构，ext_resource 指向本测试脚本，根节点名 ObjectiveSystemTest）。
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `"$GODOT" --headless --path . res://tests/test_objective_system.tscn`
 Expected: FAIL——文件不存在，加载报错
 
-- [ ] **Step 3: 实现 ObjectiveSystem**
+- [x] **Step 3: 实现 ObjectiveSystem**
 
 `components/focus/objective_system.gd`：
 
@@ -418,7 +418,7 @@ func _sample_target(objective_id: String, card: Dictionary, focus: float, affect
 	return target
 ```
 
-- [ ] **Step 4: FocusSessionMode 改为委托**
+- [x] **Step 4: FocusSessionMode 改为委托**
 
 `focus_session_mode.gd`：
 1. 删除 :12-14 常量 OBJECTIVE_*、:47 `_objective_cards`、:39-44 目标相关状态变量、:952-1096 的目标函数、:1591 `_build_default_objective_cards`（默认卡组搬进 ObjectiveSystem 后由测试/门面喂入，见下）
@@ -466,14 +466,14 @@ func _roll_objective() -> void:
 6. `set_objective_cards()`（:237）保留为公共 API，内部转调 `_objective_system.set_cards(...)`
 7. `_update_ui` 中 `_objective_progress()` / `_objective_key` / `_objective_target` 改读 `_objective_system.get_objective_key()` / `.get_objective_target()` / `.progress(focus_value, affection_value, chaos_value)`
 
-- [ ] **Step 5: 跑全部测试**
+- [x] **Step 5: 跑全部测试**
 
 Run: `"$GODOT" --headless --path . res://tests/test_objective_system.tscn` → `failed: 0`
 Run: `"$GODOT" --headless --path . res://tests/test_focus_session_mode.tscn` → `failed: 0`
 Run: `"$GODOT" --headless --path . res://tests/test_smart_modules.tscn` → `failed: 0`
 Run: `"$GODOT" --headless --path . res://tests/test_sprite_manifest_loader.tscn` → `failed: 0`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add components/focus/objective_system.gd focus_session_mode.gd tests/test_objective_system.gd tests/test_objective_system.tscn
@@ -490,7 +490,7 @@ git commit -m "refactor: 拆出目标卡系统组件"
 - Create: `components/focus/focus_hud.gd`
 - Modify: `focus_session_mode.gd`
 
-- [ ] **Step 1: 实现 FocusHud**
+- [x] **Step 1: 实现 FocusHud**
 
 `components/focus/focus_hud.gd`：
 
@@ -559,18 +559,18 @@ func _build() -> void:
 
 （**执行时：打开原文件 :1264-1589，将 `_build_ui` 中 HUD 相关段落、`_create_metric_bar`、`_format_seconds`、`_build_help_text` 原样迁移并重命名成员；这是机械搬移，不改逻辑。**）
 
-- [ ] **Step 2: FocusSessionMode 换用 FocusHud**
+- [x] **Step 2: FocusSessionMode 换用 FocusHud**
 
 1. 删除原 UI 成员变量（:82-104 中 HUD/result 相关）与 `_build_ui` 中对应构建段
 2. `_ready()` 创建 `FocusHud` 实例（成员 `var _hud: FocusHud`），删除自身的 CanvasLayer UI（**FocusSessionMode 从 CanvasLayer 降为普通 Node**，`layer = 100` 移除）
 3. `start_session()` 中 HUD 显示改 `_hud.show_hud()`；`_finish_session()` 改 `_hud.hide_hud()` + `_hud.show_result(...)`；`_update_ui()` 改为调 `_hud.update_metrics(...)`；`_hint_label.text = X` 全局替换为 `_hud.set_hint(X)`
 4. 保留 `get_viewport()` 等调用路径可用性检查（FocusHud 是 CanvasLayer，挂在 FocusSessionMode 下即可）
 
-- [ ] **Step 3: 跑全部测试（同 Task 3 Step 5 四条命令）**
+- [x] **Step 3: 跑全部测试（同 Task 3 Step 5 四条命令）**
 
 Expected: 全部 `failed: 0`。注意 `test_focus_session_mode` 中直接引用 `mode._hint_label.text` 的断言（:63）需改为 `mode._hud.hint_label.text`。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/focus/focus_hud.gd focus_session_mode.gd tests/test_focus_session_mode.gd
@@ -587,7 +587,7 @@ git commit -m "refactor: 拆出专注会话 HUD 组件"
 - Create: `components/focus/tutorial_controller.gd`
 - Modify: `focus_session_mode.gd`
 
-- [ ] **Step 1: 实现 TutorialController**
+- [x] **Step 1: 实现 TutorialController**
 
 `components/focus/tutorial_controller.gd`：
 
@@ -650,16 +650,16 @@ func _current_duration() -> float:
 	return float(step.get("duration", 4.0))
 ```
 
-- [ ] **Step 2: FocusSessionMode 换用**
+- [x] **Step 2: FocusSessionMode 换用**
 
 1. 删 :77-80 教程变量与 :1222-1262 教程函数，`_build_default_tutorial_steps`（:1601，默认步骤内容）搬入 TutorialController 作为 `default_steps()` 静态返回（**执行时照抄原数组内容**）
 2. `_setup_tutorial()` 改为 `_tutorial.setup(steps, func(t: String): _hud.set_hint(t))` + `_tutorial.start(show_tutorial_on_start)`
 3. `_process` 的 `_update_tutorial(delta)` 改 `_tutorial.update(delta)`；F1 分支改 `_tutorial.skip()`（`:152-154`）
 
-- [ ] **Step 3: 跑全部测试（四条命令，同 Task 3 Step 5）**
+- [x] **Step 3: 跑全部测试（四条命令，同 Task 3 Step 5）**
 Expected: 全部 `failed: 0`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/focus/tutorial_controller.gd focus_session_mode.gd
@@ -676,7 +676,7 @@ git commit -m "refactor: 拆出专注会话教程组件"
 - Create: `tests/debug_tools/session_recorder.gd`（从 focus_session_mode.gd 原样搬移）
 - Modify: `focus_session_mode.gd`、`tests/test_focus_session_mode.gd`
 
-- [ ] **Step 1: 搬移 SessionRecorder**
+- [x] **Step 1: 搬移 SessionRecorder**
 
 把原 :272-780（start/stop/export/replay/刷新列表/删除/恢复/垃圾清理/ops 日志）与 :1621-1887（demo 控制面板构建与回调）整体剪出为 `tests/debug_tools/session_recorder.gd`：
 
@@ -690,17 +690,17 @@ signal recording_script_finished(output_path: String, summary: Dictionary)
 # ...原 :272-780 与 :1621-1887 的函数原样搬入，self 引用改为本类成员...
 ```
 
-- [ ] **Step 2: FocusSessionMode 与测试改造**
+- [x] **Step 2: FocusSessionMode 与测试改造**
 
 1. `focus_session_mode.gd` 删除全部录制/回放/垃圾桶/demo 面板代码、相关导出变量与 F2/F3/F4/F6/F7/F9/F12 快捷键分支（:144-204 中对应段落）
 2. 保留对 demo 事件注入的最小钩子：`set_demo_events()` / `trigger_next_demo_event()` / `start_demo()` / `pause_demo()` / `set_demo_playback_speed()`（SMART 无关但测试在用——**执行时先 grep 测试实际用到的 API 再定保留集**）
 3. `tests/test_focus_session_mode.gd`：录制相关用例（:33-68）改为先 `var recorder = SessionRecorderScript.new(); add_child(recorder)`，把原 `mode.start_recording_script(...)` 等调用改到 `recorder.` 上；recorder 需要会话引用则传 `recorder.bind_session(mode)`
 
-- [ ] **Step 3: 跑全部测试**
+- [x] **Step 3: 跑全部测试**
 
 Expected: 四套测试全部 `failed: 0`（含改造后的 test_focus_session_mode）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/debug_tools/session_recorder.gd focus_session_mode.gd tests/test_focus_session_mode.gd
@@ -717,7 +717,7 @@ git commit -m "refactor: 录制回放调试设施隔离至 debug_tools"
 - Modify: `focus_session_mode.gd`、`main.gd`、`cat.gd`、`cat_behavior_system.gd`
 - Test: `tests/test_focus_session_mode.gd`、`tests/test_behavior_system.gd`
 
-- [ ] **Step 1: 写失败测试（数值代理）**
+- [x] **Step 1: 写失败测试（数值代理）**
 
 `tests/test_focus_session_mode.gd` `_run()` 中 `mode.start_session()` 断言块后加：
 
@@ -732,12 +732,12 @@ git commit -m "refactor: 录制回放调试设施隔离至 debug_tools"
 	_assert_true(float(mode.affection_value) > 60.0, "affection_delta_writes_through")
 ```
 
-- [ ] **Step 2: 确认失败**
+- [x] **Step 2: 确认失败**
 
 Run: `"$GODOT" --headless --path . res://tests/test_focus_session_mode.tscn`
 Expected: FAIL——`behavior_proxy` 不存在
 
-- [ ] **Step 3: 实现代理**
+- [x] **Step 3: 实现代理**
 
 `focus_session_mode.gd`：
 1. 删 `var focus_value/affection_value/chaos_value`（:30-32）与 `focus_start/affection_start/chaos_start`（:17-19）
@@ -770,11 +770,11 @@ var chaos_value: float:
 4. `main.gd` `_setup_focus_session_mode()`（:272）加 `focus_session_mode.bind_behavior(cat.behavior_system)`
 5. `cat.gd` `_init_behavior_system()`（:72-78）后确保 `behavior_system.chaos = 20.0` 初始值（Task 2 默认值已覆盖，验证即可）
 
-- [ ] **Step 4: 跑测试通过 + 全量回归**
+- [x] **Step 4: 跑测试通过 + 全量回归**
 
 Run: 四套测试全部 `failed: 0`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add focus_session_mode.gd main.gd cat.gd tests/test_focus_session_mode.gd
@@ -792,7 +792,7 @@ main.gd 962 行按职责切两刀。第一刀：系统托盘（:691-785，~95 �
 - Create: `components/desktop/passthrough_manager.gd`
 - Modify: `main.gd`
 
-- [ ] **Step 1: 实现 TrayController**
+- [x] **Step 1: 实现 TrayController**
 
 `components/desktop/tray_controller.gd`——把 :691-785 的 `_setup_tray/_build_tray_menu/_on_tray_pressed/_show_tray_menu/_on_tray_toggle_visibility/_on_tray_open_settings/_on_tray_exit/_toggle_pet_visibility/_set_pet_visible/_is_pet_visible/_update_tray_menu_label/_cleanup_tray` 原样搬入，接口：
 
@@ -817,7 +817,7 @@ func cleanup() -> void: ...
 # 其余私有函数原样迁移；对外回调改为 emit 上列信号
 ```
 
-- [ ] **Step 2: 实现 PassthroughManager**
+- [x] **Step 2: 实现 PassthroughManager**
 
 `components/desktop/passthrough_manager.gd`——把 :831-902 的 `_update_mouse_passthrough_region/_build_mouse_capture_polygon/_should_capture_full_window/_build_full_window_polygon/_build_cat_hit_polygon/_build_circle_polygon` 原样搬入：
 
@@ -836,17 +836,17 @@ func update(main_node: Node2D) -> void: ...
 
 （**执行时按 main.gd 原实现把对 main 成员的引用改为经 main_node 读取，函数体逻辑不变。**）
 
-- [ ] **Step 3: main.gd 接线**
+- [x] **Step 3: main.gd 接线**
 
 1. 删除 :691-785 与 :831-902 及相关成员（:16-21、:40、:52-54）
 2. `_ready()` 创建两组件实例；原 `_update_mouse_passthrough_region()` 调用点（:107/:166/:176/:500 等）改 `passthrough_manager.update(self)`
 3. 托盘回调接信号：`toggle_visibility_requested.connect(...)` 等三行
 
-- [ ] **Step 4: 跑全部测试 + MCP 冒烟**
+- [x] **Step 4: 跑全部测试 + MCP 冒烟**
 
 四套测试 `failed: 0`；MCP run_project 启动无脚本错误、托盘可右键（get_debug_output 无 ERROR）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/desktop/tray_controller.gd components/desktop/passthrough_manager.gd main.gd
@@ -864,7 +864,7 @@ git commit -m "refactor: 托盘与鼠标穿透拆出独立组件"
 - Create: `components/ui/hover_panel.gd`
 - Modify: `main.gd`
 
-- [ ] **Step 1: 实现 SmartLineBubble**
+- [x] **Step 1: 实现 SmartLineBubble**
 
 把 :581-689（`_setup_smart_line_bubble/_show_smart_line/_hide_smart_line/_get_smart_line_position` 与 SMART_LINE_BUBBLE_* 常量）搬为：
 
@@ -880,7 +880,7 @@ func hide() -> void: ...
 func reposition(anchor: Vector2, viewport_size: Vector2) -> void: ...
 ```
 
-- [ ] **Step 2: 实现 HoverPanel**
+- [x] **Step 2: 实现 HoverPanel**
 
 把 :391-500（`_create_hover_panel/_update_hover_panel/_on_items_btn_pressed` 面板构建与滑动逻辑、EDGE_TRIGGER_DISTANCE/PANEL_SLIDE_SPEED 常量）搬为：
 
@@ -899,13 +899,13 @@ func update(delta: float, mouse_pos: Vector2, screen_size: Vector2) -> bool: ...
 # 返回 hover_panel_visible 状态；按钮点击 emit 信号
 ```
 
-- [ ] **Step 3: main.gd 接线**
+- [x] **Step 3: main.gd 接线**
 
 删除对应段落与成员（:36-39、:42-47、:50-51），`_process` 中面板滑动与气泡定时改为组件调用；`_show_smart_line/_hide_smart_line` 调用点改 `smart_line_bubble.show_line(...)`。
 
-- [ ] **Step 4: 跑全部测试 + MCP 冒烟（同 Task 8 Step 4）**
+- [x] **Step 4: 跑全部测试 + MCP 冒烟（同 Task 8 Step 4）**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/ui/smart_line_bubble.gd components/ui/hover_panel.gd main.gd
@@ -916,22 +916,22 @@ git commit -m "refactor: SMART 气泡与悬浮面板拆出独立组件"
 
 ### Task 10: 全量回归 + MCP 端到端 + 收尾
 
-- [ ] **Step 1: 全量测试**
+- [x] **Step 1: 全量测试**
 
 四套 headless 测试 + `tests/test_behavior_system.tscn` 全绿。
 
-- [ ] **Step 2: 代码规模验收**
+- [x] **Step 2: 代码规模验收**
 
 Run: `wc -l focus_session_mode.gd main.gd components/focus/*.gd components/desktop/*.gd components/ui/*.gd tests/debug_tools/*.gd`
 Expected: focus_session_mode.gd ≤ 700 行；main.gd ≤ 500 行；每个新组件 ≤ 300 行（符合全局规范）
 
-- [ ] **Step 3: MCP 端到端验证**
+- [x] **Step 3: MCP 端到端验证**
 
 1. `run_project` 启动，等待 90 秒
 2. `get_debug_output`：无 ERROR、无 `Focus session finished`、SMART 策略正常输出
 3. 橙色像素截图验证猫正常渲染（复用本轮验证过的 PowerShell 截图 + Python 橙色聚类流程，脚本临时创建用完即删）
 
-- [ ] **Step 4: 收尾提交与文档更新**
+- [x] **Step 4: 收尾提交与文档更新**
 
 ```bash
 git add -A

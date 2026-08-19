@@ -37,7 +37,7 @@ smart_pet_controller 持有行为系统引用（main 在 bind_nodes 后追加绑
 - Modify: `main.gd`（_setup_smart_pet_controller 加 bind_behavior）
 - Test: `tests/test_smart_modules.gd`
 
-- [ ] **Step 1: 写失败测试（追加到 test_smart_modules.gd）**
+- [x] **Step 1: 写失败测试（追加到 test_smart_modules.gd）**
 
 ```gdscript
 func _test_psyche_injection() -> void:
@@ -62,12 +62,12 @@ func _test_psyche_injection() -> void:
 
 在 `_run()` 调用列表加 `_test_psyche_injection()`。
 
-- [ ] **Step 2: 确认失败**
+- [x] **Step 2: 确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_smart_modules.tscn`
 Expected: FAIL——`bind_behavior`/`_inject_psyche` 不存在
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `smart_pet_controller.gd`：
 
@@ -107,7 +107,7 @@ func _inject_psyche(snapshot: Dictionary) -> void:
 		smart_pet_controller.bind_behavior(cat.behavior_system)
 ```
 
-- [ ] **Step 4: 跑测试 + Commit**
+- [x] **Step 4: 跑测试 + Commit**
 
 ```bash
 git add smart_pet_controller.gd main.gd tests/test_smart_modules.gd
@@ -124,7 +124,7 @@ git commit -m "feat: SMART 决策注入猫心理状态"
 - Modify: `reaction_policy_engine.gd`
 - Test: `tests/test_smart_modules.gd`
 
-- [ ] **Step 1: 写失败测试（追加）**
+- [x] **Step 1: 写失败测试（追加）**
 
 ```gdscript
 func _test_psyche_modulated_policy() -> void:
@@ -160,11 +160,11 @@ func _test_psyche_modulated_policy() -> void:
 	policy2.queue_free()
 ```
 
-- [ ] **Step 2: 确认失败**
+- [x] **Step 2: 确认失败**
 
 Expected: FAIL——video_companion 不触发（action_id 为空）
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 `reaction_policy_engine.gd`：
 
@@ -232,7 +232,7 @@ func _decide(now: int, action_id: String, intent: String, line: String, energy: 
 			return "哼，写得不赖嘛，继续保持。"
 ```
 
-- [ ] **Step 4: 跑测试（注意旧断言连锁：新意图优先级插在 user_busy 前，可能影响既有 quiet_hours 等测试——跑全量看有无回归，若有则调整插入位置到 break_hint 之后）+ Commit**
+- [x] **Step 4: 跑测试（注意旧断言连锁：新意图优先级插在 user_busy 前，可能影响既有 quiet_hours 等测试——跑全量看有无回归，若有则调整插入位置到 break_hint 之后）+ Commit**
 
 ```bash
 git add reaction_policy_engine.gd tests/test_smart_modules.gd
@@ -254,7 +254,7 @@ git commit -m "feat: 策略引擎新增活动陪伴意图与心理调制"
 - Modify: `habit_profile_service.gd`
 - Test: `tests/test_smart_modules.gd`
 
-- [ ] **Step 1: 写失败测试（追加）**
+- [x] **Step 1: 写失败测试（追加）**
 
 ```gdscript
 func _test_memory_lines() -> void:
@@ -276,7 +276,7 @@ func _test_memory_lines() -> void:
 	profile.queue_free()
 ```
 
-- [ ] **Step 2: 确认失败 → Step 3: 实现**
+- [x] **Step 2: 确认失败 → Step 3: 实现**
 
 `habit_profile_service.gd` 新增（`build_tags` 后）：
 
@@ -311,7 +311,7 @@ func build_memory_lines() -> Array[String]:
 	return lines
 ```
 
-- [ ] **Step 4: 跑测试 + Commit**
+- [x] **Step 4: 跑测试 + Commit**
 
 ```bash
 git add habit_profile_service.gd tests/test_smart_modules.gd
@@ -329,7 +329,7 @@ git commit -m "feat: 习惯画像服务新增记忆反馈生成"
 - Modify: `smart_pet_controller.gd`（决策时带 memory_lines）
 - Test: `tests/test_smart_modules.gd`
 
-- [ ] **Step 1: 写失败测试（追加）**
+- [x] **Step 1: 写失败测试（追加）**
 
 ```gdscript
 func _test_night_owl_care() -> void:
@@ -348,7 +348,7 @@ func _test_night_owl_care() -> void:
 	policy.queue_free()
 ```
 
-- [ ] **Step 2: 确认失败 → Step 3: 实现**
+- [x] **Step 2: 确认失败 → Step 3: 实现**
 
 1. `reaction_policy_engine.gd` `evaluate`：night_owl_care 插在 quiet_hours 判断**之后**（静音优先）、greet 之前：
 
@@ -374,7 +374,7 @@ func _test_night_owl_care() -> void:
 	snapshot["memory_lines"] = memory_lines
 ```
 
-- [ ] **Step 4: 全量八套 + Commit**
+- [x] **Step 4: 全量八套 + Commit**
 
 ```bash
 git add reaction_policy_engine.gd smart_pet_controller.gd tests/test_smart_modules.gd
@@ -385,15 +385,15 @@ git commit -m "feat: 深夜关怀意图消费作息记忆"
 
 ### Task 5: 全量回归 + MCP 端到端 + 收尾
 
-- [ ] **Step 1: 八套测试全绿**
+- [x] **Step 1: 八套测试全绿**
 
-- [ ] **Step 2: MCP 端到端**
+- [x] **Step 2: MCP 端到端**
 
 1. `run_project` 启动 15 秒，无 SCRIPT ERROR、SMART 正常
 2. 决策链路验证：策略引擎已带 psyche/memory——真机默认 mood=50/energy=80 不触发调制属正常；确认无报错即可（新意图的触发依赖长时间使用数据，单次启动看不到属预期）
 3. 渲染验证：截图 + 橙色像素聚类（复用流程）
 
-- [ ] **Step 3: 收尾**
+- [x] **Step 3: 收尾**
 
 ```bash
 git add -A

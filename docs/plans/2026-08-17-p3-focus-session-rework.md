@@ -42,7 +42,7 @@
 - Create: `components/focus/focus_charge_engine.gd`
 - Create: `tests/test_focus_charge_engine.gd` + `tests/test_focus_charge_engine.tscn`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `tests/test_focus_charge_engine.gd`：
 
@@ -126,12 +126,12 @@ func _print_summary() -> void:
 script = ExtResource("1")
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `timeout 30 "$GODOT" --headless --path . res://tests/test_focus_charge_engine.tscn`
 Expected: 挂起（preload 不存在）——kill 后继续
 
-- [ ] **Step 3: 实现引擎**
+- [x] **Step 3: 实现引擎**
 
 `components/focus/focus_charge_engine.gd`：
 
@@ -191,12 +191,12 @@ func get_work_score(work_signal: Dictionary) -> float:
 
 （测试调用侧不变——按参数位置传 Dictionary。）
 
-- [ ] **Step 4: 刷新缓存并跑测试**
+- [x] **Step 4: 刷新缓存并跑测试**
 
 Run: `timeout 90 "$GODOT" --headless --path . --import` 然后 `timeout 30 "$GODOT" --headless --path . res://tests/test_focus_charge_engine.tscn`
 Expected: `passed: 8  failed: 0`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/focus/focus_charge_engine.gd tests/test_focus_charge_engine.gd tests/test_focus_charge_engine.tscn
@@ -214,7 +214,7 @@ git commit -m "feat: 新增专注会话充能引擎"
 - Modify: `main.gd`（工作信号接线）
 - Test: `tests/test_focus_session_mode.gd`（数值断言改写）
 
-- [ ] **Step 1: 改写测试（先定义新行为预期）**
+- [x] **Step 1: 改写测试（先定义新行为预期）**
 
 `tests/test_focus_session_mode.gd` 中 `mode.start_session()` 断言块后追加/修改：
 
@@ -251,12 +251,12 @@ git commit -m "feat: 新增专注会话充能引擎"
 
 （`mode2` 需在 `_run` 开头声明：`var mode2`。`_tick_one_second()` 是新增测试辅助——把 `_process` 的每秒逻辑抽成可单步调用的方法，见 Step 3。）
 
-- [ ] **Step 2: 确认失败**
+- [x] **Step 2: 确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_focus_session_mode.tscn`
 Expected: FAIL——`record_work_input` / `_tick_one_second` 不存在
 
-- [ ] **Step 3: 实现数值反转**
+- [x] **Step 3: 实现数值反转**
 
 `focus_session_mode.gd`：
 
@@ -404,12 +404,12 @@ main `_process`（悬浮面板更新附近）加：
 
 （点击计数：本期先只接 typing——鼠标点击流暂无全局监听，YAGNI，`clicks` 留 0。）
 
-- [ ] **Step 4: 跑测试（含既有套件防回归）**
+- [x] **Step 4: 跑测试（含既有套件防回归）**
 
 Run: 七套 + 新 charge_engine 套
 Expected: 全部 `failed: 0`。重点看 `test_focus_session_mode` 的旧断言 `typing_event_reduces_focus` ——**该断言基于旧数值语义（demo typing 事件扣 focus），P3 后 demo "typing" 事件走 `_apply_demo_event` → `on_typing_attack` → 新语义不再减 focus**。若失败：把该断言改为验证 chaos 上升（`mode.chaos_value > chaos_before`），断言名改 `typing_event_bumps_chaos`。
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add focus_session_mode.gd main.gd tests/test_focus_session_mode.gd components/focus/focus_charge_engine.gd
@@ -426,7 +426,7 @@ git commit -m "feat: 专注会话玩法反转为工作充能制"
 - Modify: `components/desktop/tray_controller.gd`
 - Modify: `main.gd`
 
-- [ ] **Step 1: tray_controller 加菜单项**
+- [x] **Step 1: tray_controller 加菜单项**
 
 `components/desktop/tray_controller.gd`：
 
@@ -468,7 +468,7 @@ func _focus_label() -> String:
 	return "结束专注会话" if _focus_active else "开始专注会话"
 ```
 
-- [ ] **Step 2: main 接线**
+- [x] **Step 2: main 接线**
 
 `main.gd` `_setup_tray()`（信号连接区）加：
 
@@ -518,11 +518,11 @@ func stop_session(reason: String = "manual_stop") -> void:
 		tray_controller.set_focus_session_active(false)
 ```
 
-- [ ] **Step 3: 七套测试 + MCP 冒烟**
+- [x] **Step 3: 七套测试 + MCP 冒烟**
 
 Run: 七套 tscn 全绿；MCP `run_project` 启动无 SCRIPT ERROR（托盘菜单在 OS 层，headless 无法断言其内容——冒烟只验证脚本不炸）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/desktop/tray_controller.gd main.gd focus_session_mode.gd
@@ -541,7 +541,7 @@ git commit -m "feat: 托盘新增专注会话开关入口"
 - Modify: `save_manager.gd`（四点白名单：default/load/write/gather）
 - Modify: `focus_session_mode.gd`（session_duration_seconds 可运行时改）
 
-- [ ] **Step 1: tscn 加节点（Sep3 前）**
+- [x] **Step 1: tscn 加节点（Sep3 前）**
 
 ```
 [node name="FocusDurationLabel" type="Label" parent="ScrollContainer/VBoxContainer"]
@@ -558,7 +558,7 @@ popup/item_2/text = "60 分钟"
 selected = 1
 ```
 
-- [ ] **Step 2: settings_panel.gd 接线**
+- [x] **Step 2: settings_panel.gd 接线**
 
 1. `@onready` 加：
 
@@ -596,7 +596,7 @@ func _apply_focus_duration() -> void:
 
 5. `_apply_smart_settings()` 末尾加 `_apply_focus_duration()` 调用（启动时恢复档位）。
 
-- [ ] **Step 3: save_manager 四点白名单**
+- [x] **Step 3: save_manager 四点白名单**
 
 `_get_default_data` settings 字典加 `"focus_duration_index": 1`；
 `load_data` 加 `settings["focus_duration_index"] = config.get_value("settings", "focus_duration_index", settings["focus_duration_index"])`；
@@ -609,7 +609,7 @@ func _apply_focus_duration() -> void:
 			settings["focus_duration_index"] = focus_duration_option.selected
 ```
 
-- [ ] **Step 4: 七套测试 + MCP 冒烟 + Commit**
+- [x] **Step 4: 七套测试 + MCP 冒烟 + Commit**
 
 ```bash
 git add settings_panel.tscn settings_panel.gd save_manager.gd
@@ -620,16 +620,16 @@ git commit -m "feat: 专注会话时长档位设置"
 
 ### Task 5: 全量回归 + MCP 端到端 + 收尾
 
-- [ ] **Step 1: 八套测试全绿**（七套 + charge_engine）
+- [x] **Step 1: 八套测试全绿**（七套 + charge_engine）
 
-- [ ] **Step 2: MCP 端到端（可胜性验证）**
+- [x] **Step 2: MCP 端到端（可胜性验证）**
 
 1. 写临时存档开启感知；MCP `run_project`
 2. 由于 headless 无法模拟真实键盘流，**用 demo 通道验证**：在 debug 输出确认——临时给 main 加 30 行调试代码（`_process` 里检测会话运行时每 2 秒 print focus 值），真机观察 60 秒内 focus 从 85 走高（本机此时在敲终端命令 = typing 信号真实流入）→ **验证后删除调试代码**
 3. 若 focus 不升：检查 `_on_keyboard_typing_for_smart` 是否被触发（keyboard_listener 挂在主场景？grep main.tscn 确认节点存在）、`_session_typing_count` 聚合是否进 `record_work_input`
 4. 渲染验证：截图 + 橙色像素聚类（复用既有流程）
 
-- [ ] **Step 3: 收尾提交与文档**
+- [x] **Step 3: 收尾提交与文档**
 
 ```bash
 git add -A

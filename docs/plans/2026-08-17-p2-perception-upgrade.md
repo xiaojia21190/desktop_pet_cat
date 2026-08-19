@@ -38,7 +38,7 @@
 - Create: `components/perception/activity_classifier.gd`
 - Create: `tests/test_activity_classifier.gd` + `tests/test_activity_classifier.tscn`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `tests/test_activity_classifier.gd`：
 
@@ -119,12 +119,12 @@ func _print_summary() -> void:
 script = ExtResource("1")
 ```
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_activity_classifier.tscn`
 Expected: 挂起或报 "Could not find type ActivityClassifier"（先 kill 挂起进程）
 
-- [ ] **Step 3: 实现分类器**
+- [x] **Step 3: 实现分类器**
 
 `components/perception/activity_classifier.gd`：
 
@@ -241,12 +241,12 @@ static func normalize_rules(raw_rules: Array) -> Array[Dictionary]:
 	return normalized
 ```
 
-- [ ] **Step 4: 刷新类缓存并跑测试**
+- [x] **Step 4: 刷新类缓存并跑测试**
 
 Run: `timeout 90 "$GODOT" --headless --path . --import` 然后 `timeout 60 "$GODOT" --headless --path . res://tests/test_activity_classifier.tscn`
 Expected: `passed: 14  failed: 0`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/perception/activity_classifier.gd tests/test_activity_classifier.gd tests/test_activity_classifier.tscn
@@ -267,7 +267,7 @@ git commit -m "feat: 新增前台应用活动分类器"
 - Create: `components/perception/foreground_app_monitor.gd`
 - Create: `tests/test_foreground_app_monitor.gd` + `tests/test_foreground_app_monitor.tscn`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 `tests/test_foreground_app_monitor.gd`：
 
@@ -363,12 +363,12 @@ class FakeSource:
 
 `tests/test_foreground_app_monitor.tscn`（同 Task 1 结构，根节点名 ForegroundAppMonitorTest）。
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_foreground_app_monitor.tscn`
 Expected: 挂起（preload 不存在）——kill 后继续
 
-- [ ] **Step 3: 实现监测器**
+- [x] **Step 3: 实现监测器**
 
 `components/perception/foreground_app_monitor.gd`：
 
@@ -479,12 +479,12 @@ class PowerShellSource:
 
 （**执行注意**：PowerShellSource 的 query 脚本以实际运行验证为准——Task 6 的 MCP 端到端会在真机跑通它；若 `Get-Process | Where-Object` 方案慢（遍历进程表），改用两段式：先 `GetForegroundWindow` 句柄，再单查。允许执行时微调脚本内容，但**不得**改接口 `query() -> String` 与隐私边界。）
 
-- [ ] **Step 4: 刷新缓存并跑测试**
+- [x] **Step 4: 刷新缓存并跑测试**
 
 Run: `timeout 90 "$GODOT" --headless --path . --import` 然后 `timeout 60 "$GODOT" --headless --path . res://tests/test_foreground_app_monitor.tscn`
 Expected: `passed: 9  failed: 0`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/perception/foreground_app_monitor.gd tests/test_foreground_app_monitor.gd tests/test_foreground_app_monitor.tscn
@@ -501,7 +501,7 @@ git commit -m "feat: 新增前台应用监测组件"
 - Modify: `context_collector.gd`
 - Test: `tests/test_smart_modules.gd`（追加用例）
 
-- [ ] **Step 1: 写失败测试（追加到 test_smart_modules.gd 的 _run 尾部）**
+- [x] **Step 1: 写失败测试（追加到 test_smart_modules.gd 的 _run 尾部）**
 
 在 `tests/test_smart_modules.gd` 中找到 `_print_summary()` 调用前，追加：
 
@@ -536,12 +536,12 @@ git commit -m "feat: 新增前台应用监测组件"
 
 （若 test_smart_modules.gd 的 `_run` 不是 async 或无 `await` 支持，在其函数声明确认 `func _run() -> void:` 内已有 await；现有文件开头 `call_deferred("_run")` 模式支持。）
 
-- [ ] **Step 2: 运行确认失败**
+- [x] **Step 2: 运行确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_smart_modules.tscn`
 Expected: FAIL——`update_foreground` 方法不存在（SCRIPT ERROR）
 
-- [ ] **Step 3: 实现 collector 扩展**
+- [x] **Step 3: 实现 collector 扩展**
 
 `context_collector.gd`：
 1. 成员变量区（:12 附近）追加：
@@ -580,12 +580,12 @@ func update_foreground(app_name: String, activity: String) -> void:
 		"activity_totals": _activity_totals.duplicate(true)
 ```
 
-- [ ] **Step 4: 跑全部六套测试**
+- [x] **Step 4: 跑全部六套测试**
 
 Run: 六套 tscn 逐一跑（含 Task 1/2 新增两套）
 Expected: 全部 `failed: 0`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add context_collector.gd tests/test_smart_modules.gd
@@ -604,7 +604,7 @@ git commit -m "feat: 上下文采集器新增前台应用感知字段"
 - Modify: `smart_pet_controller.gd`
 - Test: `tests/test_smart_modules.gd`（追加断言）
 
-- [ ] **Step 1: 写失败测试（追加）**
+- [x] **Step 1: 写失败测试（追加）**
 
 ```gdscript
 	# —— 感知设置链路 ——
@@ -619,12 +619,12 @@ git commit -m "feat: 上下文采集器新增前台应用感知字段"
 
 （`CustomizationServiceScript` 常量若测试文件里没有，在文件头加 `const CustomizationServiceScript = preload("res://customization_service.gd")`。）
 
-- [ ] **Step 2: 确认失败**
+- [x] **Step 2: 确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_smart_modules.tscn`
 Expected: FAIL——`perception_enabled` 属性不存在
 
-- [ ] **Step 3: 实现三处链路**
+- [x] **Step 3: 实现三处链路**
 
 1. `customization_service.gd` 成员（:12 quiet_hours 附近）加：
 
@@ -653,11 +653,11 @@ var perception_default_rules: bool = true
 
 3. `smart_pet_controller.gd`：`configure()`（:54）已把 settings 传给 `apply_settings`，无需改动；但 `get_settings_snapshot()` 需返回新键——`to_settings_dict` 补键后自动生效，验证即可。
 
-- [ ] **Step 4: 跑 test_smart_modules + test_behavior_system**
+- [x] **Step 4: 跑 test_smart_modules + test_behavior_system**
 
 Expected: `failed: 0`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add save_manager.gd customization_service.gd tests/test_smart_modules.gd
@@ -674,7 +674,7 @@ git commit -m "feat: 感知开关设置键与存档链路"
 - Modify: `settings_panel.tscn`（SmartModeCheck 与 Sep3 之间插节点）
 - Modify: `settings_panel.gd`
 
-- [ ] **Step 1: tscn 加节点**
+- [x] **Step 1: tscn 加节点**
 
 在 `settings_panel.tscn` 的 `[node name="Sep3" ...]` 之前插入（照抄 SectionAI 的 label 样式行，锚点结构一致）：
 
@@ -705,7 +705,7 @@ text = "使用默认分类规则"
 
 （**执行时 XXXX 用实际累加值**：VBoxContainer 子节点 offset 会被容器自动排布，照抄相邻 Sep3/SmartModeCheck 的 offset 差值递增即可；`load_steps` 数值 +0——不新增资源只加节点无需改。）
 
-- [ ] **Step 2: settings_panel.gd 接线**
+- [x] **Step 2: settings_panel.gd 接线**
 
 1. `@onready` 区（:13 附近）加：
 
@@ -743,12 +743,12 @@ func _on_perception_toggled(_enabled: bool) -> void:
 		"perception_default_rules": perception_default_rules_check.button_pressed,
 ```
 
-- [ ] **Step 3: MCP 冒烟验证 UI**
+- [x] **Step 3: MCP 冒烟验证 UI**
 
 Run: MCP `run_project` → `get_debug_output`
 Expected: 无 SCRIPT ERROR；（设置面板需手动打开验证布局——headless 无法断言 UI，人工确认开关存在即可）
 
-- [ ] **Step 4: 跑六套测试 + Commit**
+- [x] **Step 4: 跑六套测试 + Commit**
 
 ```bash
 git add settings_panel.tscn settings_panel.gd
@@ -766,7 +766,7 @@ git commit -m "feat: 设置页新增感知分区"
 - Modify: `main.gd`（`_setup_smart_pet_controller` :283 附近）
 - Test: `tests/test_smart_modules.gd`（追加）
 
-- [ ] **Step 1: 写失败测试（追加）**
+- [x] **Step 1: 写失败测试（追加）**
 
 ```gdscript
 	# —— 活动标签 ——
@@ -797,12 +797,12 @@ git commit -m "feat: 设置页新增感知分区"
 
 （HabitProfileServiceScript / ReactionPolicyEngineScript 常量按测试文件头部现有 preload 补齐——执行时先 grep。）
 
-- [ ] **Step 2: 确认失败**
+- [x] **Step 2: 确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_smart_modules.tscn`
 Expected: FAIL——`watching_video` 标签不存在
 
-- [ ] **Step 3: 实现标签**
+- [x] **Step 3: 实现标签**
 
 `habit_profile_service.gd` `build_tags`（:22）在 `if tags.is_empty():` 之前加：
 
@@ -817,7 +817,7 @@ Expected: FAIL——`watching_video` 标签不存在
 		tags.append("browsing_now")
 ```
 
-- [ ] **Step 4: main.gd 接线**
+- [x] **Step 4: main.gd 接线**
 
 `_setup_smart_pet_controller(settings)`（:283）末尾追加：
 
@@ -844,7 +844,7 @@ func _on_foreground_app_changed(app_name: String, activity: String) -> void:
 
 成员变量区加 `var foreground_app_monitor`（`var smart_pet_controller` 旁）。
 
-- [ ] **Step 5: 全量测试 + MCP 端到端（真机验证 PowerShell 源）**
+- [x] **Step 5: 全量测试 + MCP 端到端（真机验证 PowerShell 源）**
 
 1. 六套测试全绿
 2. MCP `run_project`，等待 15 秒（覆盖数次轮询）
@@ -852,7 +852,7 @@ func _on_foreground_app_changed(app_name: String, activity: String) -> void:
 4. 验证 PowerShell 源：若 `[Perception]` 行 60 秒内未出现，按 Task 3 注记排查脚本（优先换两段式查询）；修好再继续
 5. 渲染验证：截图 + 橙色像素聚类（复用 P1 验证流程）
 
-- [ ] **Step 6: 移除调试打印 + 最终提交**
+- [x] **Step 6: 移除调试打印 + 最终提交**
 
 ```bash
 git add habit_profile_service.gd main.gd tests/test_smart_modules.gd

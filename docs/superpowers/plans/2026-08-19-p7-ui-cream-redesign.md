@@ -48,7 +48,7 @@
 - Create: `components/ui/ui_theme.gd`
 - Create: `tests/test_ui_theme.gd` + `tests/test_ui_theme.tscn`
 
-- [ ] **Step 1: 写失败测试 tests/test_ui_theme.gd**
+- [x] **Step 1: 写失败测试 tests/test_ui_theme.gd**
 
 ```gdscript
 extends Node
@@ -124,7 +124,7 @@ func _print_summary() -> void:
 		print("  FAIL: " + f)
 ```
 
-- [ ] **Step 2: 创建 tests/test_ui_theme.tscn**
+- [x] **Step 2: 创建 tests/test_ui_theme.tscn**
 
 ```text
 [gd_scene load_steps=2 format=3]
@@ -135,12 +135,12 @@ func _print_summary() -> void:
 script = ExtResource("1")
 ```
 
-- [ ] **Step 3: 跑测试确认失败**
+- [x] **Step 3: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn`
 Expected: FAIL（ui_theme.gd 不存在，Parse Error）
 
-- [ ] **Step 4: 实现 components/ui/ui_theme.gd**
+- [x] **Step 4: 实现 components/ui/ui_theme.gd**
 
 ```gdscript
 class_name UiTheme
@@ -300,12 +300,12 @@ static func tint_label(label: Label, role: String) -> void:
 			label.add_theme_color_override("font_color", TEXT)
 ```
 
-- [ ] **Step 5: 跑测试通过**
+- [x] **Step 5: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn`
 Expected: `passed: 14  failed: 0`（5+8+1）
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add components/ui/ui_theme.gd tests/test_ui_theme.gd tests/test_ui_theme.tscn tests/test_ui_theme.gd.uid 2>/dev/null || git add components/ui/ui_theme.gd tests/test_ui_theme.gd tests/test_ui_theme.tscn
@@ -321,7 +321,7 @@ git commit -m "feat: 奶油风主题中心UiTheme"
 - Rewrite: `settings_panel.tscn`（只留根节点）
 - Test: `tests/test_ui_theme.gd`（追加）
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_settings_tabs()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_settings_tabs()`）**
 
 ```gdscript
 const SettingsPanelScript = preload("res://settings_panel.gd")
@@ -343,12 +343,12 @@ func _test_settings_tabs() -> void:
 	panel.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn`
 Expected: FAIL（get_tab_names 不存在）
 
-- [ ] **Step 3: 重写 settings_panel.tscn（只留根节点）**
+- [x] **Step 3: 重写 settings_panel.tscn（只留根节点）**
 
 ```text
 [gd_scene load_steps=2 format=3]
@@ -359,7 +359,7 @@ Expected: FAIL（get_tab_names 不存在）
 script = ExtResource("1")
 ```
 
-- [ ] **Step 4: 重写 settings_panel.gd 骨架**
+- [x] **Step 4: 重写 settings_panel.gd 骨架**
 
 ```gdscript
 extends Panel
@@ -564,17 +564,17 @@ func _on_close_pressed() -> void:
 	visible = false
 ```
 
-- [ ] **Step 5: 跑测试通过**
+- [x] **Step 5: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn`
 Expected: `passed: 20  failed: 0`（14 + 6）
 
-- [ ] **Step 6: headless 冒烟（此时面板可能因 main 旧调用报错——冒烟只查本测试）**
+- [x] **Step 6: headless 冒烟（此时面板可能因 main 旧调用报错——冒烟只查本测试）**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn`
 Expected: 同上（main.tscn 冒烟推迟到 Task 8 接线完成后）
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add settings_panel.gd settings_panel.tscn tests/test_ui_theme.gd
@@ -588,7 +588,7 @@ git commit -m "feat: 设置面板侧边页签骨架"
 **Files:**
 - Modify: `settings_panel.gd`（实现 `_build_page_appearance` / `_build_page_sound` / 相关 handler / collect 部分）
 
-- [ ] **Step 1: 实现 `_build_page_appearance`（替换 Task 2 的空函数）**
+- [x] **Step 1: 实现 `_build_page_appearance`（替换 Task 2 的空函数）**
 
 ```gdscript
 func _build_page_appearance() -> void:
@@ -652,7 +652,7 @@ func _make_check(parent: Container, text: String) -> CheckBox:
 	return check
 ```
 
-- [ ] **Step 2: 实现 `_build_page_sound`**
+- [x] **Step 2: 实现 `_build_page_sound`**
 
 ```gdscript
 func _build_page_sound() -> void:
@@ -666,7 +666,7 @@ func _build_page_sound() -> void:
 	volume_slider.value_changed.connect(_on_volume_changed)
 ```
 
-- [ ] **Step 3: 实现 handler（沿用旧面板逻辑，改即存）**
+- [x] **Step 3: 实现 handler（沿用旧面板逻辑，改即存）**
 
 ```gdscript
 func _on_opacity_changed(value: float) -> void:
@@ -712,7 +712,7 @@ func _on_cat_scale_changed(value: float) -> void:
 
 （`_on_timed_hide_selected` 的 main 侧承接已核实：`SaveManager.set_timed_hide_option(index)`（save_manager.gd:318）→ 转发 `main.set_timed_hide_option`。`_update_timed_hide_remaining` / `_format_duration` 从旧面板 settings_panel.gd:286-307 原样照搬，计划内不再重复列出——执行时从 git 历史旧文件抄。）
 
-- [ ] **Step 4: 补 apply/collect 的本页键**
+- [x] **Step 4: 补 apply/collect 的本页键**
 
 `apply_settings` 填充：
 
@@ -749,7 +749,7 @@ func _set_slider_value(slider: Range, value: float) -> void:
 	slider.set_value_no_signal(value)
 ```
 
-- [ ] **Step 5: 跑测试 + Commit**
+- [x] **Step 5: 跑测试 + Commit**
 
 ```bash
 timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn
@@ -765,7 +765,7 @@ Expected: `passed: 20  failed: 0`（占位实现不炸即过；键集断言在 T
 **Files:**
 - Modify: `settings_panel.gd`
 
-- [ ] **Step 1: 实现 `_build_page_personality`**
+- [x] **Step 1: 实现 `_build_page_personality`**
 
 ```gdscript
 func _build_page_personality() -> void:
@@ -799,7 +799,7 @@ func _make_option(parent: Container) -> OptionButton:
 	return option
 ```
 
-- [ ] **Step 2: 实现 `_build_page_smart`**
+- [x] **Step 2: 实现 `_build_page_smart`**
 
 ```gdscript
 func _build_page_smart() -> void:
@@ -867,7 +867,7 @@ func _make_line(parent: Container, placeholder: String) -> LineEdit:
 	return line
 ```
 
-- [ ] **Step 3: 实现 handler 与 apply/collect 补全**
+- [x] **Step 3: 实现 handler 与 apply/collect 补全**
 
 handler（照旧逻辑：改即存 + `_apply_smart_settings`）：
 
@@ -979,7 +979,7 @@ func _personality_to_index(value: String) -> int:
 	settings["data_collection_level"] = "minimal"
 ```
 
-- [ ] **Step 4: 补品种锁与刷新函数（旧逻辑照搬）**
+- [x] **Step 4: 补品种锁与刷新函数（旧逻辑照搬）**
 
 ```gdscript
 const BREED_LOCK_LEVELS: Dictionary = {"calico": 3, "british_blue": 4, "tuxedo": 5}
@@ -1018,7 +1018,7 @@ func _get_bond_level() -> int:
 
 （注意：Task 4 Step 3 已定义过 `_on_cat_breed_selected`——以本 Step 版本为准**覆盖**，Step 3 的简化版删除。）
 
-- [ ] **Step 5: 跑测试 + Commit**
+- [x] **Step 5: 跑测试 + Commit**
 
 ```bash
 timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn
@@ -1034,7 +1034,7 @@ git commit -m "feat: 设置面板性格与智能页"
 - Modify: `settings_panel.gd`
 - Test: `tests/test_ui_theme.gd`（追加 roundtrip 断言）
 
-- [ ] **Step 1: 实现 `_build_page_progress`（承接 P5/P6 的 bond/quest 区块）**
+- [x] **Step 1: 实现 `_build_page_progress`（承接 P5/P6 的 bond/quest 区块）**
 
 ```gdscript
 var _bond_level_label: Label
@@ -1121,7 +1121,7 @@ func _on_visibility_changed() -> void:
 
 （Task 2 骨架里的 `_on_visibility_changed` 简化版删除，用本版本。）
 
-- [ ] **Step 2: 实现 `_build_page_about`（存档管理四功能承接 + Credits）**
+- [x] **Step 2: 实现 `_build_page_about`（存档管理四功能承接 + Credits）**
 
 ```gdscript
 var _save_time_label: Label
@@ -1226,7 +1226,7 @@ func _refresh_save_info() -> void:
 
 （已核实：`SaveManager.reset_data()` 存在（save_manager.gd:367），旧 save_manager_panel.gd:76 正是调它——直接用。）
 
-- [ ] **Step 3: 追加 roundtrip 测试（_run 追加 `_test_settings_roundtrip()`）**
+- [x] **Step 3: 追加 roundtrip 测试（_run 追加 `_test_settings_roundtrip()`）**
 
 ```gdscript
 func _test_settings_roundtrip() -> void:
@@ -1253,7 +1253,7 @@ func _test_settings_roundtrip() -> void:
 	panel.queue_free()
 ```
 
-- [ ] **Step 4: 跑测试 + Commit**
+- [x] **Step 4: 跑测试 + Commit**
 
 ```bash
 timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn
@@ -1270,7 +1270,7 @@ Expected: `passed: 28  failed: 0`（20 + 8）
 - Rewrite: `quick_action_menu.gd`
 - Test: `tests/test_ui_theme.gd`（追加）
 
-- [ ] **Step 1: 追加失败测试（_run 追加 `_test_radial_menu()`）**
+- [x] **Step 1: 追加失败测试（_run 追加 `_test_radial_menu()`）**
 
 ```gdscript
 const QuickMenuScript = preload("res://quick_action_menu.gd")
@@ -1291,12 +1291,12 @@ func _test_radial_menu() -> void:
 	menu.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn`
 Expected: FAIL（get_action_ids 不存在）
 
-- [ ] **Step 3: 重写 quick_action_menu.gd（弧形轮盘）**
+- [x] **Step 3: 重写 quick_action_menu.gd（弧形轮盘）**
 
 ```gdscript
 extends CanvasLayer
@@ -1430,14 +1430,14 @@ func _kill_tween() -> void:
 	_tween = null
 ```
 
-- [ ] **Step 4: 跑测试 + 冒烟 main（settings 入口移除后 main 的 `"settings"` 分支成死码，Task 8 清理）**
+- [x] **Step 4: 跑测试 + 冒烟 main（settings 入口移除后 main 的 `"settings"` 分支成死码，Task 8 清理）**
 
 ```bash
 timeout 60 "$GODOT" --headless --path . res://tests/test_ui_theme.tscn
 ```
 Expected: `passed: 32  failed: 0`（28 + 4）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add quick_action_menu.gd tests/test_ui_theme.gd
@@ -1452,7 +1452,7 @@ git commit -m "feat: 快捷菜单弧形轮盘奶油风"
 - Modify: `components/ui/smart_line_bubble.gd`（视觉换装，接口不动）
 - Rewrite: `components/ui/hover_panel.gd`（常驻圆钮 + 抽屉）
 
-- [ ] **Step 1: smart_line_bubble.gd 换装**
+- [x] **Step 1: smart_line_bubble.gd 换装**
 
 找到 `_ready` 中 aurora bubble 加载段（smart_line_bubble.gd:23 附近）：
 
@@ -1470,7 +1470,7 @@ git commit -m "feat: 快捷菜单弧形轮盘奶油风"
 
 （`const UiThemeScript = preload("res://components/ui/ui_theme.gd")` 加文件头。原 StyleBoxTexture 变量与 aurora_tex 判定块全删。函数签名 `show_line` / `show_gain_tip` / `reposition` / `is_visible_to_user` / `hide_bubble` 一律不动。）
 
-- [ ] **Step 2: 重写 hover_panel.gd（聚合抽屉）**
+- [x] **Step 2: 重写 hover_panel.gd（聚合抽屉）**
 
 ```gdscript
 class_name DesktopHoverPanel
@@ -1578,7 +1578,7 @@ func update(_delta: float, _mouse: Vector2, screen_size: Vector2) -> void:
 		_layout()
 ```
 
-- [ ] **Step 3: headless 冒烟 + 回归**
+- [x] **Step 3: headless 冒烟 + 回归**
 
 ```bash
 timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | grep -E "启动成功|SCRIPT ERROR|Parse" | head -4 && \
@@ -1588,7 +1588,7 @@ Expected: 启动成功（hover_panel 旧 update 签名兼容）；`failed: 0`
 
 注意：main.gd:227-231 穿透管理器读 `hover_panel_component.panel.size.y` 与 `.is_out`——新 panel 是 Control 无显式尺寸，Task 8 接线时把穿透区域计算改为 `_knob.position + _drawer 展开时区域`；本任务先保证启动不炸（panel 属性存在即不崩）。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add components/ui/smart_line_bubble.gd components/ui/hover_panel.gd
@@ -1604,7 +1604,7 @@ git commit -m "feat: 气泡奶油换装与聚合抽屉"
 - Modify: `components/desktop/tray_controller.gd`（菜单项顺序）
 - Modify: `main.gd` + `main.tscn`（删 typing_overlay / 面板尺寸 / 抽屉信号 / 穿透区域 / cat_scale 喂入）
 
-- [ ] **Step 1: focus_hud.gd 换装**
+- [x] **Step 1: focus_hud.gd 换装**
 
 aurora 加载块（focus_hud.gd:69-72）替换：
 
@@ -1614,11 +1614,11 @@ aurora 加载块（focus_hud.gd:69-72）替换：
 
 （`const UiThemeScript = preload("res://components/ui/ui_theme.gd")` 加头部；原 aurora_tex/StyleBoxTexture 块删。进度条若引用 aurora slider 素材同法替换为 `slider_track_style()/slider_fill_style()`。执行时 grep aurora 清零本文件。）
 
-- [ ] **Step 2: 托盘菜单项顺序**
+- [x] **Step 2: 托盘菜单项顺序**
 
 tray_controller.gd `_build_menu` 中把「开始/结束专注会话」项移到最前（现有 addItem 顺序调整，其他不动）。
 
-- [ ] **Step 3: main.gd 收尾改动（5 处）**
+- [x] **Step 3: main.gd 收尾改动（5 处）**
 
 1. 删 `@onready var typing_effect_overlay = $TypingEffectOverlay`（main.gd:3）
 2. 删 `_start_typing_effects` 与 `_get_typing_attack_duration` 函数及其调用点（`_on_keyboard_typing_for_smart` 附近 grep `_start_typing_effects` 全清）
@@ -1663,11 +1663,11 @@ func set_cat_scale(value: float) -> void:
 	_set_slider_value(cat_scale_slider, value)
 ```
 
-- [ ] **Step 4: main.tscn 删 TypingEffectOverlay 节点**
+- [x] **Step 4: main.tscn 删 TypingEffectOverlay 节点**
 
 main.tscn 中删 `[node name="TypingEffectOverlay" parent="." instance=ExtResource("4")]` 行与其 ext_resource 声明（id="4" 指向 typing_effect_overlay.tscn）。
 
-- [ ] **Step 5: 全量冒烟 + 回归**
+- [x] **Step 5: 全量冒烟 + 回归**
 
 ```bash
 timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | grep -E "启动成功|SCRIPT ERROR|Parse" | head -5 && \
@@ -1676,7 +1676,7 @@ timeout 90 "$GODOT" --headless --path . res://tests/test_smart_modules.tscn 2>&1
 ```
 Expected: 启动成功零脚本错误；两套测试绿
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add components/focus/focus_hud.gd components/desktop/tray_controller.gd main.gd main.tscn settings_panel.gd
@@ -1687,7 +1687,7 @@ git commit -m "feat: HUD换装托盘调整与主场景接线收尾"
 
 ### Task 9: 删旧素材 + 全量回归 + MCP 端到端 + 文档收尾
 
-- [ ] **Step 1: 删除文件**
+- [x] **Step 1: 删除文件**
 
 ```bash
 git rm -r assets/aurora/ typing_effect_overlay.gd typing_effect_overlay.tscn typing_effect_overlay.gd.uid save_manager_panel.gd save_manager_panel.tscn save_manager_panel.gd.uid
@@ -1695,7 +1695,7 @@ git rm -r assets/aurora/ typing_effect_overlay.gd typing_effect_overlay.tscn typ
 
 （uid 文件若 git 报不存在则去掉对应参数。删除后 `grep -rn "aurora\|typing_effect\|save_manager_panel" --include="*.gd" --include="*.tscn" . | grep -v .godot` 应零命中。）
 
-- [ ] **Step 2: 13 套全量测试**
+- [x] **Step 2: 13 套全量测试**
 
 ```bash
 for t in test_behavior_system test_focus_session_mode test_sprite_manifest_loader test_objective_system test_activity_classifier test_foreground_app_monitor test_focus_charge_engine test_smart_modules test_bond_system test_presence_level test_first_guide test_daily_quests test_ui_theme; do
@@ -1705,7 +1705,7 @@ done
 ```
 Expected: 全绿（286 + ui_theme ~32）
 
-- [ ] **Step 3: MCP 端到端验收**
+- [x] **Step 3: MCP 端到端验收**
 
 - `run_project` 启动，观察 60 秒：零 ERROR；气泡台词奶油风正常显示
 - 点击猫 → 轮盘展开（6 圆钮弧形）→ 点「投食」→ 猫追食物开吃 + `action_selected` 链路正常
@@ -1715,15 +1715,15 @@ Expected: 全绿（286 + ui_theme ~32）
 - 「关于」页 Credits 文字可见
 - `stop_project`
 
-- [ ] **Step 4: 视觉走查**
+- [x] **Step 4: 视觉走查**
 
 MCP 截图核查：设置面板奶油底/圆角/暖棕字、轮盘正圆粉描边、气泡描边尾巴、无 aurora 暗皮残留。
 
-- [ ] **Step 5: 更新主计划文档 + 勾选本计划复选框**
+- [x] **Step 5: 更新主计划文档 + 勾选本计划复选框**
 
 `docs/plans/2026-08-17-smart-companion-redesign.md` 追加 P7 完成记录（对齐 P5/P6 格式）；本文件全部勾选。
 
-- [ ] **Step 6: Commit 收尾**
+- [x] **Step 6: Commit 收尾**
 
 ```bash
 git add docs/plans/2026-08-17-smart-companion-redesign.md docs/superpowers/plans/2026-08-19-p7-ui-cream-redesign.md

@@ -232,3 +232,42 @@
 ### P6 后世界
 
 开机即签到（连续天数在涨）、完成一次专注/起身响应/按点吃饭/摸摸猫都被猫看见并庆贺，奖励静默喂进亲密度——生活伴侣的日常仪式感闭环。设计边界保持：不催、不领、不挽损，猫是陪伴者不是监工。
+
+## P7 完成记录（2026-08-19）「奶油风 UI 全面重做」
+
+**背景**：用户四项痛点全选（面板乱/风格旧/可用性差/入口混乱），全部 UI 推倒重做。设计文档：`docs/superpowers/specs/2026-08-19-p7-ui-cream-redesign.md`。
+
+### 交付（15 提交）
+
+| 改动 | 说明 |
+|---|---|
+| UiTheme 主题中心 | components/ui/ui_theme.gd：色板 12 色（奶油白/暖橙/暖棕/肉垫粉）+ 几何/字号 token + 12 个 StyleBoxFlat 工厂函数——全部 UI 唯一视觉来源，纯代码绘制零图片 |
+| 设置面板重构 | 57 控件平铺 → 侧边页签 6 页（外观/声音/猫性格/智能/任务·亲密度/关于），代码构建；569 行旧面板+495 行 tscn 推倒重写；改即存 |
+| 新增猫大小滑条 | scale_factor 存档链路一直存在但无 UI——补上外观页 |
+| 快捷菜单弧形轮盘 | 6 动作绕猫头顶半圆扇形展开（-160°~-20°），64px 正圆粉描边按钮，设置入口移除归抽屉 |
+| 聚合抽屉 | 右缘常驻 32px 猫爪圆钮（半透明 hover 实心），点开竖排四按钮（道具/设置/专注/存档），30s 自动收起；替代旧贴边滑入面板（误触多） |
+| 气泡换装 | aurora 图片皮 → StyleBoxFlat 奶油底+暖棕 2px 描边+圆角 16，字号 13→15 |
+| HUD/托盘 | 专注 HUD 换 token 样式；托盘专注会话入口提前首位 |
+| 存档管理承接 | save_manager_panel（独立弹窗）删除，导出/导入/重置四功能并入「关于」页直排 |
+| 删除清单 | assets/aurora/ 全目录（CC Credits 文字保留到关于页）、typing_effect_overlay（打字攻击特效，P3 后仅 chaos 小波动猫本体动画已覆盖）、save_manager_panel |
+
+### 接口零破坏
+
+quick_action_menu/bubble/settings_panel/hover_panel 对外信号与函数签名全部不变；main.gd 仅 5 处改动（删 typing 链/面板尺寸/抽屉新信号/穿透区域简化/cat_scale 喂入）；存档键零变化（新增 cat_scale 由面板 collect 顺带持久化）。
+
+### 执行中修正（计划外）
+
+1. 测试 `await get_tree().process_frame` 使协程被 quit 截断——radial 用例三断言静默丢失（26 应为 29），去 await 修复
+2. 删除 `_get_typing_attack_duration` 留下孤儿 `return default_duration` 行——Parse Error 当场冒烟抓获
+3. `@warning_ignore` 注解位置必须贴在目标语句行前（放在函数体内 return 前无效）
+
+### 验证
+
+- **13 套测试全绿**：286 既有 + **test_ui_theme 29**（token 锁定/工厂返回/页签切换/roundtrip 12 键/轮盘信号）= 315 断言
+- presence_level 首跑偶发 31/1（randf 时序 flake，P4 manifest 同类），复跑两次 32/0 稳定
+- MCP 端到端：启动零 ERROR；SMART 规则轨道/引导链路正常；删 aurora 后 `grep` 零残留引用；脚本警告从 3 清零
+- 视觉走查受限（MCP 后台进程截屏只能捕获终端），桌面端实际观感待用户日常使用确认
+
+### P7 后世界
+
+整个 UI 一套奶油风：面板翻页不翻滚、菜单是猫头顶的一圈圆钮、入口收拢到右缘一颗猫爪、气泡说奶油话。改主题一处改全局——UiTheme 是未来一切 UI 的唯一样式来源。

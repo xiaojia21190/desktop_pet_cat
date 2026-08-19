@@ -1,124 +1,107 @@
 class_name DesktopHoverPanel
 extends Node2D
 
-## 右缘悬浮功能面板：鼠标贴近右缘滑入，离开滑出。按钮动作经信号交还宿主。
+## P7 聚合抽屉：右缘常驻猫爪圆钮，点开竖排四按钮（道具/设置/专注/存档）
+## 兼容旧接口：is_out / panel 属性（穿透管理器判定读它们）
+## 旧信号 items_requested / settings_requested 保留，新增 focus_requested / save_requested
 
 signal items_requested
 signal settings_requested
+signal focus_requested
+signal save_requested
 
-const EDGE_TRIGGER_DISTANCE := 20.0
-const PANEL_SLIDE_SPEED := 800.0
-const PANEL_WIDTH := 120.0
-const PANEL_HEIGHT := 240.0
+const UiThemeScript = preload("res://components/ui/ui_theme.gd")
 
-var panel: Panel
-var is_out: bool = false  # 对外暴露面板可见状态（供穿透管理器判定）
-var _target_x: float = 0.0
+const BTN_SIZE := 32.0
+const DRAWER_GAP := 10.0
+const AUTO_CLOSE_SEC := 30.0
+
+var is_out: bool = false  # 抽屉展开状态（穿透管理器判定用，保持旧名）
+var panel: Control  # 兼容旧属性名（穿透区域计算读它）
+var _knob: Button
+var _drawer: VBoxContainer
 var _screen_size: Vector2 = Vector2(1920, 1080)
+var _auto_close_timer: Timer
 
 func setup(screen_size: Vector2) -> void:
 	_screen_size = screen_size
+	_build_ui()
 
-	panel = Panel.new()
-	panel.size = Vector2(PANEL_WIDTH, PANEL_HEIGHT)
-	panel.position = Vector2(screen_size.x, (screen_size.y - PANEL_HEIGHT) / 2)
-	_target_x = screen_size.x
-
-	var aurora_tex := load("res://assets/aurora/panel_dark.png") as Texture2D
-	if aurora_tex:
-		var sb := StyleBoxTexture.new()
-		sb.texture = aurora_tex
-		sb.texture_margin_left = 20
-		sb.texture_margin_top = 20
-		sb.texture_margin_right = 20
-		sb.texture_margin_bottom = 20
-		sb.content_margin_left = 8.0
-		sb.content_margin_top = 8.0
-		sb.content_margin_right = 8.0
-		sb.content_margin_bottom = 8.0
-		panel.add_theme_stylebox_override("panel", sb)
-
-	var vbox := VBoxContainer.new()
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vbox.add_theme_constant_override("separation", 8)
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	var margin_l := 8
-	var margin_t := 12
-	vbox.offset_left = margin_l
-	vbox.offset_top = margin_t
-	vbox.offset_right = -margin_l
-	vbox.offset_bottom = -margin_t
-	panel.add_child(vbox)
-
-	var btn_normal_style := _make_aurora_btn_style("res://assets/aurora/btn_normal.png")
-	var btn_hover_style := _make_aurora_btn_style("res://assets/aurora/btn_hover.png")
-
-	var items_btn := Button.new()
-	items_btn.text = "道具"
-	items_btn.custom_minimum_size = Vector2(0, 64)
-	items_btn.add_theme_font_size_override("font_size", 24)
-	items_btn.add_theme_stylebox_override("normal", btn_normal_style)
-	items_btn.add_theme_stylebox_override("hover", btn_hover_style)
-	items_btn.add_theme_stylebox_override("pressed", btn_hover_style)
-	items_btn.add_theme_color_override("font_color", Color.WHITE)
-	items_btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	items_btn.pressed.connect(func(): items_requested.emit())
-	vbox.add_child(items_btn)
-
-	var settings_btn := Button.new()
-	settings_btn.text = "设置"
-	settings_btn.custom_minimum_size = Vector2(0, 64)
-	settings_btn.add_theme_font_size_override("font_size", 24)
-	settings_btn.add_theme_stylebox_override("normal", btn_normal_style)
-	settings_btn.add_theme_stylebox_override("hover", btn_hover_style)
-	settings_btn.add_theme_stylebox_override("pressed", btn_hover_style)
-	settings_btn.add_theme_color_override("font_color", Color.WHITE)
-	settings_btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	settings_btn.pressed.connect(func(): settings_requested.emit())
-	vbox.add_child(settings_btn)
-
+func _build_ui() -> void:
+	panel = Control.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(panel)
 
-func update(delta: float, mouse_pos: Vector2, screen_size: Vector2) -> void:
-	if not panel:
-		return
+	_knob = Button.new()
+	_knob.custom_minimum_size = Vector2(BTN_SIZE, BTN_SIZE)
+	_knob.modulate = Color(1, 1, 1, 0.55)
+	_knob.pressed.connect(_toggle_drawer)
+	_knob.mouse_entered.connect(func(): _knob.modulate = Color(1, 1, 1, 1.0))
+	_knob.mouse_exited.connect(func():
+		if not is_out:
+			_knob.modulate = Color(1, 1, 1, 0.55))
+	_knob.add_theme_stylebox_override("normal", _round_style(false))
+	_knob.add_theme_stylebox_override("hover", _round_style(true))
+	_knob.add_theme_stylebox_override("pressed", _round_style(true))
+	_knob.tooltip_text = "打开菜单"
+	_knob.text = "🐾"
+	panel.add_child(_knob)
 
-	_screen_size = screen_size
-	var panel_width: float = panel.size.x
-	var current_x: float = panel.position.x
+	_drawer = VBoxContainer.new()
+	_drawer.add_theme_constant_override("separation", DRAWER_GAP)
+	_drawer.visible = false
+	panel.add_child(_drawer)
+	for entry in [["🧶", "道具", items_requested], ["⚙️", "设置", settings_requested],
+			["🎯", "专注", focus_requested], ["💾", "存档", save_requested]]:
+		var btn := Button.new()
+		btn.text = String(entry[0])
+		btn.tooltip_text = String(entry[1])
+		btn.custom_minimum_size = Vector2(BTN_SIZE, BTN_SIZE)
+		btn.add_theme_stylebox_override("normal", _round_style(false))
+		btn.add_theme_stylebox_override("hover", _round_style(true))
+		btn.add_theme_stylebox_override("pressed", _round_style(true))
+		var sig: Signal = entry[2]
+		btn.pressed.connect(func():
+			sig.emit()
+			_toggle_drawer())
+		_drawer.add_child(btn)
 
-	# 检测鼠标是否在右边缘 / 面板上（必须在早退之前，否则收起态永远无法再触发）
-	var near_edge: bool = mouse_pos.x > screen_size.x - EDGE_TRIGGER_DISTANCE
-	var on_panel: bool = panel.get_rect().has_point(mouse_pos)
+	_auto_close_timer = Timer.new()
+	_auto_close_timer.one_shot = true
+	_auto_close_timer.wait_time = AUTO_CLOSE_SEC
+	_auto_close_timer.timeout.connect(func():
+		if is_out:
+			_toggle_drawer())
+	add_child(_auto_close_timer)
+	_layout()
 
-	if near_edge or on_panel:
-		_target_x = screen_size.x - panel_width
-		is_out = true
-	else:
-		_target_x = screen_size.x
-		is_out = false
-
-	# 已到目标位则无需滑动
-	var is_at_target: bool = abs(current_x - _target_x) <= 1
-	if is_at_target:
-		return
-
-	# 平滑滑动
-	var direction: float = sign(_target_x - current_x)
-	panel.position.x += direction * PANEL_SLIDE_SPEED * delta
-	panel.position.x = clampf(panel.position.x, screen_size.x - panel_width, screen_size.x)
-
-func _make_aurora_btn_style(path: String) -> StyleBoxTexture:
-	var tex := load(path) as Texture2D
-	var sb := StyleBoxTexture.new()
-	if tex:
-		sb.texture = tex
-		sb.texture_margin_left = 10
-		sb.texture_margin_top = 10
-		sb.texture_margin_right = 10
-		sb.texture_margin_bottom = 10
-		sb.content_margin_left = 8.0
-		sb.content_margin_top = 4.0
-		sb.content_margin_right = 8.0
-		sb.content_margin_bottom = 4.0
+func _round_style(hover: bool) -> StyleBoxFlat:
+	var sb := UiThemeScript.btn_style(hover)
+	sb.set_corner_radius_all(int(BTN_SIZE * 0.5))
+	sb.border_color = UiThemeScript.PINK if hover else UiThemeScript.PRIMARY
+	sb.set_border_width_all(2)
+	sb.content_margin_left = 0
+	sb.content_margin_right = 0
 	return sb
+
+func _layout() -> void:
+	var cy := _screen_size.y * 0.5
+	_knob.position = Vector2(_screen_size.x - BTN_SIZE - 4.0, cy - BTN_SIZE * 0.5)
+	var drawer_h := _drawer.get_child_count() * (BTN_SIZE + DRAWER_GAP)
+	_drawer.position = Vector2(_screen_size.x - BTN_SIZE - 4.0, cy - drawer_h * 0.5)
+
+func _toggle_drawer() -> void:
+	is_out = not is_out
+	_drawer.visible = is_out
+	_knob.modulate = Color(1, 1, 1, 1.0)
+	if is_out:
+		_layout()
+		_auto_close_timer.start()
+	else:
+		_auto_close_timer.stop()
+
+func update(_delta: float, _mouse: Vector2, screen_size: Vector2) -> void:
+	# 兼容旧每帧调用（main._process 喂）；尺寸变化时重排
+	if screen_size != _screen_size:
+		_screen_size = screen_size
+		_layout()

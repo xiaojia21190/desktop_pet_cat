@@ -2,6 +2,9 @@ class_name SmartLineBubble
 extends CanvasLayer
 
 ## SMART 台词气泡：贴猫显示、定时自动隐藏。纯视图，位置由 anchor 喂入。
+## P7 奶油风：StyleBoxFlat 代码绘制，不再依赖 aurora 图片皮
+
+const UiThemeScript = preload("res://components/ui/ui_theme.gd")
 
 const BUBBLE_WIDTH := 320.0
 const BUBBLE_MIN_HEIGHT := 72.0   # 文字未排版前的最小估算高度
@@ -19,26 +22,14 @@ func _ready() -> void:
 	_panel.visible = false
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.custom_minimum_size = Vector2(BUBBLE_WIDTH, 0)
-
-	var bubble_tex := load("res://assets/aurora/bubble.png") as Texture2D
-	if bubble_tex:
-		var sb := StyleBoxTexture.new()
-		sb.texture = bubble_tex
-		sb.texture_margin_left = 16
-		sb.texture_margin_top = 16
-		sb.texture_margin_right = 16
-		sb.texture_margin_bottom = 40
-		sb.content_margin_left = 16.0
-		sb.content_margin_top = 12.0
-		sb.content_margin_right = 16.0
-		sb.content_margin_bottom = 44.0
-		_panel.add_theme_stylebox_override("panel", sb)
+	_panel.add_theme_stylebox_override("panel", UiThemeScript.bubble_style())
 	add_child(_panel)
 
 	_label = Label.new()
 	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_label.add_theme_color_override("font_color", Color(0.2, 0.2, 0.25, 1.0))
+	_label.add_theme_font_size_override("font_size", 15)
+	_label.add_theme_color_override("font_color", UiThemeScript.TEXT)
 	_label.custom_minimum_size = Vector2(BUBBLE_WIDTH - 32, 0)
 	_label.max_lines_visible = 4
 	_label.text = ""

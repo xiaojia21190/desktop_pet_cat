@@ -20,6 +20,7 @@ func _run() -> void:
 	_test_save_and_roll()
 	_test_summary()
 	_test_save_manager_section()
+	_test_quest_bond_gain()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -222,6 +223,18 @@ func _test_save_manager_section() -> void:
 	var err: int = sm._write_config(data)
 	_assert_equal(err, 0, "write_config_ok")
 	sm.queue_free()
+
+func _test_quest_bond_gain() -> void:
+	# quest_reward 增益类型：显式 amount 直加，不受同类递减影响
+	var bond = preload("res://components/bond_system.gd").new()
+	add_child(bond)
+	bond.bond = 0.0
+	var g1: float = bond.add_bond("quest_reward", 15.0)
+	var g2: float = bond.add_bond("quest_reward", 10.0)
+	_assert_true(is_equal_approx(g1, 15.0), "quest_gain_15")
+	_assert_true(is_equal_approx(g2, 10.0), "no_decay_on_quest")
+	_assert_true(is_equal_approx(bond.bond, 25.0), "bond_total_25")
+	bond.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

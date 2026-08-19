@@ -25,6 +25,7 @@ const BOND_GAINS := {
 	"body_touch": 1.5,
 	"pet": 2.0,
 	"play_success": 6.0,
+	"quest_reward": 0.0,   # P6：任务/签到奖励，amount 显式传入（占位键通过白名单校验）
 }
 const REPEAT_DECAY := 0.6      # 连续同类互动每次乘以该系数
 const REPEAT_WINDOW := 120.0   # 窗口期(秒)
@@ -80,9 +81,10 @@ func add_bond(interaction_type: String, amount: float = -1.0, multiplier: float 
 	if _today_bond >= DAILY_BOND_CAP:
 		return 0.0
 	var gain: float = (BOND_GAINS[interaction_type] if amount < 0.0 else amount) * multiplier
-	# 同类连续重复递减
+	# 同类连续重复递减（任务奖励豁免：amount 显式的系统发放不打折）
 	var now := Time.get_unix_time_from_system()
-	if interaction_type == _last_gain_type and now - _last_gain_time < REPEAT_WINDOW:
+	if interaction_type != "quest_reward" \
+			and interaction_type == _last_gain_type and now - _last_gain_time < REPEAT_WINDOW:
 		_decay_factor *= REPEAT_DECAY
 	else:
 		_decay_factor = 1.0

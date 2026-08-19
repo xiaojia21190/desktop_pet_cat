@@ -186,6 +186,7 @@ func _on_visibility_changed():
 		# 面板每次打开刷新品种解锁状态
 		refresh_breed_locks(_get_bond_level())
 		refresh_bond_ui()
+		refresh_quest_ui()
 
 ## P5c：亲密度进度区（等级 + 进度 + 下一级解锁预告），代码构建
 var _bond_level_label: Label
@@ -231,6 +232,56 @@ func refresh_bond_ui() -> void:
 			_bond_level_label.text += "　下一级解锁：品种"
 		elif not unlock_anim.is_empty():
 			_bond_level_label.text += "　下一级解锁：新动作"
+
+## P6：今日任务区块（任务列表 + 连续签到），代码构建 + visible 才刷
+var _quest_title_label: Label
+var _quest_rows: Array = []  # [{label: Label, quest_id: String}]
+var _quest_streak_label: Label
+
+func _ensure_quest_ui() -> void:
+	if _quest_title_label:
+		return
+	var vbox = get_node_or_null("ScrollContainer/VBoxContainer")
+	if not vbox:
+		return
+	_quest_title_label = Label.new()
+	_quest_title_label.name = "QuestTitleLabel"
+	_quest_title_label.text = "今日任务"
+	_quest_title_label.add_theme_color_override("font_color", Color.WHITE)
+	vbox.add_child(_quest_title_label)
+	var main = get_tree().get_root().get_node_or_null("Main")
+	var quest_defs: Dictionary = {}
+	if main and main.daily_quest_service:
+		quest_defs = main.daily_quest_service.QUEST_DEFS
+	for qid in quest_defs:
+		var row = Label.new()
+		row.name = "QuestRow_" + String(qid)
+		row.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+		vbox.add_child(row)
+		_quest_rows.append({"label": row, "quest_id": String(qid)})
+	_quest_streak_label = Label.new()
+	_quest_streak_label.name = "QuestStreakLabel"
+	_quest_streak_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.4))
+	vbox.add_child(_quest_streak_label)
+
+func refresh_quest_ui() -> void:
+	_ensure_quest_ui()
+	if not _quest_title_label:
+		return
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if not main or not main.daily_quest_service:
+		return
+	var summary: Dictionary = main.daily_quest_service.get_today_summary()
+	for row in _quest_rows:
+		var quest_id: String = row["quest_id"]
+		var title := ""
+		var done := false
+		for q in summary.get("quests", []):
+			if String(q.get("id", "")) == quest_id:
+				title = String(q.get("title", ""))
+				done = bool(q.get("completed", false))
+		row["label"].text = ("✓ " if done else "○ ") + title
+	_quest_streak_label.text = "陪伴 · 连续签到 %d 天" % int(summary.get("streak_days", 0))
 
 func _update_timed_hide_remaining():
 	if not timed_hide_remaining_label:

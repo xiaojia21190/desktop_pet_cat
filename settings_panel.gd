@@ -14,6 +14,7 @@ var _tab_column: VBoxContainer
 var _content_area: ScrollContainer
 var _pages: Dictionary = {}          # 页签名 → VBoxContainer
 var _status_label: Label
+var _header_title_label: Label       # P8 佩戴称号显示位
 
 # —— 各页控件引用 ——
 var opacity_slider: HSlider
@@ -64,10 +65,10 @@ func _build_layout() -> void:
 
 	var title_row := HBoxContainer.new()
 	root.add_child(title_row)
-	var title := Label.new()
-	title.text = "🐾 设置"
-	UiThemeScript.tint_label(title, "title")
-	title_row.add_child(title)
+	_header_title_label = Label.new()
+	_header_title_label.text = "🐾 设置"
+	UiThemeScript.tint_label(_header_title_label, "title")
+	title_row.add_child(_header_title_label)
 	title_row.add_child(_spacer())
 	close_button = Button.new()
 	close_button.text = "✕"
@@ -465,11 +466,15 @@ func _get_bond_level() -> int:
 		return main.cat.bond_system.get_level()
 	return 1
 
-# —— 页构建：任务·亲密度（P5/P6 区块承接）——
+# —— 页构建：任务·亲密度（P5/P6 区块承接 + P8 周任务/成就）——
+const AchievementDefsScript = preload("res://components/engagement/achievement_defs.gd")
 var _bond_level_label: Label
 var _bond_progress_bar: ProgressBar
 var _quest_rows: Array = []
 var _quest_streak_label: Label
+var _weekly_rows: Array = []         # P8 本周任务行
+var _badges: Array = []              # P8 成就徽章
+var _title_option: OptionButton      # P8 称号佩戴选择
 
 func _build_page_progress() -> void:
 	var page: VBoxContainer = _pages["任务·亲密度"]
@@ -500,6 +505,39 @@ func _build_page_progress() -> void:
 	UiThemeScript.tint_label(_quest_streak_label, "body")
 	_quest_streak_label.add_theme_color_override("font_color", UiThemeScript.PRIMARY)
 	page.add_child(_quest_streak_label)
+
+	# —— P8 本周任务区 ——
+	var weekly_title := Label.new()
+	weekly_title.text = "本周任务"
+	UiThemeScript.tint_label(weekly_title, "section")
+	page.add_child(weekly_title)
+	if main and main.daily_quest_service:
+		for wid in AchievementDefsScript.WEEKLY_QUESTS:
+			var wrow := Label.new()
+			UiThemeScript.tint_label(wrow, "body")
+			page.add_child(wrow)
+			_weekly_rows.append({"label": wrow, "weekly_id": String(wid)})
+
+	# —— P8 成就徽章墙 ——
+	var ach_title := Label.new()
+	ach_title.text = "成就"
+	UiThemeScript.tint_label(ach_title, "section")
+	page.add_child(ach_title)
+
+	_title_option = _make_option(page)
+	_title_option.item_selected.connect(_on_title_selected)
+
+	var ach_grid := GridContainer.new()
+	ach_grid.columns = 4
+	ach_grid.add_theme_constant_override("h_separation", UiThemeScript.SPACE_S)
+	ach_grid.add_theme_constant_override("v_separation", UiThemeScript.SPACE_S)
+	page.add_child(ach_grid)
+	for aid in AchievementDefsScript.ACHIEVEMENTS:
+		var badge := Label.new()
+		badge.custom_minimum_size = Vector2(150, 30)
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ach_grid.add_child(badge)
+		_badges.append({"label": badge, "achievement_id": String(aid)})
 
 func refresh_bond_ui() -> void:
 	if not _bond_level_label:
@@ -539,6 +577,62 @@ func refresh_quest_ui() -> void:
 				done = bool(q.get("completed", false))
 		row["label"].text = ("✓ " if done else "○ ") + title
 	_quest_streak_label.text = "陪伴 · 连续签到 %d 天" % int(summary.get("streak_days", 0))
+	# —— P8 本周任务 ——
+	var ws: Dictionary = main.daily_quest_service.get_weekly_summary()
+	for row in _weekly_rows:
+		var wid: String = row["weekly_id"]
+		for q in ws.get("quests", []):
+			if String(q.get("id", "")) == wid:
+				var txt := "%s　%d/%d" % [String(q.get("title", "")), int(q.get("count", 0)), int(q.get("target", 0))]
+				row["label"].text = ("✓ " if bool(q.get("done", false)) else "○ ") + txt
+	# —— P8 成就徽章墙 ——
+	var as_: Dictionary = main.daily_quest_service.get_achievements_summary()
+	for badge in _badges:
+		var aid: String = badge["achievement_id"]
+		for a in as_.get("achievements", []):
+			if String(a.get("id", "")) == aid:
+				var label: Label = badge["label"]
+				if bool(a.get("unlocked", false)):
+					label.text = "🏅 " + String(a.get("name", ""))
+					label.add_theme_color_override("font_color", UiThemeScript.PRIMARY)
+				else:
+					label.text = "🔒 %d/%d" % [int(a.get("cur", 0)), int(a.get("need", 0))]
+					label.add_theme_color_override("font_color", UiThemeScript.TEXT_DIM)
+				label.tooltip_text = "%s：%d/%d" % [String(a.get("name", "")), int(a.get("cur", 0)), int(a.get("need", 0))]
+	# —— P8 称号佩戴选择器 ——
+	_rebuild_title_options(main, String(as_.get("equipped_title", "")))
+
+func _rebuild_title_options(main, equipped: String) -> void:
+	_title_option.clear()
+	_title_option.add_item("不佩戴称号")
+	_title_option.set_item_metadata(0, "")
+	var select_idx := 0
+	var idx := 1
+	var as_: Dictionary = main.daily_quest_service.get_achievements_summary()
+	for a in as_.get("achievements", []):
+		if bool(a.get("unlocked", false)) and not String(a.get("title", "")).is_empty():
+			_title_option.add_item(String(a["title"]))
+			_title_option.set_item_metadata(idx, String(a["title"]))
+			if String(a["title"]) == equipped:
+				select_idx = idx
+			idx += 1
+	_title_option.select(select_idx)
+
+func _on_title_selected(index: int) -> void:
+	var main = get_tree().get_root().get_node_or_null("Main")
+	if not main or not main.daily_quest_service:
+		return
+	var title_text := String(_title_option.get_item_metadata(index))
+	main.daily_quest_service.equip_title(title_text)
+	SaveManager.save_data()
+	_apply_title_to_header(title_text)
+
+func _apply_title_to_header(title_text: String) -> void:
+	# P8 佩戴称号显示在面板标题
+	if title_text.is_empty():
+		_header_title_label.text = "🐾 设置"
+	else:
+		_header_title_label.text = "🐾 设置 · " + title_text
 
 # —— 页构建：关于（存档管理承接 save_manager_panel 四功能）——
 var _save_time_label: Label

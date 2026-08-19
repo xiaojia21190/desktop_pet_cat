@@ -94,8 +94,7 @@ const QuickMenuScript = preload("res://quick_action_menu.gd")
 
 func _test_radial_menu() -> void:
 	var menu = QuickMenuScript.new()
-	add_child(menu)
-	await get_tree().process_frame
+	add_child(menu)  # _ready 同步跑 _build_ui，无需 await
 	var actions: Array = menu.get_action_ids()
 	_assert_equal(actions.size(), 6, "six_actions")
 	_assert_true(not actions.has("settings"), "settings_removed")

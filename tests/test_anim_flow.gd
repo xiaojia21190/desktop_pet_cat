@@ -81,6 +81,14 @@ func _test_state_lock() -> void:
 	var s1 := StateScript.new(); s1.name = "One"
 	var s2 := StateScript.new(); s2.name = "Two"
 	sm.add_child(s1); sm.add_child(s2)
+	# 夹具：真实场景状态是 tscn 静态子节点（_ready 时已在树）；
+	# 动态添加不触发重扫——手动注册（照 _ready 的注册逻辑）
+	s1.state_machine = sm
+	s2.state_machine = sm
+	sm.states[s1.name] = s1
+	sm.states[s2.name] = s2
+	s1.process_mode = Node.PROCESS_MODE_DISABLED
+	s2.process_mode = Node.PROCESS_MODE_DISABLED
 	sm.current_state = s1
 	s1.process_mode = Node.PROCESS_MODE_INHERIT
 	# 伪造动画锁：注入 locked provider

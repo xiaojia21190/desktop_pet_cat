@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_event_recorded_signal()
 	_test_checkin()
 	_test_event_quests()
+	_test_window_quests()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -98,6 +99,60 @@ func _test_event_quests() -> void:
 	svc5.notify_event("cat_clicked", {})
 	_assert_true(svc5.is_completed("interact_once"), "click_completes")
 	svc5.queue_free()
+
+func _test_window_quests() -> void:
+	# stand_up：long_focus 提醒开 5 分钟窗，窗口内 idle>=120s 完成
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	var fired: Array = []
+	svc.quest_completed.connect(func(qid, reward): fired.append([qid, reward]))
+	# 提醒事件（smart_decision 带 intent）
+	svc.notify_event("smart_decision", {"intent": "long_focus"})
+	# 窗口内轮询：闲置 2 分钟达标
+	svc.poll_snapshot({"idle_seconds": 130.0})
+	_assert_true(svc.is_completed("stand_up"), "standup_after_reminder")
+	_assert_true(is_equal_approx(float(fired[0][1]), 10.0), "standup_reward_10")
+	svc.queue_free()
+
+	# 窗口过期：提醒后超过 5 分钟才闲置 → 不完成
+	var svc2 = QuestServiceScript.new()
+	add_child(svc2)
+	svc2.notify_event("smart_decision", {"intent": "long_focus"})
+	svc2._window_deadline["stand_up"] = int(Time.get_unix_time_from_system()) - 1
+	svc2.poll_snapshot({"idle_seconds": 300.0})
+	_assert_true(not svc2.is_completed("stand_up"), "expired_window_no_complete")
+	svc2.queue_free()
+
+	# 无提醒直接闲置 → 不完成（防白拿）
+	var svc3 = QuestServiceScript.new()
+	add_child(svc3)
+	svc3.poll_snapshot({"idle_seconds": 600.0})
+	_assert_true(not svc3.is_completed("stand_up"), "no_reminder_no_complete")
+	svc3.queue_free()
+
+	# meal_on_time：meal_hint 提醒开 30 分钟窗，窗口内 idle>=300s 完成
+	var svc4 = QuestServiceScript.new()
+	add_child(svc4)
+	svc4.notify_event("smart_decision", {"intent": "meal_hint"})
+	svc4.poll_snapshot({"idle_seconds": 320.0})
+	_assert_true(svc4.is_completed("meal_on_time"), "meal_after_reminder")
+	svc4.queue_free()
+
+	# 窗口内但闲置不够 → 不完成
+	var svc5 = QuestServiceScript.new()
+	add_child(svc5)
+	svc5.notify_event("smart_decision", {"intent": "meal_hint"})
+	svc5.poll_snapshot({"idle_seconds": 60.0})
+	_assert_true(not svc5.is_completed("meal_on_time"), "insufficient_idle_no_complete")
+	svc5.queue_free()
+
+	# 其他 intent 不开窗
+	var svc6 = QuestServiceScript.new()
+	add_child(svc6)
+	svc6.notify_event("smart_decision", {"intent": "weather_smalltalk"})
+	svc6.poll_snapshot({"idle_seconds": 600.0})
+	_assert_true(not svc6.is_completed("stand_up"), "other_intent_no_window")
+	svc6.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

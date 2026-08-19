@@ -24,6 +24,13 @@ const QUEST_DEFS := {
 ## 互动类事件 → interact_once
 const INTERACT_EVENTS := ["item_used", "petting_started", "cat_clicked"]
 
+## 提醒→响应窗口：intent → [任务id, 窗口秒, 需闲置秒]
+const WINDOW_QUESTS := {
+	"long_focus": {"quest": "stand_up", "window": 300.0, "need_idle": 120.0},
+	"meal_hint": {"quest": "meal_on_time", "window": 1800.0, "need_idle": 300.0},
+}
+var _window_deadline: Dictionary = {}  # quest_id -> unix 截止时间
+
 var streak_days: int = 0
 var today_checked_in: bool = false
 var _today_key := ""
@@ -79,12 +86,45 @@ func is_completed(quest_id: String) -> bool:
 
 func notify_event(event_type: String, payload: Dictionary = {}) -> void:
 	## 事件驱动判定（main 连接 context_collector.event_recorded 后自动喂入）
-	if is_completed("focus_session") and is_completed("interact_once"):
+	var all_done := true
+	for qid in QUEST_DEFS:
+		if not is_completed(qid):
+			all_done = false
+			break
+	if all_done:
+		return
+	if event_type == "smart_decision":
+		var intent := String(payload.get("intent", ""))
+		if WINDOW_QUESTS.has(intent):
+			var quest_id: String = WINDOW_QUESTS[intent]["quest"]
+			if not is_completed(quest_id):
+				_window_deadline[quest_id] = int(Time.get_unix_time_from_system() + float(WINDOW_QUESTS[intent]["window"]))
 		return
 	if event_type == "focus_milestone":
 		_complete("focus_session", float(QUEST_DEFS["focus_session"]["reward"]))
 	elif event_type in INTERACT_EVENTS:
 		_complete("interact_once", float(QUEST_DEFS["interact_once"]["reward"]))
+
+func poll_snapshot(snapshot: Dictionary) -> void:
+	## main 每分钟调用：窗口内闲置达标即完成；过期静默清除
+	if _window_deadline.is_empty():
+		return
+	var now := int(Time.get_unix_time_from_system())
+	var idle := float(snapshot.get("idle_seconds", 0.0))
+	var expired_or_done: Array = []
+	for quest_id in _window_deadline.keys():
+		if is_completed(String(quest_id)) or now > int(_window_deadline[quest_id]):
+			expired_or_done.append(quest_id)
+			continue
+		var need := 0.0
+		for intent in WINDOW_QUESTS:
+			if String(WINDOW_QUESTS[intent]["quest"]) == String(quest_id):
+				need = float(WINDOW_QUESTS[intent]["need_idle"])
+		if idle >= need:
+			expired_or_done.append(quest_id)
+			_complete(String(quest_id), float(QUEST_DEFS[quest_id]["reward"]))
+	for quest_id in expired_or_done:
+		_window_deadline.erase(quest_id)
 
 func _complete(quest_id: String, reward: float) -> void:
 	## 任务完成唯一入口：拦截重复、发信号（bond 发放在 main 侧）

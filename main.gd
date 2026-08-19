@@ -46,6 +46,7 @@ const ITEM_FOOD_SCENE = preload("res://item_food.tscn")
 const FIRST_GUIDE_SCRIPT := preload("res://components/engagement/first_guide_controller.gd")
 var first_guide_controller  # 首次引导状态机（P5c）
 const DAILY_QUEST_SCRIPT := preload("res://components/engagement/daily_quest_service.gd")
+const OFFLINE_SETTLEMENT_SCRIPT := preload("res://components/engagement/offline_settlement.gd")
 var daily_quest_service  # P6：每日任务/隐式签到
 var _quest_poll_timer: float = 0.0  # 分钟级快照轮询
 @warning_ignore("shadowed_global_identifier")
@@ -125,7 +126,9 @@ func _ready():
 	_setup_first_guide(settings)
 	_setup_daily_quests(data)
 	_setup_quick_action_menu()
-	_record_smart_event("session_resume")
+	var skip_resume := _apply_offline_settlement(meta, settings)
+	if not skip_resume:
+		_record_smart_event("session_resume")
 	_setup_tray()
 	passthrough_manager = PassthroughManager.new()
 	add_child(passthrough_manager)
@@ -631,6 +634,30 @@ func _quest_line(quest_id: String) -> String:
 		"interact_once":
 			return "哼，勉强算你有良心。"
 	return "做得不错。"
+
+func _apply_offline_settlement(meta: Dictionary, settings: Dictionary) -> bool:
+	## P9：读档后一次性正向结算。返回 true = 已播回归仪式，跳过 session_resume
+	var saved_at := int(meta.get("saved_at", 0))
+	var elapsed := 0
+	if saved_at > 0:
+		elapsed = int(Time.get_unix_time_from_system()) - saved_at
+	var energy_now := 80.0
+	if cat and cat.behavior_system:
+		energy_now = cat.behavior_system.energy
+	var personality := String(settings.get("personality", "tsundere"))
+	var result: Dictionary = OFFLINE_SETTLEMENT_SCRIPT.settle(elapsed, energy_now, personality)
+	var gain := float(result.get("energy_gain", 0.0))
+	if gain > 0.0 and cat and cat.behavior_system:
+		cat.behavior_system.modify_energy(gain)
+	var tier := int(result.get("welcome_tier", 0))
+	var line := String(result.get("line", ""))
+	if tier >= 1 and not line.is_empty():
+		if cat and smart_line_bubble:
+			smart_line_bubble.show_line(line, cat.global_position, _cached_screen_size)
+		if cat and cat.has_method("play_animation"):
+			cat.play_animation("tail_wag")
+		return true
+	return false
 
 func daily_quests_save_data() -> Dictionary:
 	# SaveManager._gather_current_data 经 main provider 读取

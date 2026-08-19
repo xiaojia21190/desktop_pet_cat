@@ -12,10 +12,14 @@ extends CatStateBase
 var _timer: float = 0.0
 var _target_item: Node2D = null
 var _phase := 0  # 0=闻 1=走 2=吃 3=舔嘴
+var _move_dir := Vector2.RIGHT  # P10 平滑方向
+var _speed_ramp := 0.0          # P10 起步渐变
 
 func enter(msg: Dictionary = {}) -> void:
 	_timer = 0.0
 	_phase = 0
+	_move_dir = Vector2.RIGHT
+	_speed_ramp = 0.0
 	if msg.has("item"):
 		_target_item = msg["item"]
 	# 开场:先定睛注意食物(不是直愣愣冲过去)
@@ -39,10 +43,12 @@ func physics_update(delta: float) -> void:
 				_timer = 0.0
 				play_animation("walk")
 			return
-		1:  # 走过去
+		1:  # 走过去（P10：方向 lerp + 起步渐变）
 			if dist_sq > interact_distance_sq:
 				var direction := (item_pos - cat.global_position).normalized()
-				cat.global_position += direction * walk_speed * delta
+				_move_dir = _move_dir.lerp(direction, 0.15).normalized()
+				_speed_ramp = minf(_speed_ramp + delta / 0.3, 1.0)
+				cat.global_position += _move_dir * walk_speed * _speed_ramp * delta
 				face_direction(direction.x)
 				return
 			_phase = 2

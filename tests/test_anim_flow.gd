@@ -16,6 +16,7 @@ func _run() -> void:
 	_test_play_lock()
 	_test_frame_curve()
 	_test_state_lock()
+	_test_move_smooth()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -105,6 +106,31 @@ func _test_state_lock() -> void:
 	sm.notify_anim_unlocked()
 	_assert_equal(String(sm.get_current_state_name()), "Two", "pending_executes")
 	sm.queue_free()
+
+const ChasingStateScript = preload("res://states/cat_chasing_state.gd")
+
+func _test_move_smooth() -> void:
+	# 追逐方向平滑：首帧有向东分量（lerp 生效）且速度渐变（ramp 未满）
+	var cat_node := Node2D.new()
+	cat_node.position = Vector2(500, 500)
+	add_child(cat_node)
+	var sprite := AnimatedSprite2D.new()
+	sprite.name = "AnimatedSprite2D"
+	cat_node.add_child(sprite)
+	var sm := Node.new(); sm.name = "StateMachine"
+	cat_node.add_child(sm)
+	var chase = ChasingStateScript.new()
+	chase.name = "Chasing"
+	sm.add_child(chase)
+	chase.cat = cat_node
+	chase.state_machine = sm
+	chase.enter({})
+	chase.physics_update(1.0 / 60.0)
+	var moved: Vector2 = cat_node.position - Vector2(500, 500)
+	_assert_true(moved.x > 0.0, "chase_moves_east_instant")
+	# 速度渐变：满速 300/60=5px；ramp 首帧 ≈5*0.055≈0.28px，远小于 4.5
+	_assert_true(moved.length() < 4.5, "chase_ramps_up")
+	cat_node.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

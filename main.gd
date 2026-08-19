@@ -550,6 +550,12 @@ func _setup_daily_quests(data: Dictionary) -> void:
 	daily_quest_service.load_from_save(data.get("daily_quests", {}))
 	daily_quest_service.checkin_done.connect(_on_checkin_done)
 	daily_quest_service.quest_completed.connect(_on_quest_completed)
+	# P8：周任务/成就信号 + bond 等级喂入（bond_lv5 成就数据源）
+	daily_quest_service.weekly_quest_completed.connect(_on_weekly_quest_completed)
+	daily_quest_service.achievement_unlocked.connect(_on_achievement_unlocked)
+	if cat and cat.bond_system:
+		cat.bond_system.bond_changed.connect(
+			func(_bond, level): daily_quest_service.notify_bond_level(level))
 	# 事件流总订阅：collector 是 main 与 smart_pet_controller 两个来源的汇点
 	if smart_pet_controller and smart_pet_controller._context_collector:
 		smart_pet_controller._context_collector.event_recorded.connect(
@@ -573,6 +579,32 @@ func _on_quest_completed(quest_id: String, reward: float) -> void:
 func _grant_quest_bond(reward: float) -> void:
 	if cat and cat.bond_system:
 		cat.bond_system.add_bond("quest_reward", reward)
+
+func _on_weekly_quest_completed(quest_id: String, reward: float) -> void:
+	# P8 周任务完成：气泡 + 发奖（与每日任务同链路）
+	var title := "本周约定"
+	var defs: Dictionary = preload("res://components/engagement/achievement_defs.gd").WEEKLY_QUESTS
+	if defs.has(quest_id):
+		title = String(defs[quest_id]["title"])
+	if cat and smart_line_bubble:
+		smart_line_bubble.show_line("🏆 本周完成：%s" % title, cat.global_position, _cached_screen_size)
+	_grant_quest_bond(reward)
+	if settings_panel and settings_panel.visible and settings_panel.has_method("refresh_quest_ui"):
+		settings_panel.refresh_quest_ui()
+
+func _on_achievement_unlocked(achievement_id: String, title_text: String) -> void:
+	# P8 成就解锁：气泡 + bond + 面板刷新
+	var defs: Dictionary = preload("res://components/engagement/achievement_defs.gd").ACHIEVEMENTS
+	var ach_name := String(defs.get(achievement_id, {}).get("name", achievement_id))
+	var reward := float(defs.get(achievement_id, {}).get("reward", 0.0))
+	if cat and smart_line_bubble:
+		var line := "🏆 解锁成就「%s」" % ach_name
+		if not title_text.is_empty():
+			line += "，获得称号「%s」" % title_text
+		smart_line_bubble.show_line(line, cat.global_position, _cached_screen_size)
+	_grant_quest_bond(reward)
+	if settings_panel and settings_panel.visible and settings_panel.has_method("refresh_quest_ui"):
+		settings_panel.refresh_quest_ui()
 
 func _quest_line(quest_id: String) -> String:
 	# 任务完成台词（傲娇基底；性格化润色留给 LLM 轨道）

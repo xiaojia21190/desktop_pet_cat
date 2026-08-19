@@ -13,6 +13,17 @@ const CHECKIN_BASE := 10.0
 const CHECKIN_STEP := 2.0
 const CHECKIN_CAP := 30.0
 
+## 任务定义：id → {title, reward}；判定逻辑在 notify_event/poll_snapshot 内联
+const QUEST_DEFS := {
+	"focus_session": {"title": "专注一刻", "reward": 15.0},
+	"stand_up": {"title": "起来动动", "reward": 10.0},
+	"meal_on_time": {"title": "按时吃饭", "reward": 10.0},
+	"interact_once": {"title": "摸摸我吧", "reward": 8.0},
+}
+
+## 互动类事件 → interact_once
+const INTERACT_EVENTS := ["item_used", "petting_started", "cat_clicked"]
+
 var streak_days: int = 0
 var today_checked_in: bool = false
 var _today_key := ""
@@ -65,6 +76,15 @@ func _checkin_reward(streak: int) -> float:
 
 func is_completed(quest_id: String) -> bool:
 	return bool(_completed.get(quest_id, false))
+
+func notify_event(event_type: String, payload: Dictionary = {}) -> void:
+	## 事件驱动判定（main 连接 context_collector.event_recorded 后自动喂入）
+	if is_completed("focus_session") and is_completed("interact_once"):
+		return
+	if event_type == "focus_milestone":
+		_complete("focus_session", float(QUEST_DEFS["focus_session"]["reward"]))
+	elif event_type in INTERACT_EVENTS:
+		_complete("interact_once", float(QUEST_DEFS["interact_once"]["reward"]))
 
 func _complete(quest_id: String, reward: float) -> void:
 	## 任务完成唯一入口：拦截重复、发信号（bond 发放在 main 侧）

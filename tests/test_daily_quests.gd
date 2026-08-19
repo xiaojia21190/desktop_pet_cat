@@ -15,6 +15,7 @@ func _ready() -> void:
 func _run() -> void:
 	_test_event_recorded_signal()
 	_test_checkin()
+	_test_event_quests()
 	_print_summary()
 	get_tree().quit(0 if _failed == 0 else 1)
 
@@ -54,6 +55,49 @@ func _test_event_recorded_signal() -> void:
 	# payload 带 type/t 元数据键（collector 记录格式），不破坏既有消费方
 	_assert_true(received[0][1].has("t"), "payload_has_timestamp")
 	collector.queue_free()
+
+func _test_event_quests() -> void:
+	# focus_session：focus_milestone 事件完成；focus_failed 不完成
+	var svc = QuestServiceScript.new()
+	add_child(svc)
+	var fired: Array = []
+	svc.quest_completed.connect(func(qid, reward): fired.append([qid, reward]))
+	svc.notify_event("focus_milestone", {})
+	_assert_true(svc.is_completed("focus_session"), "focus_milestone_completes")
+	_assert_equal(fired.size(), 1, "focus_fires_once")
+	_assert_true(is_equal_approx(float(fired[0][1]), 15.0), "focus_reward_15")
+	# 重复事件不重复发
+	svc.notify_event("focus_milestone", {})
+	_assert_equal(fired.size(), 1, "no_double_fire")
+	svc.queue_free()
+
+	var svc2 = QuestServiceScript.new()
+	add_child(svc2)
+	svc2.notify_event("focus_failed", {})
+	_assert_true(not svc2.is_completed("focus_session"), "failure_no_complete")
+	svc2.queue_free()
+
+	# interact_once：item_used / petting_started / cat_clicked 任一完成
+	var svc3 = QuestServiceScript.new()
+	add_child(svc3)
+	var fired3: Array = []
+	svc3.quest_completed.connect(func(qid, reward): fired3.append([qid, reward]))
+	svc3.notify_event("item_used", {"item_type": "food"})
+	_assert_true(svc3.is_completed("interact_once"), "item_used_completes")
+	_assert_true(is_equal_approx(float(fired3[0][1]), 8.0), "interact_reward_8")
+	svc3.queue_free()
+
+	var svc4 = QuestServiceScript.new()
+	add_child(svc4)
+	svc4.notify_event("petting_started", {})
+	_assert_true(svc4.is_completed("interact_once"), "petting_completes")
+	svc4.queue_free()
+
+	var svc5 = QuestServiceScript.new()
+	add_child(svc5)
+	svc5.notify_event("cat_clicked", {})
+	_assert_true(svc5.is_completed("interact_once"), "click_completes")
+	svc5.queue_free()
 
 func _assert_true(cond: bool, name: String) -> void:
 	if cond:

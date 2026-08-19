@@ -47,7 +47,7 @@
 - Create: `tests/test_daily_quests.gd`
 - Create: `tests/test_daily_quests.tscn`
 
-- [ ] **Step 1: 写测试骨架与首批失败用例 tests/test_daily_quests.gd**
+- [x] **Step 1: 写测试骨架与首批失败用例 tests/test_daily_quests.gd**
 
 ```gdscript
 extends Node
@@ -104,7 +104,7 @@ func _print_summary() -> void:
 		print("  FAIL: " + f)
 ```
 
-- [ ] **Step 2: 创建 tests/test_daily_quests.tscn**
+- [x] **Step 2: 创建 tests/test_daily_quests.tscn**
 
 ```text
 [gd_scene load_steps=2 format=3]
@@ -115,12 +115,12 @@ func _print_summary() -> void:
 script = ExtResource("1")
 ```
 
-- [ ] **Step 3: 跑测试确认失败**
+- [x] **Step 3: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（`event_recorded` 信号不存在，脚本解析错误或 signal_fired_once FAIL）
 
-- [ ] **Step 4: context_collector.gd 加信号**
+- [x] **Step 4: context_collector.gd 加信号**
 
 `class_name ContextCollector` 声明区（`extends Node` 下、`const MAX_EVENT_HISTORY` 上）加：
 
@@ -134,17 +134,17 @@ signal event_recorded(event_type: String, payload: Dictionary)
 	event_recorded.emit(event_type, event_payload)
 ```
 
-- [ ] **Step 5: 跑测试通过**
+- [x] **Step 5: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 4  failed: 0`
 
-- [ ] **Step 6: 回归 collector 消费方（smart_modules）**
+- [x] **Step 6: 回归 collector 消费方（smart_modules）**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_smart_modules.tscn`
 Expected: `failed: 0`（新信号零影响）
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add context_collector.gd tests/test_daily_quests.gd tests/test_daily_quests.tscn tests/test_daily_quests.gd.uid 2>/dev/null || git add context_collector.gd tests/test_daily_quests.gd tests/test_daily_quests.tscn
@@ -159,7 +159,7 @@ git commit -m "feat: 事件流信号event_recorded与任务测试骨架"
 - Create: `components/engagement/daily_quest_service.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加签到失败用例（_run 中 `_test_event_recorded_signal()` 后追加调用）**
+- [x] **Step 1: 追加签到失败用例（_run 中 `_test_event_recorded_signal()` 后追加调用）**
 
 ```gdscript
 const QuestServiceScript = preload("res://components/engagement/daily_quest_service.gd")
@@ -188,12 +188,12 @@ func _test_checkin() -> void:
 	svc.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（daily_quest_service.gd 不存在）
 
-- [ ] **Step 3: 实现 components/engagement/daily_quest_service.gd**
+- [x] **Step 3: 实现 components/engagement/daily_quest_service.gd**
 
 ```gdscript
 class_name DailyQuestService
@@ -287,12 +287,12 @@ func _shift_date_key(days: int) -> String:
 	return "%04d%02d%02d" % [d["year"], d["month"], d["day"]]
 ```
 
-- [ ] **Step 4: 跑测试通过**
+- [x] **Step 4: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 13  failed: 0`（4 + 9）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/engagement/daily_quest_service.gd tests/test_daily_quests.gd
@@ -307,7 +307,7 @@ git commit -m "feat: 每日任务服务与隐式签到结算"
 - Modify: `components/engagement/daily_quest_service.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败用例（_run 追加 `_test_event_quests()`）**
+- [x] **Step 1: 追加失败用例（_run 追加 `_test_event_quests()`）**
 
 ```gdscript
 func _test_event_quests() -> void:
@@ -354,12 +354,12 @@ func _test_event_quests() -> void:
 	svc5.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（notify_event 不存在）
 
-- [ ] **Step 3: 实现 notify_event 与任务定义表**
+- [x] **Step 3: 实现 notify_event 与任务定义表**
 
 daily_quest_service.gd 在 `const CHECKIN_CAP` 后加任务定义与事件映射：
 
@@ -385,12 +385,12 @@ func notify_event(event_type: String, payload: Dictionary = {}) -> void:
 		_complete("interact_once", float(QUEST_DEFS["interact_once"]["reward"]))
 ```
 
-- [ ] **Step 4: 跑测试通过**
+- [x] **Step 4: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 23  failed: 0`（13 + 10）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/engagement/daily_quest_service.gd tests/test_daily_quests.gd
@@ -405,7 +405,7 @@ git commit -m "feat: 专注与互动任务事件判定"
 - Modify: `components/engagement/daily_quest_service.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败用例（_run 追加 `_test_window_quests()`）**
+- [x] **Step 1: 追加失败用例（_run 追加 `_test_window_quests()`）**
 
 ```gdscript
 func _test_window_quests() -> void:
@@ -462,12 +462,12 @@ func _test_window_quests() -> void:
 	svc6.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（poll_snapshot / _window_deadline 不存在）
 
-- [ ] **Step 3: 实现窗口机制**
+- [x] **Step 3: 实现窗口机制**
 
 daily_quest_service.gd 加成员与两个方法（notify_event 的 smart_decision 分支 + poll_snapshot）：
 
@@ -525,12 +525,12 @@ func poll_snapshot(snapshot: Dictionary) -> void:
 		_window_deadline.erase(quest_id)
 ```
 
-- [ ] **Step 4: 跑测试通过**
+- [x] **Step 4: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 31  failed: 0`（23 + 8）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/engagement/daily_quest_service.gd tests/test_daily_quests.gd
@@ -545,7 +545,7 @@ git commit -m "feat: 久坐与饭点提醒响应窗口任务"
 - Modify: `components/engagement/daily_quest_service.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败用例（_run 追加 `_test_save_and_roll()` 与 `_test_summary()`）**
+- [x] **Step 1: 追加失败用例（_run 追加 `_test_save_and_roll()` 与 `_test_summary()`）**
 
 ```gdscript
 func _test_save_and_roll() -> void:
@@ -600,12 +600,12 @@ func _test_summary() -> void:
 	svc.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（get_today_summary 不存在；garbage_fallback 断言失败——streak_days 非法字符串 `int("abc")` 转换不报错得 0 走归 1 分支，但 completed 非 Array 时 for 循环可能崩）
 
-- [ ] **Step 3: 加 get_today_summary 并加固 load_from_save**
+- [x] **Step 3: 加 get_today_summary 并加固 load_from_save**
 
 daily_quest_service.gd 加：
 
@@ -633,12 +633,12 @@ load_from_save 开头加固（`_last_checkin_key` 赋值后）：
 
 （同时删除原来未经类型检查的 `for q in saved_completed: _completed[String(q)] = true` 两行。）
 
-- [ ] **Step 4: 跑测试通过**
+- [x] **Step 4: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 41  failed: 0`（31 + 10）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add components/engagement/daily_quest_service.gd tests/test_daily_quests.gd
@@ -653,7 +653,7 @@ git commit -m "feat: 任务存档往返跨天刷新与面板摘要"
 - Modify: `save_manager.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败用例（_run 追加 `_test_save_manager_section()`）**
+- [x] **Step 1: 追加失败用例（_run 追加 `_test_save_manager_section()`）**
 
 ```gdscript
 func _test_save_manager_section() -> void:
@@ -672,12 +672,12 @@ func _test_save_manager_section() -> void:
 	sm.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（default_streak_0 断言失败——daily_quests 区块不存在）
 
-- [ ] **Step 3: save_manager.gd 四点实现**
+- [x] **Step 3: save_manager.gd 四点实现**
 
 1. `_get_default_data`（save_manager.gd:14）`"behavior": {}` 行后加：
 
@@ -723,12 +723,12 @@ Expected: FAIL（default_streak_0 断言失败——daily_quests 区块不存在
 		data["daily_quests"] = main.daily_quests_save_data()
 ```
 
-- [ ] **Step 4: 跑测试通过**
+- [x] **Step 4: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 44  failed: 0`（41 + 3）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add save_manager.gd tests/test_daily_quests.gd
@@ -742,7 +742,7 @@ git commit -m "feat: 存档每日任务区块四点贯通"
 **Files:**
 - Modify: `main.gd`
 
-- [ ] **Step 1: main.gd 声明与挂载**
+- [x] **Step 1: main.gd 声明与挂载**
 
 `const FIRST_GUIDE_SCRIPT` 行（main.gd:47）后加：
 
@@ -821,7 +821,7 @@ func daily_quests_save_data() -> Dictionary:
 	return {}
 ```
 
-- [ ] **Step 2: 点击猫事件埋点**
+- [x] **Step 2: 点击猫事件埋点**
 
 `_on_cat_left_clicked`（main.gd:775）`quick_action_menu.show_at(pos)` 后加一行：
 
@@ -831,7 +831,7 @@ func daily_quests_save_data() -> Dictionary:
 
 （cat_clicked 经 event_recorded 信号喂给任务服务；同时入事件流供未来画像使用。）
 
-- [ ] **Step 3: 分钟级轮询接线**
+- [x] **Step 3: 分钟级轮询接线**
 
 `_process`（main.gd:235）`_check_invite_ignored(delta)` 行后加：
 
@@ -854,12 +854,12 @@ func _poll_daily_quests(delta: float) -> void:
 	daily_quest_service._roll_day()  # 运行中跨天：刷新任务与签到
 ```
 
-- [ ] **Step 4: 冒烟（headless 启动无脚本错误）**
+- [x] **Step 4: 冒烟（headless 启动无脚本错误）**
 
 Run: `timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | head -20`
 Expected: 含 `桌面宠物猫启动成功`、无 SCRIPT ERROR（挂载失败会打 Parse Error / 连接失败）
 
-- [ ] **Step 5: 回归三套核心**
+- [x] **Step 5: 回归三套核心**
 
 ```bash
 timeout 90 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn && \
@@ -868,7 +868,7 @@ timeout 90 "$GODOT" --headless --path . res://tests/test_presence_level.tscn
 ```
 Expected: 三绿
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add main.gd
@@ -884,7 +884,7 @@ git commit -m "feat: 主场景挂载每日任务服务与发奖接线"
 - Modify: `settings_panel.gd`
 - Modify: `tests/test_daily_quests.gd`
 
-- [ ] **Step 1: 追加失败用例（_run 追加 `_test_quest_bond_gain()`）**
+- [x] **Step 1: 追加失败用例（_run 追加 `_test_quest_bond_gain()`）**
 
 ```gdscript
 func _test_quest_bond_gain() -> void:
@@ -900,12 +900,12 @@ func _test_quest_bond_gain() -> void:
 	bond.queue_free()
 ```
 
-- [ ] **Step 2: 跑测试确认失败**
+- [x] **Step 2: 跑测试确认失败**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: FAIL（quest_reward 不在 BOND_GAINS，add_bond 首行拦截返回 0）
 
-- [ ] **Step 3: bond_system.gd 加增益类型（免递减）**
+- [x] **Step 3: bond_system.gd 加增益类型（免递减）**
 
 BOND_GAINS 字典（components/bond_system.gd:21）末尾加一行：
 
@@ -923,12 +923,12 @@ BOND_GAINS 字典（components/bond_system.gd:21）末尾加一行：
 
 （Task 8 用例 `no_decay_on_quest` 正是验证这一豁免。）
 
-- [ ] **Step 4: 跑测试通过**
+- [x] **Step 4: 跑测试通过**
 
 Run: `timeout 60 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn`
 Expected: `passed: 47  failed: 0`（44 + 3）
 
-- [ ] **Step 5: settings_panel.gd 加今日任务区块**
+- [x] **Step 5: settings_panel.gd 加今日任务区块**
 
 `refresh_bond_ui` 函数后加（照抄亲密度区模式）：
 
@@ -990,7 +990,7 @@ func refresh_quest_ui() -> void:
 		refresh_quest_ui()
 ```
 
-- [ ] **Step 6: 面板冒烟 + 回归**
+- [x] **Step 6: 面板冒烟 + 回归**
 
 ```bash
 timeout 20 "$GODOT" --headless --path . res://main.tscn 2>&1 | head -20 && \
@@ -998,7 +998,7 @@ timeout 90 "$GODOT" --headless --path . res://tests/test_daily_quests.tscn
 ```
 Expected: 启动无 SCRIPT ERROR；测试 `failed: 0`
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add components/bond_system.gd settings_panel.gd tests/test_daily_quests.gd
@@ -1014,7 +1014,7 @@ Expected: `failed: 0`
 
 ### Task 9: 全量回归 + MCP 端到端 + 文档收尾
 
-- [ ] **Step 1: 全部 12 套测试**
+- [x] **Step 1: 全部 12 套测试**
 
 ```bash
 for t in test_behavior_system test_focus_session_mode test_sprite_manifest_loader test_objective_system test_activity_classifier test_foreground_app_monitor test_focus_charge_engine test_smart_modules test_bond_system test_presence_level test_first_guide test_daily_quests; do
@@ -1024,7 +1024,7 @@ done
 ```
 Expected: 每套 `failed: 0`（11 套既有断言只增不减：合计 244；test_daily_quests 新增 47）
 
-- [ ] **Step 2: MCP 端到端验收**
+- [x] **Step 2: MCP 端到端验收**
 
 - 备份存档：`cp "$USERPROFILE/AppData/Roaming/Godot/app_userdata/桌面宠物猫/save_data.cfg" /tmp/save_backup.cfg`（路径若不符，用 `SaveManager.SAVE_PATH` 打印确认）
 - 删档启动 → `run_project`：
@@ -1035,11 +1035,11 @@ Expected: 每套 `failed: 0`（11 套既有断言只增不减：合计 244；tes
   - `stop_project` → 重启 → completed 与 streak 保持（读档恢复）
 - 还原存档备份
 
-- [ ] **Step 3: 更新主计划文档**
+- [x] **Step 3: 更新主计划文档**
 
 `docs/plans/2026-08-17-smart-companion-redesign.md` 末尾追加 P6 完成记录（对齐 P5 格式：交付表 + 验证证据 + 数字）
 
-- [ ] **Step 4: Commit 收尾**
+- [x] **Step 4: Commit 收尾**
 
 ```bash
 git add docs/plans/2026-08-17-smart-companion-redesign.md docs/superpowers/plans/2026-08-19-p6-daily-quests.md

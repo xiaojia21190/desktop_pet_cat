@@ -200,3 +200,35 @@
 ### P5 后世界
 
 猫开机即活：档位控制存在感、深夜被关怀、整点闲聊、摸鱼被抓包、久坐被提醒；首次使用即被引导互动，互动喂进亲密度解锁动作与品种；LLM 在场有灵气、不在场模板有性格——「都不太会触发」成为历史。
+
+## P6 完成记录（2026-08-19）「每日任务与隐式签到」
+
+**背景**：设计文档明确「每日任务/签到（下一步再说）」。P6 落地：猫用全自动好习惯任务陪用户建立健康节奏——零打卡、零弹窗、零焦虑（不催不领不挽损）。设计文档：`docs/superpowers/specs/2026-08-19-p6-daily-quests-design.md`，实现计划：`docs/superpowers/plans/2026-08-19-p6-daily-quests.md`。
+
+### 交付（9 提交）
+
+| 改动 | 说明 |
+|---|---|
+| event_recorded 信号 | context_collector.record_event 尾部广播——main 与 smart_pet_controller 两来源事件流总汇点（smart_decision 不经 main，挂接点必须在 collector） |
+| DailyQuestService | 纯逻辑服务（components/engagement/）：隐式签到结算（连续 +1/断签归 1/奖励 min(10+streak×2,30)）+ 4 任务状态机 |
+| 4 任务 | 专注一刻（focus_milestone 事件 +15）/ 起来动动（long_focus 提醒后 5 分钟窗闲置 2 分钟 +10）/ 按时吃饭（meal_hint 后 30 分钟窗闲置 5 分钟 +10）/ 摸摸我吧（任一互动事件 +8） |
+| 提醒→响应窗口 | 收到提醒开时间窗，main 每分钟轮询快照 idle_seconds 达标即完成；过期静默——猫不催，响应了才庆贺 |
+| 存档贯通 | daily_quests 区块四点贯通（today_key/completed/streak_days/last_checkin_key）；窗口状态不落档（重启重等提醒，简单无损） |
+| bond 集成 | quest_reward 增益类型（显式 amount、豁免同类递减）；计入 200 日上限——任务日总奖励 55~73，第二大 bond 来源不冲击互动主体 |
+| 面板区块 | 设置面板「今日任务」4 行（✓/○ 状态）+ 连续签到天数徽标，代码构建 visible 才刷（同亲密度进度条模式） |
+
+### 执行中发现并修复（计划外）
+
+1. **load_from_save 状态残留 bug**（TDD 当场抓获）：测试驱动服务实例复用连续 load 时，上次 load 的 today_key/checked_in 干扰本次跨天结算（连续签到 streak+1 被吞）→ load 前全量重置实例状态
+2. **异常兜底加固**：streak_days 非数值（"abc"）与 completed 非数组（字符串）的类型检查——GDScript int("abc") 得 0 不报错但 `var x: Array = "str"` 直接崩
+3. **窗口轮询遍历安全**：poll_snapshot 收集过期/完成项后统一 erase（遍历字典同时 erase 是未定义行为）
+
+### 验证
+
+- **12 套测试全绿**：behavior 34 / focus_session 28 / manifest 19 / objective 8 / classifier 24 / monitor 10 / charge 8 / smart 44 / bond 29 / presence 32 / first_guide 8 / **daily_quests 42**（合计 286 断言，P6 新增 42）
+- **MCP 端到端真机**：首启签到落档（today_key/streak_days 正确递增）；真实互动触发 interact_once 完成并落档 completed；二次启动同日不重复签到（streak 3→3）、completed 保持；全程零 SCRIPT ERROR；存档 daily_quests 区块 ConfigFile 序列化正确
+- smart_modules 首跑出现过一次 43/44 断言数偶发漏报，复跑两次稳定 44（failed 恒 0，与 P4 manifest flake 同类引擎偶发，与改动无关）
+
+### P6 后世界
+
+开机即签到（连续天数在涨）、完成一次专注/起身响应/按点吃饭/摸摸猫都被猫看见并庆贺，奖励静默喂进亲密度——生活伴侣的日常仪式感闭环。设计边界保持：不催、不领、不挽损，猫是陪伴者不是监工。
